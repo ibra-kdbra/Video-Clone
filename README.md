@@ -1,5 +1,5 @@
 # FundaStream
-This is react based website that is similar to youtube.
+This is a react based website that is similar to youtube.
 
 # Tools:
 -RapidApi for the back-end APIs that i used https://rapidapi.com
@@ -18,11 +18,13 @@ Then run:
 npm run start
 ```
 # Notes:
-This is project is not fully customized to be like youtube or any other streaming site, it just to develop some basic features
+This is project is not fully customized to be like youtube or any other streaming site, it had been developed for some basic features
 
-You can find more on this by reading the RapidApi lists of thousands of helpful API that I recommend, you can find to this site at least 35 or more API, comparing to the 8 API I used here.
+You can find more on this by reading the RapidApi lists of thousands of helpful API that I recommend, you can find to this project-site at least 35 or more API, comparing to the 8 API I used here.
 
-The MUI components need a lot of reading in the docs provided in their site, and you should find the accurate one to use, don't miss if you are using create-reacta-app(legacy) to create vite@latest because the libs are not the same, you can find in array displaying components don't work i.e : 
+The MUI components need a lot of reading in the docs provided in their site, and you should find the accurate one to use, if you are using create-react-app(legacy) OR create vite@latest the libs are not the same(for MUI5), you can find what I am pointing out in Example; 
+
+Array displaying components don't work i.e : 
 
 const categoriers =[
 {name:'coding' , icon :<CodingIcon/>}, // this will not work in vite.js cause  you need to either distructre it in typescript(hard but good) or implement one by one incase you want to map over this array , final solution use create-react-app
