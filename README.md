@@ -1,70 +1,31 @@
-# Getting Started with Create React App
+# FundaStream
+This is react based website that is similar to youtube.
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# Tools:
+-RapidApi for the back-end APIs that i used https://rapidapi.com
 
-## Available Scripts
+-Mui5 components that was very helpful https://mui.com the documention is superb btw
 
-In the project directory, you can run:
+-Custom Css 
 
-### `npm start`
+# Running this project 
+Delete the package-lock.json, try to update the dependencies to latest version to work properly using:
+```
+npm install
+```
+Then run:
+```
+npm run start
+```
+# Notes:
+This is project is not fully customized to be like youtube or any other streaming site, it just to develop some basic features
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+You can find more on this by reading the RapidApi lists of thousands of helpful API that I recommend, you can find to this site at least 35 or more API, comparing to the 8 API I used here.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+The MUI components need a lot of reading in the docs provided in their site, and you should find the accurate one to use, don't miss if you are using create-reacta-app(legacy) to create vite@latest because the libs are not the same, you can find in array displaying components don't work i.e : 
 
-### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+const categoriers =[
+{name:'coding' , icon :<CodingIcon/>}, // this will not work in vite.js cause  you need to either distructre it in typescript(hard but good) or implement one by one incase you want to map over this array , final solution use create-react-app
+{...................................},
+] 
+etc.....
