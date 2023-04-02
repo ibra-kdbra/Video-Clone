@@ -27,7 +27,8 @@ The MUI components need a lot of reading in the docs provided in their site, and
 Array displaying components don't work i.e : 
 
 const categoriers =[
-{name:'coding' , icon :<CodingIcon/>}, // this will not work in vite.js cause  you need to either distructre it in typescript(hard but good) or implement one by one incase you want to map over this array , final solution use create-react-app
-{...................................},
-] 
-etc.....
+{name:'coding' , icon :<CodingIcon/>},]
+
+// this will not work in vite.js, cause you need to either distructre it in typescript(hard but good) or implement one by one, incase you want to map over this array.
+
+**final solution use: create-react-app
