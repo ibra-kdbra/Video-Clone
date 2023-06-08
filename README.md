@@ -29,6 +29,6 @@ Array displaying components don't work i.e :
 const categoriers =[
 {name:'coding' , icon :<CodingIcon/>},]
 
-// this will not work in vite.js, cause you need to either distructre it in typescript(hard but good) or implement one by one, incase you want to map over this array.
+// this will not work in vite.js, cause you need to either distructre it in typescript(two much work) or implement one by one, incase you want to map over this array.
 
 **final solution use: create-react-app
