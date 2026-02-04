@@ -39,3 +39,5 @@ All notable changes to this project will be documented in this file.
 | `8a4ab0c` | Security: Remove .env from version control | `.env` |
 | `54e99b3` | Docs: Sync changelog with recent security and style commits | `CHANGELOG.md` |
 | `61d187f` | Deployment: Add netlify.toml config for Vite | `netlify.toml` |
+| `28044e9` | Docs: Update changelog with Netlify fix | `CHANGELOG.md` |
+| `323d595` | Fix: Robust API key retrieval via Axios interceptors | `src/services/youtubeApi.js` |
