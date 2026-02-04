@@ -1,0 +1,44 @@
+.container {
+  padding: 2rem 1.5rem;
+  
+  @include mobile {
+    padding: 1.5rem 1rem;
+  }
+}
+
+.header {
+  margin-bottom: 2.5rem;
+  
+  h2 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+    
+    @include mobile {
+      font-size: 1.5rem;
+    }
+  }
+}
+
+.searchTerm {
+  color: $primary-color;
+  text-transform: capitalize;
+}
+
+.resultCount {
+  color: $text-secondary;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.errorAlert {
+  background-color: rgba($primary-color, 0.1);
+  border: 1px solid rgba($primary-color, 0.2);
+  color: #ff4d4d;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
