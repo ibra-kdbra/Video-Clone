@@ -2,8 +2,6 @@ import axios from 'axios';
 
 const BASE_URL = 'https://youtube-v31.p.rapidapi.com';
 
-const getApiKey = () => import.meta.env.VITE_RAPID_API_KEY;
-
 const api = axios.create({
   baseURL: BASE_URL,
   headers: {
@@ -16,13 +14,18 @@ const api = axios.create({
 
 // Use interceptor to ensure API key is present on every request
 api.interceptors.request.use((config) => {
-  const key = getApiKey();
+  const key = import.meta.env.VITE_RAPID_API_KEY;
+  
   if (!key) {
-    console.error('RapidAPI Key is missing! Check your environment variables.');
-    throw new Error('Missing RapidAPI key. Please set VITE_RAPID_API_KEY.');
+    console.error('Environment variable VITE_RAPID_API_KEY is undefined or empty.');
+    // In production, this usually means the variable wasn't available during the build step.
+    return config; 
   }
+
   config.headers['X-RapidAPI-Key'] = key;
   return config;
+}, (error) => {
+  return Promise.reject(error);
 });
 
 export const searchVideos = async (query) => {
