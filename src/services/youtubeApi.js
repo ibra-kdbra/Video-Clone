@@ -2,12 +2,11 @@ import axios from 'axios';
 
 const BASE_URL = 'https://youtube-v31.p.rapidapi.com';
 
-const apiKey = import.meta.env.VITE_RAPID_API_KEY;
+const getApiKey = () => import.meta.env.VITE_RAPID_API_KEY;
 
 const api = axios.create({
   baseURL: BASE_URL,
   headers: {
-    'X-RapidAPI-Key': apiKey,
     'X-RapidAPI-Host': 'youtube-v31.p.rapidapi.com',
   },
   params: {
@@ -15,14 +14,18 @@ const api = axios.create({
   },
 });
 
-const ensureApiKey = () => {
-  if (!apiKey) {
-    throw new Error('Missing RapidAPI key. Set VITE_RAPID_API_KEY in your environment.');
+// Use interceptor to ensure API key is present on every request
+api.interceptors.request.use((config) => {
+  const key = getApiKey();
+  if (!key) {
+    console.error('RapidAPI Key is missing! Check your environment variables.');
+    throw new Error('Missing RapidAPI key. Please set VITE_RAPID_API_KEY.');
   }
-};
+  config.headers['X-RapidAPI-Key'] = key;
+  return config;
+});
 
 export const searchVideos = async (query) => {
-  ensureApiKey();
   const { data } = await api.get('/search', {
     params: {
       part: 'snippet',
@@ -34,7 +37,6 @@ export const searchVideos = async (query) => {
 };
 
 export const getVideoDetails = async (videoId) => {
-  ensureApiKey();
   const { data } = await api.get('/videos', {
     params: {
       part: 'snippet,statistics',
@@ -45,7 +47,6 @@ export const getVideoDetails = async (videoId) => {
 };
 
 export const getRelatedVideos = async (videoId) => {
-  ensureApiKey();
   const { data } = await api.get('/search', {
     params: {
       part: 'snippet',
@@ -57,7 +58,6 @@ export const getRelatedVideos = async (videoId) => {
 };
 
 export const getChannelDetails = async (channelId) => {
-  ensureApiKey();
   const { data } = await api.get('/channels', {
     params: {
       part: 'snippet,statistics',
@@ -68,7 +68,6 @@ export const getChannelDetails = async (channelId) => {
 };
 
 export const getChannelVideos = async (channelId) => {
-  ensureApiKey();
   const { data } = await api.get('/search', {
     params: {
       channelId,
