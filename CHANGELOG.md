@@ -33,4 +33,7 @@ All notable changes to this project will be documented in this file.
 | `f1269b7` | Components: Premium SCSS Modules refactor and MUI removal | `src/components/*`, `src/pages/*` (Feed, Details) |
 | `299564b` | Feature: Watch History implementation and persistent storage | `src/hooks/useWatchHistory.js`, `src/pages/History.*` |
 | `fa9878c` | Style: Remaining page-level SCSS modules for Feed and Search | `src/pages/*.module.scss` |
-| `67dcfb4` | Docs: Updated README and project lifecycle documentation | `README.md`, `diary.md` |
+| `2a168da` | Chore: Update .gitignore for Vite build output | `.gitignore` |
+| `fea8a0b` | Docs: Finalize changelog with commit mapping | `CHANGELOG.md` |
+| `4e264aa` | Docs: Include final styling modules in changelog | `CHANGELOG.md` |
+| `8a4ab0c` | Security: Remove .env from version control | `.env` |
