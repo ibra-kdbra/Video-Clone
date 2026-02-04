@@ -41,3 +41,5 @@ All notable changes to this project will be documented in this file.
 | `61d187f` | Deployment: Add netlify.toml config for Vite | `netlify.toml` |
 | `28044e9` | Docs: Update changelog with Netlify fix | `CHANGELOG.md` |
 | `323d595` | Fix: Robust API key retrieval via Axios interceptors | `src/services/youtubeApi.js` |
+| `187a526` | Fix: Refactor env key access for Netlify resilience | `src/services/youtubeApi.js` |
+| `742cf66` | Layout: Global fixed sidebar with independent scrolling | `src/components/PageLayout.*` |
