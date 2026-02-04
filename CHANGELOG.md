@@ -37,3 +37,5 @@ All notable changes to this project will be documented in this file.
 | `fea8a0b` | Docs: Finalize changelog with commit mapping | `CHANGELOG.md` |
 | `4e264aa` | Docs: Include final styling modules in changelog | `CHANGELOG.md` |
 | `8a4ab0c` | Security: Remove .env from version control | `.env` |
+| `54e99b3` | Docs: Sync changelog with recent security and style commits | `CHANGELOG.md` |
+| `61d187f` | Deployment: Add netlify.toml config for Vite | `netlify.toml` |
