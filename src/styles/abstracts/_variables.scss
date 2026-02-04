@@ -1,0 +1,21 @@
+// Colors
+$primary-color: #ff0000; // YouTube Red
+$bg-dark: #0f0f0f;
+$bg-light: #1e1e1e;
+$text-primary: #ffffff;
+$text-secondary: #aaaaaa;
+$border-color: rgba(255, 255, 255, 0.1);
+$hover-color: rgba(255, 255, 255, 0.1);
+
+// Layout
+$navbar-height: 60px;
+$sidebar-width: 240px;
+$sidebar-collapsed-width: 72px;
+
+// Transitions
+$transition-base: all 0.2s ease-in-out;
+
+// Breakpoints
+$breakpoint-mobile: 600px;
+$breakpoint-tablet: 900px;
+$breakpoint-desktop: 1200px;

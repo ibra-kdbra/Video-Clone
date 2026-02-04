@@ -1,0 +1,30 @@
+@use "../abstracts/variables" as *;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-box: border-box;
+}
+
+body {
+  background-color: $bg-dark;
+  color: $text-primary;
+  font-family: 'Roboto', sans-serif;
+  overflow-x: hidden;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  outline: none;
+}
+
+ul {
+  list-style: none;
+}
