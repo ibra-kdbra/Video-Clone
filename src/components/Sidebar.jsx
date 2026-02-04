@@ -1,36 +1,61 @@
-import React from "react";
-import { Stack } from "@mui/material";
+import { memo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { categories } from '../utils/constants';
+import styles from './Sidebar.module.scss';
 
-import { categories } from "../utils/constants";
+const Sidebar = ({ selectedCategory, setSelectedCategory }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
 
-const Categories = ({ selectedCategory, setSelectedCategory }) => (
-  <Stack
-    direction="row"
-    sx={{
-      overflowY: "auto",
-      height: { sx: "auto", md: "95%" },
-      flexDirection: { md: "column" },
-    }}
-  >
-    {categories.map((category) => (
-      <button
-        className="category-btn"
-        onClick={() => setSelectedCategory(category.name)}
-        style={{
-          background: category.name === selectedCategory && "#FC1503",
-          color: "white",
-        }}
-        key={category.name}
-      >
-        <span style={{ color: category.name === selectedCategory ? "white" : "red", marginRight: "15px" }}>
-          {category.icon}
-        </span>
-        <span style={{ opacity: category.name === selectedCategory ? "1" : "0.8" }}>
-          {category.name}
-        </span>
-      </button>
-    ))}
-  </Stack>
-);
+  const handleCategoryClick = (name) => {
+    if (name === 'History') {
+      navigate('/history');
+    } else {
+      if (location.pathname !== '/') {
+        navigate('/');
+      }
+      setSelectedCategory(name);
+    }
+  };
 
-export default Categories;
+  return (
+    <aside className={styles.sidebar}>
+      <div className={styles.header}>
+        <h3>Explore</h3>
+        <p>Curated categories</p>
+      </div>
+
+      <nav className={styles.navList}>
+        {categories.map((category) => {
+          const isSelected = category.name === 'History' 
+            ? location.pathname === '/history'
+            : (category.name === selectedCategory && location.pathname === '/');
+          
+          const Icon = category.icon;
+          
+          return (
+            <button
+              key={category.name}
+              className={`${styles.navItem} ${isSelected ? styles.active : ''}`}
+              onClick={() => handleCategoryClick(category.name)}
+            >
+              <span className={styles.icon}>
+                {Icon && <Icon fontSize="medium" />}
+              </span>
+              <span className={styles.label}>{category.name}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className={styles.footer}>
+        <p className={styles.copyright}>
+          © 2026 FundaStream Inc.<br />
+          Built with React 19 & Sass
+        </p>
+      </div>
+    </aside>
+  );
+};
+
+export default memo(Sidebar);

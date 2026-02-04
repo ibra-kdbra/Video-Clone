@@ -1,16 +1,28 @@
-import { Stack } from "@mui/material";
-import { Link } from "react-router-dom";
-
-import { logo } from "../utils/constants";
-import { SearchBar } from "./";
+import { Link } from 'react-router-dom';
+import { logo } from '../utils/constants';
+import { SearchBar } from './index.js';
+import styles from './Navbar.module.scss';
 
 const Navbar = () => (
-  <Stack direction="row" alignItems="center" p={2} sx={{ position:  "sticky", background: '#000', top: 0, justifyContent: "space-between" }}>
-    <Link to="/" style={{ display: "flex", alignItems: "center" }}>
-      <img src={logo} alt="logo" height={45} />
-    </Link>
-    <SearchBar />
-  </Stack>
+  <header className={styles.navbar}>
+    <div className={styles.container}>
+      <Link to="/" className={styles.logo}>
+        <img src={logo} alt="FundaStream" />
+        <div className={styles.brand}>
+          <h1>FundaStream</h1>
+          <span>Premium streaming</span>
+        </div>
+      </Link>
+
+      <div className={styles.searchWrapper}>
+        <SearchBar />
+      </div>
+
+      <div className={styles.actions}>
+        {/* Future actions like Upload, User Avatar */}
+      </div>
+    </div>
+  </header>
 );
 
 export default Navbar;

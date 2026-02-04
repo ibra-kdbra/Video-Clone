@@ -1,0 +1,51 @@
+.skeletonGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.skeletonItem {
+  background-color: transparent;
+
+  .thumbnail {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 12px;
+    background: linear-gradient(90deg, $bg-light 25%, color.adjust($bg-light, $lightness: 5%) 50%, $bg-light 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+  }
+
+  .content {
+    padding: 12px 0;
+    display: flex;
+    gap: 12px;
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: $bg-light;
+    }
+
+    .details {
+      flex: 1;
+      
+      .line {
+        background: $bg-light;
+        height: 14px;
+        border-radius: 4px;
+        margin-bottom: 8px;
+        
+        &.title { width: 90%; height: 18px; }
+        &.meta { width: 60%; }
+      }
+    }
+  }
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

@@ -1,0 +1,105 @@
+.sidebar {
+  background-color: $bg-light;
+  border-radius: 12px;
+  border: 1px solid $border-color;
+  padding: 1.25rem;
+  height: max-content;
+  position: sticky;
+  top: calc($navbar-height + 1.5rem);
+
+  @include mobile {
+    position: relative;
+    top: 0;
+    margin-bottom: 1.5rem;
+  }
+
+  .header {
+    margin-bottom: 1rem;
+
+    @include mobile {
+      display: none;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: $text-primary;
+    }
+
+    p {
+      font-size: 0.75rem;
+      color: $text-secondary;
+    }
+  }
+
+  .navList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
+    @include mobile {
+      flex-direction: row;
+      overflow-x: auto;
+      @include hide-scrollbar;
+      padding-bottom: 0.5rem;
+    }
+  }
+
+  .navItem {
+    width: 100%;
+    @include flex-center;
+    justify-content: flex-start;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    transition: $transition-base;
+    color: $text-secondary;
+
+    @include mobile {
+      flex-shrink: 0;
+      width: auto;
+      min-width: 140px;
+    }
+
+    &:hover {
+      background-color: $hover-color;
+      color: $text-primary;
+    }
+
+    &.active {
+      background-color: rgba($primary-color, 0.1);
+      color: $primary-color;
+
+      .icon {
+        color: $primary-color;
+      }
+    }
+
+    .icon {
+      display: flex;
+      font-size: 1.25rem;
+      transition: $transition-base;
+    }
+
+    .label {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+  }
+
+  .footer {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid $border-color;
+
+    @include mobile {
+      display: none;
+    }
+
+    .copyright {
+      font-size: 0.7rem;
+      color: rgba($text-secondary, 0.5);
+      line-height: 1.5;
+    }
+  }
+}

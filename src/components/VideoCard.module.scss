@@ -1,0 +1,121 @@
+.card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: transparent;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px;
+  overflow: hidden;
+
+  &:hover {
+    .thumbnailWrapper img {
+      transform: scale(1.05);
+    }
+  }
+
+  .thumbnailWrapper {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    background-color: $bg-light;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s ease;
+    }
+
+    .timestamp {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+  }
+
+  .content {
+    padding: 12px 0;
+    display: flex;
+    gap: 12px;
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background-color: $bg-light;
+      flex-shrink: 0;
+    }
+
+    .details {
+      flex: 1;
+      min-width: 0;
+
+      .title {
+        color: $text-primary;
+        font-size: 0.95rem;
+        font-weight: 600;
+        line-height: 1.4;
+        margin-bottom: 4px;
+        @include line-clamp(2);
+      }
+
+      .channelName {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: $text-secondary;
+        font-size: 0.85rem;
+        margin-bottom: 2px;
+        transition: color 0.2s ease;
+
+        &:hover {
+          color: $text-primary;
+        }
+
+        .verifiedBadge {
+          display: flex;
+          align-items: center;
+          
+          svg {
+            width: 0.9rem;
+            height: 0.9rem;
+            color: $text-secondary;
+          }
+        }
+      }
+
+      .metadata {
+        font-size: 0.85rem;
+        color: $text-secondary;
+      }
+    }
+  }
+
+  &.rowLayout {
+    flex-direction: row;
+    gap: 12px;
+    align-items: flex-start;
+
+    .thumbnailWrapper {
+      width: 160px;
+      height: 90px;
+      flex-shrink: 0;
+    }
+
+    .content {
+      padding: 0;
+      
+      .avatar {
+        display: none;
+      }
+    }
+  }
+}

@@ -1,0 +1,32 @@
+.container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+
+  &.column {
+    grid-template-columns: 1fr;
+  }
+}
+
+.empty {
+  background-color: $bg-light;
+  border: 1px solid $border-color;
+  border-radius: 12px;
+  padding: 3rem;
+  text-align: center;
+  @include flex-center;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  h4 {
+    color: $text-primary;
+    font-size: 1.25rem;
+  }
+
+  p {
+    color: $text-secondary;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+}

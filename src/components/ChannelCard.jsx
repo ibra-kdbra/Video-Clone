@@ -1,42 +1,35 @@
-import React from 'react';
-import { Box, CardContent, CardMedia, Typography } from '@mui/material';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { demoProfilePicture } from '../utils/constants';
+import styles from './ChannelCard.module.scss';
 
 const ChannelCard = ({ channelDetail, marginTop }) => (
-  <Box
-    sx={{
-      boxShadow: 'none',
-      borderRadius: '20px',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      width: { xs: '356px', md: '320px' },
-      height: '326px',
-      margin: 'auto',
-      marginTop,
-    }}
-  >
-    <Link to={`/channel/${channelDetail?.id?.channelId}`}>
-      <CardContent sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', color: '#fff' }}>
-        <CardMedia
-          image={channelDetail?.snippet?.thumbnails?.high?.url || demoProfilePicture}
+  <div className={styles.card} style={{ marginTop }}>
+    <Link to={`/channel/${channelDetail?.id?.channelId || channelDetail?.id || ''}`}>
+      <div className={styles.avatar}>
+        <img
+          src={channelDetail?.snippet?.thumbnails?.high?.url || demoProfilePicture}
           alt={channelDetail?.snippet?.title}
-          sx={{ borderRadius: '50%', height: '180px', width: '180px', mb: 2, border: '1px solid #e3e3e3' }}
         />
-        <Typography variant="h6">
-          {channelDetail?.snippet?.title}{' '}
-          <CheckCircleIcon sx={{ fontSize: '14px', color: 'gray', ml: '5px' }} />
-        </Typography>
+      </div>
+      
+      <div className={styles.info}>
+        <h3>
+          {channelDetail?.snippet?.title}
+          <span className={styles.verifiedBadge}>
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zM10 17l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+            </svg>
+          </span>
+        </h3>
         {channelDetail?.statistics?.subscriberCount && (
-          <Typography sx={{ fontSize: '15px', fontWeight: 500, color: 'gray' }}>
-            {parseInt(channelDetail?.statistics?.subscriberCount).toLocaleString('en-US')} Subscribers
-          </Typography>
+          <p className={styles.subscribers}>
+            {parseInt(channelDetail?.statistics?.subscriberCount).toLocaleString()} Subscribers
+          </p>
         )}
-      </CardContent>
+      </div>
     </Link>
-  </Box>
+  </div>
 );
 
-export default ChannelCard;
+export default memo(ChannelCard);

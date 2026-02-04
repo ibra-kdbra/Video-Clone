@@ -1,0 +1,60 @@
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background-color: $bg-dark;
+  border-bottom: 1px solid $border-color;
+  height: $navbar-height;
+  @include flex-center;
+
+  .container {
+    width: 100%;
+    max-width: 1800px;
+    padding: 0 1.5rem;
+    @include flex-between;
+    gap: 1.5rem;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: $transition-base;
+
+    &:hover {
+      opacity: 0.8;
+    }
+
+    img {
+      height: 38px;
+    }
+
+    .brand {
+      @include mobile {
+        display: none;
+      }
+
+      h1 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        color: $text-primary;
+      }
+
+      span {
+        font-size: 0.7rem;
+        color: $text-secondary;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+    }
+  }
+
+  .searchWrapper {
+    flex: 0 1 600px;
+    
+    @include mobile {
+      flex: 1;
+    }
+  }
+}

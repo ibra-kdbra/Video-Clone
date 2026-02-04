@@ -1,31 +1,62 @@
-import React from 'react'
-import { Link } from "react-router-dom"; 
-import { Typography, Card, CardContent, CardMedia } from "@mui/material";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { memo } from 'react';
+import { Link } from 'react-router-dom';
 
-import { demoThumbnailUrl, demoVideoUrl, demoVideoTitle, demoChannelUrl, demoChannelTitle } from "../utils/constants";
+import {
+  demoChannelTitle,
+  demoChannelUrl,
+  demoThumbnailUrl,
+  demoVideoTitle,
+  demoVideoUrl,
+} from '../utils/constants';
+import styles from './VideoCard.module.scss';
 
-const VideoCard = ({ video: { id: { videoId }, snippet } }) => (
-  <Card sx={{ width: { xs: '100%', sm: '358px', md: "320px", }, boxShadow: "none", borderRadius: 0 }}>
-    <Link to={videoId ? `/video/${videoId}` : `/video/cV2gBU6hKfY` }>
-      <CardMedia image={snippet?.thumbnails?.high?.url || demoThumbnailUrl} alt={snippet?.title} 
-        sx={{ width: { xs: '100%', sm: '358px'}, height: 180 }} 
-      />
-    </Link>
-    <CardContent sx={{ backgroundColor: "#1E1E1E", height: '106px' }}>
-      <Link to={videoId ? `/video/${videoId}` : demoVideoUrl } >
-        <Typography variant="subtitle1" fontWeight="bold" color="#FFF">
-          {snippet?.title.slice(0, 60) || demoVideoTitle.slice(0, 60)}
-        </Typography>
+const VideoCard = ({ video, layout }) => {
+  const { id, snippet = {} } = video || {};
+  
+  // Handle different API response formats: 
+  // /search returns { id: { videoId } }
+  // /videos returns { id: "videoId" }
+  const videoId = typeof id === 'object' ? id?.videoId : id;
+  
+  const publishedDate = snippet?.publishedAt
+    ? new Date(snippet.publishedAt).toLocaleDateString()
+    : null;
+
+  return (
+    <article className={`${styles.card} ${layout === 'column' ? styles.rowLayout : ''}`}>
+      <Link to={videoId ? `/video/${videoId}` : demoVideoUrl} className={styles.thumbnailWrapper}>
+        <img
+          src={snippet?.thumbnails?.high?.url || demoThumbnailUrl}
+          alt={snippet?.title}
+          loading="lazy"
+        />
+        <span className={styles.timestamp}>12:45</span>
       </Link>
-      <Link to={snippet?.channelId ? `/channel/${snippet?.channelId}` : demoChannelUrl} >
-        <Typography variant="subtitle2" color="gray">
-          {snippet?.channelTitle || demoChannelTitle}
-          <CheckCircleIcon sx={{ fontSize: "12px", color: "gray", ml: "5px" }} />
-        </Typography>
-      </Link>
-    </CardContent>
-  </Card>
-);
 
-export default VideoCard
+      <div className={styles.content}>
+        <div className={styles.avatar}>
+          {snippet?.channelTitle?.charAt(0) || 'V'}
+        </div>
+        
+        <div className={styles.details}>
+          <Link to={videoId ? `/video/${videoId}` : demoVideoUrl}>
+            <h3 className={styles.title}>{snippet?.title || demoVideoTitle}</h3>
+          </Link>
+
+          <Link to={snippet?.channelId ? `/channel/${snippet?.channelId}` : demoChannelUrl} className={styles.channelName}>
+            {snippet?.channelTitle || demoChannelTitle}
+            <span className={styles.verifiedBadge}>
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zM10 17l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" /></svg>
+            </span>
+          </Link>
+
+          <div className={styles.metadata}>
+            <span>{publishedDate || 'Just now'}</span>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+};
+
+export default memo(VideoCard);

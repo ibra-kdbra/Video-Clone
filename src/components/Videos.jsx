@@ -1,26 +1,39 @@
-import React from "react";
-import { Stack, Box } from "@mui/material";
+import { memo } from 'react';
+import { ChannelCard, VideoCard } from './index.js';
+import styles from './Videos.module.scss';
 
-import { ChannelCard, Loader, VideoCard } from "./";
+const Videos = ({
+  videos = [],
+  direction,
+  emptyLabel = 'No videos found yet.',
+  emptyDescription,
+}) => {
+  if (!videos.length) {
+    return (
+      <div className={styles.empty}>
+        <h4>{emptyLabel}</h4>
+        {emptyDescription && <p>{emptyDescription}</p>}
+      </div>
+    );
+  }
 
-const Videos = ({ videos, direction }) => {
-  if (!videos?.length) return <Loader />;
+  const isColumn = direction === 'column';
+
   return (
-    <Stack
-      direction={direction || "row"}
-      flexWrap="wrap"
-      justifyContent="start"
-      alignItems="start"
-      gap={2}
-    >
-      {videos.map((item, idx) => (
-        <Box key={idx}>
-          {item.id.videoId && <VideoCard video={item} />}
-          {item.id.channelId && <ChannelCard channelDetail={item} />}
-        </Box>
-      ))}
-    </Stack>
+    <div className={`${styles.container} ${isColumn ? styles.column : ''}`}>
+      {videos.map((item, idx) => {
+        const isVideo = item?.id?.videoId || item?.kind === 'youtube#video';
+        const isChannel = item?.id?.channelId || item?.kind === 'youtube#channel';
+
+        return (
+          <div key={item?.id?.videoId || item?.id?.channelId || (typeof item?.id === 'string' ? item.id : idx)}>
+            {isVideo && <VideoCard video={item} layout={direction} />}
+            {isChannel && <ChannelCard channelDetail={item} />}
+          </div>
+        );
+      })}
+    </div>
   );
 };
 
-export default Videos;
+export default memo(Videos);
