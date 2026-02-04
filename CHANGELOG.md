@@ -28,3 +28,8 @@ All notable changes to this project will be documented in this file.
 ## Commits
 | Commit | Description | Files |
 | :--- | :--- | :--- |
+| `192feb7` | Infrastructure: Vite 5, React 19, and directory refactor | `vite.config.js`, `index.html`, `package.json`, `src/app/*` |
+| `1853701` | Core: SCSS 7-1 setup, modern API services, and JSX constants | `src/styles/*`, `src/services/*`, `src/utils/constants.jsx` |
+| `f1269b7` | Components: Premium SCSS Modules refactor and MUI removal | `src/components/*`, `src/pages/*` (Feed, Details) |
+| `299564b` | Feature: Watch History implementation and persistent storage | `src/hooks/useWatchHistory.js`, `src/pages/History.*` |
+| `67dcfb4` | Docs: Updated README and project lifecycle documentation | `README.md`, `diary.md` |
