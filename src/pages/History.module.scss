@@ -1,0 +1,85 @@
+.container {
+  padding: 2.5rem 1.5rem;
+  
+  @include mobile {
+    padding: 1.5rem 1rem;
+  }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3rem;
+  
+  @include mobile {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.5rem;
+  }
+
+  h2 {
+    font-size: 2.25rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    
+    @include mobile {
+      font-size: 1.75rem;
+    }
+  }
+
+  p {
+    color: $text-secondary;
+    font-size: 1rem;
+  }
+}
+
+.clearBtn {
+  background-color: rgba($primary-color, 0.1);
+  color: $primary-color;
+  padding: 0.75rem 1.5rem;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: $transition-base;
+  border: 1px solid rgba($primary-color, 0.1);
+
+  &:hover {
+    background-color: rgba($primary-color, 0.2);
+    transform: translateY(-2px);
+  }
+
+  @include mobile {
+    width: 100%;
+  }
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 6rem 2rem;
+  background-color: $bg-light;
+  border-radius: 20px;
+  border: 1px solid $border-color;
+  
+  .emptyIcon {
+    font-size: 4rem;
+    margin-bottom: 2rem;
+    opacity: 0.5;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    color: $text-primary;
+  }
+
+  p {
+    color: $text-secondary;
+    max-width: 400px;
+    line-height: 1.6;
+  }
+}
