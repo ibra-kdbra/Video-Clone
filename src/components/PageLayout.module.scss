@@ -1,0 +1,34 @@
+@use "../styles/abstracts/variables" as *;
+@use "../styles/abstracts/mixins" as *;
+
+.wrapper {
+  display: flex;
+  width: 100%;
+  min-height: calc(100vh - $navbar-height);
+
+  @include mobile {
+    flex-direction: column;
+  }
+}
+
+.sidebarSection {
+  width: $sidebar-width;
+  flex-shrink: 0;
+  border-right: 1px solid $border-color;
+
+  @include mobile {
+    width: 100%;
+    border-right: none;
+  }
+}
+
+.contentSection {
+  flex: 1;
+  min-width: 0;
+  background-color: $bg-dark;
+  padding: 2rem 0;
+
+  @include mobile {
+    padding: 1rem 0;
+  }
+}

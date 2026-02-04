@@ -1,79 +1,51 @@
-.feed {
-  display: flex;
-  gap: 2rem;
-  padding: 2rem 0;
-  max-width: 1800px;
-  margin: 0 auto;
-  width: 100%;
+.hero {
+  background: linear-gradient(135deg, rgba($primary-color, 0.2) 0%, rgba(#22d3ee, 0.1) 100%);
+  border: 1px solid $border-color;
+  border-radius: 16px;
+  padding: 2.5rem;
+  margin-bottom: 2.5rem;
 
   @include mobile {
-    flex-direction: column;
-    padding: 1rem 0;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
   }
 
-  .sidebarSection {
-    width: $sidebar-width;
-    flex-shrink: 0;
-
-    @include mobile {
-      width: 100%;
+  h2 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    
+    span {
+      color: $primary-color;
     }
   }
 
-  .contentSection {
-    flex: 1;
-    min-width: 0;
+  p {
+    color: $text-secondary;
+    font-size: 1rem;
   }
+}
 
-  .hero {
-    background: linear-gradient(135deg, rgba($primary-color, 0.2) 0%, rgba(#22d3ee, 0.1) 100%);
-    border: 1px solid $border-color;
-    border-radius: 16px;
-    padding: 2.5rem;
-    margin-bottom: 2.5rem;
+.errorAlert {
+  background-color: rgba($primary-color, 0.1);
+  border: 1px solid rgba($primary-color, 0.2);
+  color: #ff4d4d;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.95rem;
+}
 
-    @include mobile {
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-    }
-
-    h2 {
-      font-size: 2rem;
-      margin-bottom: 0.5rem;
-      
-      span {
-        color: $primary-color;
-      }
-    }
-
-    p {
-      color: $text-secondary;
-      font-size: 1rem;
-    }
-  }
-
-  .errorAlert {
-    background-color: rgba($primary-color, 0.1);
-    border: 1px solid rgba($primary-color, 0.2);
-    color: #ff4d4d;
-    padding: 1rem 1.5rem;
-    border-radius: 8px;
-    margin-bottom: 2rem;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 0.95rem;
-  }
-
-  .categoryBadge {
-    display: inline-block;
-    background-color: rgba($primary-color, 0.1);
-    color: $primary-color;
-    padding: 0.25rem 0.75rem;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    text-transform: uppercase;
-  }
+.categoryBadge {
+  display: inline-block;
+  background-color: rgba($primary-color, 0.1);
+  color: $primary-color;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
 }

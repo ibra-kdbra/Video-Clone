@@ -1,20 +1,26 @@
 .sidebar {
-  background-color: $bg-light;
-  border-radius: 12px;
-  border: 1px solid $border-color;
-  padding: 1.25rem;
-  height: max-content;
+  background-color: $bg-dark; // Use dark background for consistent feel
+  padding: 1.5rem 0.5rem;
+  height: calc(100vh - $navbar-height);
   position: sticky;
-  top: calc($navbar-height + 1.5rem);
+  top: $navbar-height;
+  overflow-y: auto;
+  transition: width 0.3s ease;
+  @include custom-scrollbar;
 
   @include mobile {
     position: relative;
     top: 0;
-    margin-bottom: 1.5rem;
+    height: auto;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid $border-color;
+    margin-bottom: 1rem;
+    background-color: $bg-light;
   }
 
   .header {
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 0 1rem;
 
     @include mobile {
       display: none;

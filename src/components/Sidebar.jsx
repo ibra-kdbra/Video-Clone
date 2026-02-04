@@ -1,11 +1,13 @@
 import { memo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { categories } from '../utils/constants';
+import { useUI } from '../context/UIContext';
 import styles from './Sidebar.module.scss';
 
-const Sidebar = ({ selectedCategory, setSelectedCategory }) => {
+const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { selectedCategory, setCategory } = useUI();
 
   const handleCategoryClick = (name) => {
     if (name === 'History') {
@@ -14,7 +16,7 @@ const Sidebar = ({ selectedCategory, setSelectedCategory }) => {
       if (location.pathname !== '/') {
         navigate('/');
       }
-      setSelectedCategory(name);
+      setCategory(name);
     }
   };
 

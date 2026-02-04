@@ -20,6 +20,25 @@
   scrollbar-width: none;
 }
 
+@mixin custom-scrollbar($width: 6px, $color: rgba(255, 255, 255, 0.1), $hover-color: rgba(255, 255, 255, 0.2)) {
+  &::-webkit-scrollbar {
+    width: $width;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $color;
+    border-radius: 10px;
+    
+    &:hover {
+      background: $hover-color;
+    }
+  }
+}
+
 @mixin line-clamp($lines) {
   display: -webkit-box;
   -webkit-line-clamp: $lines;
