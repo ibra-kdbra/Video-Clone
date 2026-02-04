@@ -32,4 +32,5 @@ All notable changes to this project will be documented in this file.
 | `1853701` | Core: SCSS 7-1 setup, modern API services, and JSX constants | `src/styles/*`, `src/services/*`, `src/utils/constants.jsx` |
 | `f1269b7` | Components: Premium SCSS Modules refactor and MUI removal | `src/components/*`, `src/pages/*` (Feed, Details) |
 | `299564b` | Feature: Watch History implementation and persistent storage | `src/hooks/useWatchHistory.js`, `src/pages/History.*` |
+| `fa9878c` | Style: Remaining page-level SCSS modules for Feed and Search | `src/pages/*.module.scss` |
 | `67dcfb4` | Docs: Updated README and project lifecycle documentation | `README.md`, `diary.md` |
