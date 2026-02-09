@@ -1,60 +1,82 @@
 .navbar {
-  position: sticky;
+  position: sticky; // Remains sticky
   top: 0;
   z-index: 1000;
-  background-color: $bg-dark;
-  border-bottom: 1px solid $border-color;
+  background-color: transparent; // Make transparent to float over bg
   height: $navbar-height;
-  @include flex-center;
+  display: flex;
+  align-items: center;
+  padding-left: 2rem; // Add padding since we lost the left section
+  
+  // Clean up borders
+  border-bottom: 1px solid rgba(255,255,255,0.05);
 
   .container {
     width: 100%;
-    max-width: 1800px;
-    padding: 0 1.5rem;
-    @include flex-between;
+    height: 100%;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-right: 1.5rem;
     gap: 1.5rem;
   }
 
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+  // Removed .leftSection and .logo styles as they are gone
+
+
+  .iconBtn {
+    width: 40px;
+    height: 40px;
+    @include flex-center;
+    border-radius: 50%;
+    color: $text-primary;
     transition: $transition-base;
 
     &:hover {
-      opacity: 0.8;
-    }
-
-    img {
-      height: 38px;
-    }
-
-    .brand {
-      @include mobile {
-        display: none;
-      }
-
-      h1 {
-        font-size: 1.1rem;
-        font-weight: 700;
-        letter-spacing: -0.5px;
-        color: $text-primary;
-      }
-
-      span {
-        font-size: 0.7rem;
-        color: $text-secondary;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-      }
+      background-color: $hover-color;
     }
   }
 
   .searchWrapper {
-    flex: 0 1 600px;
+    flex: 1;
+    max-width: 720px;
+    display: flex;
+    justify-content: center;
     
     @include mobile {
       flex: 1;
+      margin-left: 0.5rem;
+    }
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+
+    @include mobile {
+      display: none;
+    }
+  }
+
+  .circleBtn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    @include flex-center;
+    transition: $transition-base;
+    color: $text-primary;
+    background-color: transparent;
+
+    &:hover {
+      background-color: $hover-color;
+    }
+
+    &.userBtn {
+      background-color: $hover-color;
+      color: $primary-color;
     }
   }
 }

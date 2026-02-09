@@ -1,13 +1,13 @@
 import { memo } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { categories } from '../utils/constants';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { categories, logo, MenuIcon } from '../utils/constants';
 import { useUI } from '../context/UIContext';
 import styles from './Sidebar.module.scss';
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { selectedCategory, setCategory } = useUI();
+  const { selectedCategory, setCategory, sidebarOpen, toggleSidebar } = useUI();
 
   const handleCategoryClick = (name) => {
     if (name === 'History') {
@@ -21,13 +21,23 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className={styles.sidebar}>
+    <aside className={`${styles.sidebar} ${!sidebarOpen ? styles.collapsed : ''}`}>
       <div className={styles.header}>
-        <h3>Explore</h3>
-        <p>Curated categories</p>
+        <button className={styles.menuBtn} onClick={toggleSidebar}>
+          <MenuIcon />
+        </button>
+        <Link to="/" className={styles.logo}>
+          <div className={styles.logoIcon}>
+            {logo}
+          </div>
+          <div className={styles.brand}>
+            <h1>FundaStream</h1>
+          </div>
+        </Link>
       </div>
 
       <nav className={styles.navList}>
+
         {categories.map((category) => {
           const isSelected = category.name === 'History' 
             ? location.pathname === '/history'

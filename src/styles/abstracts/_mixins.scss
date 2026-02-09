@@ -52,6 +52,21 @@
   }
 }
 
+@mixin glass($bg: rgba(255, 255, 255, 0.03), $blur: 12px) {
+  background: $bg;
+  backdrop-filter: blur($blur);
+  -webkit-backdrop-filter: blur($blur);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+@mixin text-gradient {
+  background: $accent-gradient;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 @mixin tablet {
   @media (max-width: #{$breakpoint-tablet}) {
     @content;

@@ -1,0 +1,51 @@
+// src/styles/layout/_main.scss
+@use "../abstracts/variables" as *;
+@use "../abstracts/mixins" as *;
+
+.mainAPI-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: $bg-dark;
+  color: $text-primary;
+}
+
+.mainContent-area {
+  flex: 1;
+  margin-left: $sidebar-width;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-width: 0;
+  transition: margin-left 0.25s ease;
+
+  &.sidebar-collapsed {
+    margin-left: $sidebar-collapsed-width;
+  }
+
+  @include mobile {
+    margin-left: 0;
+
+    &.sidebar-collapsed {
+      margin-left: 0;
+    }
+  }
+}
+
+.page-content {
+  flex: 1;
+  padding: 0;
+  
+  // Apply layout container styles here or inside pages
+  // Default centered limited width container
+}
+
+// Global reuse
+.layout-container {
+  max-width: 1800px;
+  margin: 0 auto;
+  padding: 0 2rem;
+
+  @include mobile {
+    padding: 0 1rem;
+  }
+}

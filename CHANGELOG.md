@@ -43,3 +43,4 @@ All notable changes to this project will be documented in this file.
 | `323d595` | Fix: Robust API key retrieval via Axios interceptors | `src/services/youtubeApi.js` |
 | `187a526` | Fix: Refactor env key access for Netlify resilience | `src/services/youtubeApi.js` |
 | `742cf66` | Layout: Global fixed sidebar with independent scrolling | `src/components/PageLayout.*` |
+| `[PENDING]` | UI: Premium SVG logo and enhanced responsive grid scaling | `src/components/*`, `src/utils/constants.jsx` |

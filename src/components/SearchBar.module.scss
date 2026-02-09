@@ -1,7 +1,7 @@
 .searchForm {
   display: flex;
   align-items: center;
-  background-color: $bg-light;
+  background-color: rgba(255, 255, 255, 0.03); // Glassy feel
   border: 1px solid $border-color;
   border-radius: 40px;
   padding: 0.2rem 0.5rem 0.2rem 1.2rem;
@@ -11,8 +11,8 @@
 
   &:focus-within {
     border-color: $primary-color;
-    box-shadow: 0 0 0 1px $primary-color;
-    background-color: color.adjust($bg-light, $lightness: 2%);
+    box-shadow: 0 0 0 1px rgba($primary-color, 0.5);
+    background-color: rgba(0, 0, 0, 0.2);
   }
 
   input {

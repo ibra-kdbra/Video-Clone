@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { searchVideos } from '../services/youtubeApi.js';
-import { Videos, VideoSkeleton } from '../components/index.js';
+import { Videos, VideoSkeleton, Hero } from '../components/index.js';
 import { useUI } from '../context/UIContext.jsx';
 import styles from './Feed.module.scss';
 
@@ -20,11 +20,7 @@ const Feed = () => {
 
   return (
     <div className="layout-container">
-      <section className={styles.hero}>
-        <span className={styles.categoryBadge}>{selectedCategory}</span>
-        <h2>Your premium stream, <span>curated for you</span></h2>
-        <p>Explore high-quality content across the {selectedCategory} niche.</p>
-      </section>
+      {!isLoading && !isError && <Hero video={videos[0]} />}
 
       {isError && (
         <div className={styles.errorAlert}>
@@ -37,7 +33,7 @@ const Feed = () => {
         <VideoSkeleton count={12} />
       ) : (
         <Videos
-          videos={videos}
+          videos={videos} // Pass all videos, could slice to exclude first if needed
           emptyLabel="No videos in this category yet."
           emptyDescription="Try a different category or check back soon for new uploads."
         />
