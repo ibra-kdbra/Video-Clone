@@ -34,9 +34,8 @@
 .page-content {
   flex: 1;
   padding: 0;
-  
-  // Apply layout container styles here or inside pages
-  // Default centered limited width container
+  overflow-x: hidden; // Prevent horizontal bleed from grid children
+  max-width: 100%; // Constrain to parent
 }
 
 // Global reuse

@@ -23,13 +23,22 @@ export const NotificationsIcon = () => <svg width="20" height="20" viewBox="0 0 
 export const UserIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>;
 
 export const logo = (
-  <svg width="34" height="34" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="32" height="32" rx="10" fill="url(#logoGradient)"/>
-    <path d="M21 16L13.5 20.3301L13.5 11.6699L21 16Z" fill="white"/>
+  <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+    {/* Outer shape — rounded hexagonal shield */}
+    <path d="M17 1L30.5 8.75V24.25L17 32L3.5 24.25V8.75L17 1Z" fill="url(#logoShield)" stroke="url(#logoStroke)" strokeWidth="0.5"/>
+    {/* Abstract streaming waves — three arcs radiating outward */}
+    <path d="M14 21V13L22 17L14 21Z" fill="white" fillOpacity="0.95"/>
+    {/* Signal rings */}
+    <path d="M22.5 11.5C24.5 13.5 24.5 20.5 22.5 22.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.5" fill="none"/>
+    <path d="M25 9C28 12 28 22 25 25" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.25" fill="none"/>
     <defs>
-      <linearGradient id="logoGradient" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-        <stop stop-color="#FF0000"/>
-        <stop offset="1" stop-color="#cc0000"/>
+      <linearGradient id="logoShield" x1="3" y1="1" x2="31" y2="32" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#8b5cf6"/>
+        <stop offset="1" stopColor="#ec4899"/>
+      </linearGradient>
+      <linearGradient id="logoStroke" x1="3" y1="1" x2="31" y2="32" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#a78bfa"/>
+        <stop offset="1" stopColor="#f472b6"/>
       </linearGradient>
     </defs>
   </svg>
