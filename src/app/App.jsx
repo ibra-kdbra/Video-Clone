@@ -7,6 +7,7 @@ import VideoDetail from '../pages/VideoDetail.jsx';
 import ChannelDetail from '../pages/ChannelDetail.jsx';
 import SearchFeed from '../pages/SearchFeed.jsx';
 import History from '../pages/History.jsx';
+import WatchLater from '../pages/WatchLater.jsx';
 import '../styles/layout/_main.scss';
 
 const AppLayout = () => {
@@ -24,6 +25,7 @@ const AppLayout = () => {
               <Route path="/channel/:id" element={<ChannelDetail />} />
               <Route path="/search/:searchTerm" element={<SearchFeed />} />
               <Route path="/history" element={<History />} />
+              <Route path="/watch-later" element={<WatchLater />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>

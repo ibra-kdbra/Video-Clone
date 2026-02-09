@@ -81,3 +81,15 @@ export const getChannelVideos = async (channelId) => {
   });
   return data?.items ?? [];
 };
+
+export const getCommentThreads = async (videoId, maxResults = 20) => {
+  const { data } = await api.get('/commentThreads', {
+    params: {
+      part: 'snippet',
+      videoId,
+      maxResults,
+      order: 'relevance',
+    },
+  });
+  return data?.items ?? [];
+};
