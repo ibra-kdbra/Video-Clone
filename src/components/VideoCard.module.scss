@@ -4,8 +4,9 @@
   flex-direction: column;
   background-color: transparent;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: 16px; // Increased radius for softer look
+  border-radius: 16px;
   overflow: hidden;
+  position: relative;
 
   // Add subtle border for glass effect hint
   border: 1px solid rgba(255, 255, 255, 0.03); 
@@ -46,6 +47,93 @@
       font-size: 0.75rem;
       font-weight: 500;
     }
+
+    .bookmarkBtn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background-color: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      border: none;
+      color: #fff;
+      padding: 6px;
+      border-radius: 50%;
+      cursor: pointer;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.85);
+        transform: scale(1);
+      }
+
+      &.bookmarked {
+        opacity: 1;
+        transform: scale(1);
+        color: $primary-color;
+        background-color: rgba(139, 92, 246, 0.2);
+      }
+    }
+
+    .platformBadge {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      background-color: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      padding: 4px 8px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      z-index: 2;
+
+      svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      &.twitch {
+        color: #9146ff;
+      }
+
+      &.dailymotion {
+        color: #00aaff;
+      }
+    }
+  }
+
+  &:hover .thumbnailWrapper .bookmarkBtn {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .toast {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    z-index: 10;
+    white-space: nowrap;
+    animation: toastIn 0.3s ease;
+    pointer-events: none;
+  }
+
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
   }
 
   .content {

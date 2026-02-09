@@ -17,6 +17,12 @@ const DeveloperModeIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" 
 const BiotechOutlinedIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 2a8 8 0 1 0 8 8A8 8 0 0 0 10 2ZM10 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8Z"></path><path d="M14 10a4 4 0 1 1-4-4 4 4 0 0 1 4 4Z"></path></svg>;
 const OndemandVideoIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>;
 
+const BookmarkOutlineIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path></svg>;
+
+export const BookmarkIcon = ({ filled }) => filled 
+  ? <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path></svg>
+  : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path></svg>;
+
 export const MenuIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>;
 export const UploadIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>;
 export const NotificationsIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>;
@@ -47,6 +53,7 @@ export const logo = (
 export const categories = [
   { name: 'New', icon: HomeIcon },
   { name: 'History', icon: HistoryIcon },
+  { name: 'Watch Later', icon: BookmarkOutlineIcon },
   { name: 'Andrew Huberman', icon: BiotechOutlinedIcon },
   { name: 'Coding', icon: CodeIcon },
   { name: 'ReactJS', icon: CodeIcon },
@@ -66,6 +73,26 @@ export const categories = [
 ];
 
 export const demoThumbnailUrl = 'https://i3.ytimg.com/vi/QmOF0crdyRU/maxresdefault.jpg';
+
+// Platform icons for multi-provider UI
+export const YouTubeIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+  </svg>
+);
+
+export const TwitchIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/>
+  </svg>
+);
+
+export const DailymotionIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M13.41 0v7.46l-.3-.15c-1.04-.52-2.2-.73-3.4-.6-1.92.22-3.57 1.17-4.65 2.6a6.98 6.98 0 0 0-1.17 5.1 6.71 6.71 0 0 0 3.09 4.51c1.07.66 2.23 1 3.49 1 1.32 0 2.4-.39 3.3-1.12.34-.28.63-.58.87-.9v1.7H19V0h-5.59zm-.18 16.07c-.32.47-.76.83-1.3 1.08-.5.24-1.06.35-1.64.32a3.2 3.2 0 0 1-1.57-.48 3.06 3.06 0 0 1-1.13-1.3 3.35 3.35 0 0 1-.2-2.15 3.4 3.4 0 0 1 1.02-1.85c.55-.5 1.23-.79 1.98-.83.76-.05 1.47.17 2.08.62.62.46 1.03 1.1 1.2 1.82.18.72.06 1.45-.27 2.1l-.17.27z"/>
+  </svg>
+);
+
 export const demoChannelUrl = '/channel/@hubermanlab';
 export const demoVideoUrl = '/video/GDa8kZLNhJ4';
 export const demoChannelTitle = 'Andrew Huberman';

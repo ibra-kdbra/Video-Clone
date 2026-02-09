@@ -151,7 +151,7 @@
   }
 
   .footer {
-    margin-top: 1.5rem;
+    margin-top: 1rem;
     padding-top: 1rem;
     border-top: 1px solid $border-color;
 
@@ -163,6 +163,111 @@
       font-size: 0.7rem;
       color: rgba($text-secondary, 0.5);
       line-height: 1.5;
+    }
+  }
+
+  // Platforms section
+  .platforms {
+    padding: 0 1rem;
+    margin-top: 0.5rem;
+    border-top: 1px solid $border-color;
+    padding-top: 1rem;
+
+    .sectionTitle {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: $text-secondary;
+      margin-bottom: 0.75rem;
+      padding-left: 0.5rem;
+    }
+  }
+
+  .platformItem {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.6rem 0.5rem;
+    border-radius: 10px;
+    transition: $transition-base;
+    color: $text-secondary;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    margin-bottom: 0.25rem;
+
+    &:hover {
+      background-color: $hover-color;
+      color: $text-primary;
+    }
+
+    &.active {
+      color: $text-primary;
+    }
+
+    .icon {
+      display: flex;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    .label {
+      font-size: 0.85rem;
+      flex: 1;
+      text-align: left;
+    }
+
+    .toggle {
+      width: 36px;
+      height: 20px;
+      border-radius: 10px;
+      background-color: rgba(255, 255, 255, 0.1);
+      position: relative;
+      transition: background-color 0.25s ease;
+      flex-shrink: 0;
+
+      &.on {
+        background-color: rgba($primary-color, 0.5);
+
+        .toggleDot {
+          transform: translateX(16px);
+          background-color: $primary-color;
+        }
+      }
+
+      .toggleDot {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background-color: $text-secondary;
+        transition: transform 0.25s ease, background-color 0.25s ease;
+      }
+    }
+  }
+
+  // Hide platform labels + toggles when collapsed
+  &.collapsed {
+    .platforms {
+      padding: 0 0.5rem;
+      border-top: none;
+
+      .sectionTitle {
+        display: none;
+      }
+    }
+
+    .platformItem {
+      justify-content: center;
+      padding: 0.6rem;
+
+      .label,
+      .toggle {
+        display: none;
+      }
     }
   }
 }

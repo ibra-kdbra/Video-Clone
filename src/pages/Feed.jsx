@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { searchVideos } from '../services/youtubeApi.js';
+import { multiSearch } from '../services/providers/index.js';
 import { Videos, VideoSkeleton, Hero } from '../components/index.js';
 import { useUI } from '../context/UIContext.jsx';
 import styles from './Feed.module.scss';
 
 const Feed = () => {
-  const { selectedCategory } = useUI();
+  const { selectedCategory, activeProviders } = useUI();
 
   const {
     data: videos = [],
@@ -14,8 +14,8 @@ const Feed = () => {
     isError,
     error,
   } = useQuery({
-    queryKey: ['search', selectedCategory],
-    queryFn: () => searchVideos(selectedCategory),
+    queryKey: ['search', selectedCategory, activeProviders],
+    queryFn: () => multiSearch(selectedCategory, activeProviders),
   });
 
   return (

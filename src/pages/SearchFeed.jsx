@@ -1,12 +1,14 @@
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
-import { searchVideos } from '../services/youtubeApi.js';
+import { multiSearch } from '../services/providers/index.js';
 import { Videos, VideoSkeleton } from '../components/index.js';
+import { useUI } from '../context/UIContext.jsx';
 import styles from './SearchFeed.module.scss';
 
 const SearchFeed = () => {
   const { searchTerm } = useParams();
+  const { activeProviders } = useUI();
 
   const {
     data: videos = [],
@@ -14,8 +16,8 @@ const SearchFeed = () => {
     isError,
     error,
   } = useQuery({
-    queryKey: ['search', searchTerm],
-    queryFn: () => searchVideos(searchTerm),
+    queryKey: ['search', searchTerm, activeProviders],
+    queryFn: () => multiSearch(searchTerm, activeProviders),
     enabled: Boolean(searchTerm),
   });
 

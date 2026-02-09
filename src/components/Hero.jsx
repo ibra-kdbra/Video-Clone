@@ -2,10 +2,19 @@ import styles from './Hero.module.scss';
 import { demoThumbnailUrl } from '../utils/constants';
 
 const Hero = ({ video }) => {
-  // Use the passed video or fallbacks
-  const bgImage = video?.snippet?.thumbnails?.high?.url || demoThumbnailUrl;
-  const title = video?.snippet?.title ? video.snippet.title.slice(0, 30) + (video.snippet.title.length > 30 ? "..." : "") : "Experience StreamVerse";
-  const subtitle = video?.snippet?.description || "Join millions of viewers discovering the premium content universe. Curated just for you.";
+  // Support both normalized (multi-provider) and raw YouTube video shapes
+  const isNormalized = Boolean(video?.provider);
+
+  const bgImage = isNormalized
+    ? (video.thumbnail || demoThumbnailUrl)
+    : (video?.snippet?.thumbnails?.high?.url || demoThumbnailUrl);
+
+  const rawTitle = isNormalized ? video.title : video?.snippet?.title;
+  const title = rawTitle ? rawTitle.slice(0, 30) + (rawTitle.length > 30 ? "..." : "") : "Experience StreamVerse";
+
+  const subtitle = isNormalized
+    ? (video.description || "Join millions of viewers discovering the premium content universe. Curated just for you.")
+    : (video?.snippet?.description || "Join millions of viewers discovering the premium content universe. Curated just for you.");
 
   return (
     <div className={styles.heroContainer}>

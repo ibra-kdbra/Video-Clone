@@ -22,6 +22,16 @@ const Videos = ({
   return (
     <div className={`${styles.container} ${isColumn ? styles.column : ''}`}>
       {videos.map((item, idx) => {
+        // Normalized multi-provider items have a `provider` field
+        if (item?.provider) {
+          return (
+            <div key={`${item.provider}-${item.id}-${idx}`}>
+              <VideoCard video={item} layout={direction} />
+            </div>
+          );
+        }
+
+        // Legacy YouTube API items (Watch Later, History stored as raw)
         const isVideo = item?.id?.videoId || item?.kind === 'youtube#video';
         const isChannel = item?.id?.channelId || item?.kind === 'youtube#channel';
 
