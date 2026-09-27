@@ -13,6 +13,19 @@
   margin: 1rem 2rem;
 }
 
+// Lines up with the grid below it (Videos.module.scss pads the grid by the same amount).
+.sectionTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: $text-primary;
+  margin: 0 0 1rem;
+  padding: 0 2rem;
+
+  @include mobile {
+    padding: 0 1rem;
+  }
+}
+
 .categoryBadge {
   display: inline-block;
   font-size: 0.75rem;

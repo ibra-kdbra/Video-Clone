@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import ReactPlayer from 'react-player';
+// Only the YouTube player: the full package bundles players for a dozen sites.
+import ReactPlayer from 'react-player/youtube';
 import { useQuery } from '@tanstack/react-query';
 
 import { getRelatedVideos, getVideoDetails } from '../services/youtubeApi.js';
@@ -10,6 +11,7 @@ import { useWatchHistory } from '../hooks/useWatchHistory.js';
 import { useWatchLater } from '../hooks/useWatchLater.js';
 import { useLikes } from '../hooks/useLikes.js';
 import { BookmarkIcon } from '../utils/constants.jsx';
+import { formatCount } from '../utils/format.js';
 import styles from './VideoDetail.module.scss';
 
 const VideoDetail = () => {
@@ -43,14 +45,12 @@ const VideoDetail = () => {
     enabled: Boolean(id),
   });
 
+  // Counts as watched after 3 seconds on the page.
   useEffect(() => {
-    if (videoDetail) {
-      const timer = setTimeout(() => {
-        addToHistory(videoDetail);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [videoDetail, id]);
+    if (!videoDetail) return undefined;
+    const timer = setTimeout(() => addToHistory(videoDetail), 3000);
+    return () => clearTimeout(timer);
+  }, [videoDetail, addToHistory]);
 
   if (isVideoLoading) return <Loader label="Preparing streaming experience" />;
 
@@ -68,7 +68,11 @@ const VideoDetail = () => {
   const {
     snippet: { title, channelId, channelTitle, description, publishedAt },
     statistics: { viewCount, likeCount } = {},
+    channel,
   } = videoDetail;
+  const subscribers = formatCount(channel?.subscriberCount);
+  // Like counts can be hidden by the uploader: show the word instead of "NaN".
+  const likes = likeCount !== undefined ? Number(likeCount) + (liked ? 1 : 0) : null;
 
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}/video/${id}`;
@@ -93,7 +97,7 @@ const VideoDetail = () => {
 
   return (
     <div className="layout-container">
-      <main className={styles.videoDetail}>
+      <div className={styles.videoDetail}>
         <div className={styles.playerSection}>
           <div className={styles.videoContainer}>
             <ReactPlayer
@@ -111,30 +115,35 @@ const VideoDetail = () => {
             
             <div className={styles.metaContainer}>
               <div className={styles.channelInfo}>
-                <Link to={`/channel/${channelId}`} className={styles.channelAvatar}>
-                  {channelTitle.charAt(0)}
+                <Link to={`/channel/${channelId}`} className={styles.channelAvatar} aria-label={channelTitle}>
+                  {channel?.thumbnail ? <img src={channel.thumbnail} alt="" width="44" height="44" /> : channelTitle.charAt(0)}
                 </Link>
                 <div className={styles.channelMeta}>
                   <Link to={`/channel/${channelId}`} className={styles.channelName}>
                     {channelTitle}
-                    <span className={styles.verifiedBadge}>
-                      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zM10 17l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" /></svg>
-                    </span>
                   </Link>
-                  <p className={styles.subscriberCount}>1.2M subscribers</p>
+                  {subscribers && <p className={styles.subscriberCount}>{subscribers} subscribers</p>}
                 </div>
-                <button className={styles.subscribeBtn}>
+                {/* YouTube's own subscribe confirmation for this channel. */}
+                <a
+                  href={`https://www.youtube.com/channel/${channelId}?sub_confirmation=1`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.subscribeBtn}
+                >
                   Subscribe
-                </button>
+                </a>
               </div>
 
               <div className={styles.actions}>
                 <button
+                  type="button"
                   className={liked ? styles.liked : ''}
                   onClick={() => toggleLike(id)}
+                  aria-pressed={liked}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
-                  {(parseInt(likeCount) + (liked ? 1 : 0)).toLocaleString()}
+                  {likes !== null ? likes.toLocaleString() : 'Like'}
                 </button>
                 <button
                   className={shareFeedback ? styles.shared : ''}
@@ -160,7 +169,7 @@ const VideoDetail = () => {
 
             <section className={styles.descriptionBox}>
               <div className={styles.stats}>
-                <span>{parseInt(viewCount).toLocaleString()} views</span>
+                {viewCount !== undefined && <span>{Number(viewCount).toLocaleString()} views</span>}
                 <span>{new Date(publishedAt).toLocaleDateString()}</span>
               </div>
               <p className={`${styles.text} ${isDescExpanded ? styles.expanded : ''}`}>{description}</p>
@@ -179,14 +188,14 @@ const VideoDetail = () => {
         </div>
 
         <aside className={styles.suggestionSection}>
-          <h3>Up next</h3>
+          <h2>Up next</h2>
           {isRelatedLoading ? (
             <VideoSkeleton count={6} />
           ) : (
             <Videos videos={relatedVideos} direction="column" />
           )}
         </aside>
-      </main>
+      </div>
     </div>
   );
 };

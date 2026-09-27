@@ -2,6 +2,25 @@
   command = "npm run build"
   publish = "dist"
 
+# The /api/* proxy (netlify/functions/api.mjs) declares its own path, so it runs before the SPA
+# fallback below. Its API keys are environment variables: see .env.example.
+[functions]
+  directory = "netlify/functions"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+
+# Vite fingerprints everything in /assets, so those files never change under the same name.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

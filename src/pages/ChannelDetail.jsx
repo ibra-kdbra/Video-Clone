@@ -39,7 +39,7 @@ const ChannelDetail = () => {
           <Loader label="Tuning into channel..." />
         ) : (
           <>
-            <ChannelCard channelDetail={channelDetail} marginTop="-110px" />
+            <ChannelCard channelDetail={channelDetail} marginTop="-110px" titleAs="h1" />
             
             <div className={styles.statsContainer}>
               {channelDetail?.statistics?.subscriberCount && (
@@ -68,7 +68,7 @@ const ChannelDetail = () => {
         )}
 
         <section className={styles.videoSection}>
-          <h3>Latest Videos</h3>
+          <h2>Latest Videos</h2>
           
           {isChannelError && (
             <div className={styles.errorAlert}>

@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { categories, logo, MenuIcon, YouTubeIcon, TwitchIcon, DailymotionIcon } from '../utils/constants';
 import { useUI } from '../context/UIContext';
@@ -14,7 +14,28 @@ const platformIcons = {
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { selectedCategory, setCategory, sidebarOpen, toggleSidebar, activeProviders, toggleProvider } = useUI();
+  const {
+    selectedCategory,
+    setCategory,
+    sidebarOpen,
+    toggleSidebar,
+    activeProviders,
+    toggleProvider,
+    mobileNavOpen,
+    closeMobileNav,
+  } = useUI();
+
+  // On phones the sidebar is a drawer: it closes on navigation and on Escape.
+  useEffect(() => {
+    closeMobileNav();
+  }, [location.pathname, closeMobileNav]);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return undefined;
+    const onKey = (event) => event.key === 'Escape' && closeMobileNav();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mobileNavOpen, closeMobileNav]);
 
   const handleCategoryClick = (name) => {
     if (name === 'History') {
@@ -27,21 +48,30 @@ const Sidebar = () => {
       }
       setCategory(name);
     }
+    closeMobileNav();
   };
 
   return (
-    <aside className={`${styles.sidebar} ${!sidebarOpen ? styles.collapsed : ''}`}>
+    <>
+    {mobileNavOpen && <div className={styles.backdrop} onClick={closeMobileNav} aria-hidden="true" />}
+    <aside
+      id="app-sidebar"
+      className={`${styles.sidebar} ${!sidebarOpen && !mobileNavOpen ? styles.collapsed : ''} ${mobileNavOpen ? styles.mobileOpen : ''}`}
+    >
       <div className={styles.header}>
-        <button className={styles.menuBtn} onClick={toggleSidebar}>
+        <button
+          type="button"
+          className={styles.menuBtn}
+          onClick={mobileNavOpen ? closeMobileNav : toggleSidebar}
+          aria-label={mobileNavOpen ? 'Close menu' : sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+        >
           <MenuIcon />
         </button>
         <Link to="/" className={styles.logo}>
           <div className={styles.logoIcon}>
             {logo}
           </div>
-          <div className={styles.brand}>
-            <h1>FundaStream</h1>
-          </div>
+          <span className={styles.brand}>FundaStream</span>
         </Link>
       </div>
 
@@ -72,7 +102,7 @@ const Sidebar = () => {
       </nav>
 
       <div className={styles.platforms}>
-        <h4 className={styles.sectionTitle}>Platforms</h4>
+        <p className={styles.sectionTitle} id="platforms-title">Platforms</p>
         {Object.values(PROVIDERS).map((providerId) => {
           const Icon = platformIcons[providerId];
           const isActive = activeProviders.includes(providerId);
@@ -81,6 +111,7 @@ const Sidebar = () => {
               key={providerId}
               className={`${styles.platformItem} ${isActive ? styles.active : ''}`}
               onClick={() => toggleProvider(providerId)}
+              aria-pressed={isActive}
               title={`${isActive ? 'Disable' : 'Enable'} ${PROVIDER_LABELS[providerId]}`}
             >
               <span className={styles.icon}>
@@ -102,6 +133,7 @@ const Sidebar = () => {
         </p>
       </div>
     </aside>
+    </>
   );
 };
 

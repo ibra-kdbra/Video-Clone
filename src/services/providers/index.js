@@ -52,6 +52,9 @@ export const multiSearch = async (query, activeProviders = [PROVIDERS.YOUTUBE]) 
     .filter((r) => r.status === 'fulfilled')
     .map((r) => r.value);
 
+  // If every platform failed (quota used up, offline…), say so instead of showing an empty feed.
+  if (!successful.length && results.length) throw results.find((r) => r.status === 'rejected').reason;
+
   return interleave(successful);
 };
 

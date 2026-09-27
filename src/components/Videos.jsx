@@ -1,17 +1,20 @@
 import { memo } from 'react';
-import { ChannelCard, VideoCard } from './index.js';
+import ChannelCard from './ChannelCard';
+import VideoCard from './VideoCard';
 import styles from './Videos.module.scss';
 
 const Videos = ({
   videos = [],
   direction,
+  // Card titles sit one level below the heading above the grid (h2 when the page title is right above it).
+  titleAs = 'h3',
   emptyLabel = 'No videos found yet.',
   emptyDescription,
 }) => {
   if (!videos.length) {
     return (
       <div className={styles.empty}>
-        <h4>{emptyLabel}</h4>
+        <p className={styles.emptyTitle}>{emptyLabel}</p>
         {emptyDescription && <p>{emptyDescription}</p>}
       </div>
     );
@@ -26,7 +29,7 @@ const Videos = ({
         if (item?.provider) {
           return (
             <div key={`${item.provider}-${item.id}-${idx}`}>
-              <VideoCard video={item} layout={direction} />
+              <VideoCard video={item} layout={direction} titleAs={titleAs} />
             </div>
           );
         }
@@ -37,8 +40,8 @@ const Videos = ({
 
         return (
           <div key={item?.id?.videoId || item?.id?.channelId || (typeof item?.id === 'string' ? item.id : idx)}>
-            {isVideo && <VideoCard video={item} layout={direction} />}
-            {isChannel && <ChannelCard channelDetail={item} />}
+            {isVideo && <VideoCard video={item} layout={direction} titleAs={titleAs} />}
+            {isChannel && <ChannelCard channelDetail={item} titleAs={titleAs} />}
           </div>
         );
       })}

@@ -1,14 +1,18 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
-import { Navbar, Sidebar } from '../components/index.js';
+import { Loader, Navbar, Sidebar } from '../components/index.js';
 import { UIProvider, useUI } from '../context/UIContext.jsx';
-import Feed from '../pages/Feed.jsx';
-import VideoDetail from '../pages/VideoDetail.jsx';
-import ChannelDetail from '../pages/ChannelDetail.jsx';
-import SearchFeed from '../pages/SearchFeed.jsx';
-import History from '../pages/History.jsx';
-import WatchLater from '../pages/WatchLater.jsx';
 import '../styles/layout/_main.scss';
+
+// Each page is its own chunk: the home feed doesn't download the video player, the channel page,
+// or the history and watch-later lists until they're opened.
+const Feed = lazy(() => import('../pages/Feed.jsx'));
+const VideoDetail = lazy(() => import('../pages/VideoDetail.jsx'));
+const ChannelDetail = lazy(() => import('../pages/ChannelDetail.jsx'));
+const SearchFeed = lazy(() => import('../pages/SearchFeed.jsx'));
+const History = lazy(() => import('../pages/History.jsx'));
+const WatchLater = lazy(() => import('../pages/WatchLater.jsx'));
 
 const AppLayout = () => {
   const { sidebarOpen } = useUI();
@@ -16,10 +20,10 @@ const AppLayout = () => {
     <div className="mainAPI-layout">
       <Sidebar />
       <div className={`mainContent-area ${!sidebarOpen ? 'sidebar-collapsed' : ''}`}>
-          <Navbar />
-          <div className="page-content">
+        <Navbar />
+        <main className="page-content">
+          <Suspense fallback={<Loader label="Loading" />}>
             <Routes>
-              {/* PageLayout is redundant for basic structure now, removed for flatter hierarchy */}
               <Route path="/" element={<Feed />} />
               <Route path="/video/:id" element={<VideoDetail />} />
               <Route path="/channel/:id" element={<ChannelDetail />} />
@@ -28,9 +32,10 @@ const AppLayout = () => {
               <Route path="/watch-later" element={<WatchLater />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-          </div>
-        </div>
+          </Suspense>
+        </main>
       </div>
+    </div>
   );
 };
 

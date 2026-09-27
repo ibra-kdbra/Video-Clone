@@ -30,9 +30,11 @@
   flex-direction: column;
   gap: 0.5rem;
 
-  h4 {
+  .emptyTitle {
     color: $text-primary;
     font-size: 1.25rem;
+    font-weight: 700;
+    max-width: none;
   }
 
   p {

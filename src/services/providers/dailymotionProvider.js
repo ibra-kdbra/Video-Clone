@@ -1,12 +1,16 @@
-import axios from 'axios';
+import { formatDuration } from '../../utils/format.js';
 import { PROVIDERS } from './types.js';
 
-// Dailymotion's public data API (no OAuth required for read-only access)
+// Dailymotion's public data API: read-only, no key or OAuth needed, so it's called directly.
 const BASE_URL = 'https://api.dailymotion.com';
 
-const api = axios.create({
-  baseURL: BASE_URL,
-});
+const get = async (path, params) => {
+  const url = new URL(BASE_URL + path);
+  for (const [name, value] of Object.entries(params)) url.searchParams.set(name, value);
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Dailymotion responded with ${response.status}`);
+  return response.json();
+};
 
 const FIELDS = 'id,title,thumbnail_720_url,thumbnail_480_url,owner.screenname,owner.id,created_time,views_total,duration,description';
 
@@ -15,9 +19,7 @@ const FIELDS = 'id,title,thumbnail_720_url,thumbnail_480_url,owner.screenname,ow
  */
 const normalize = (item) => {
   const id = item?.id ?? '';
-  const duration = item?.duration
-    ? `${Math.floor(item.duration / 60)}:${String(item.duration % 60).padStart(2, '0')}`
-    : '';
+  const duration = formatDuration(item?.duration);
 
   return {
     id,
@@ -45,14 +47,7 @@ export const dailymotionProvider = {
    */
   search: async (query) => {
     try {
-      const { data } = await api.get('/videos', {
-        params: {
-          search: query,
-          fields: FIELDS,
-          limit: 20,
-          sort: 'relevance',
-        },
-      });
+      const data = await get('/videos', { search: query, fields: FIELDS, limit: 20, sort: 'relevance' });
       return (data?.list ?? []).map(normalize);
     } catch (err) {
       console.warn('[DailymotionProvider] search failed:', err.message);
@@ -65,9 +60,7 @@ export const dailymotionProvider = {
    */
   getDetails: async (videoId) => {
     try {
-      const { data } = await api.get(`/video/${videoId}`, {
-        params: { fields: FIELDS },
-      });
+      const data = await get(`/video/${encodeURIComponent(videoId)}`, { fields: FIELDS });
       return data ? normalize(data) : null;
     } catch (err) {
       console.warn('[DailymotionProvider] getDetails failed:', err.message);
@@ -80,9 +73,7 @@ export const dailymotionProvider = {
    */
   getRelated: async (videoId) => {
     try {
-      const { data } = await api.get(`/video/${videoId}/related`, {
-        params: { fields: FIELDS, limit: 10 },
-      });
+      const data = await get(`/video/${encodeURIComponent(videoId)}/related`, { fields: FIELDS, limit: 10 });
       return (data?.list ?? []).map(normalize);
     } catch (err) {
       console.warn('[DailymotionProvider] getRelated failed:', err.message);

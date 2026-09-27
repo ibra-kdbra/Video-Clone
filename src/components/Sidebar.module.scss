@@ -15,6 +15,13 @@
 
   @include mobile {
     display: none;
+
+    // Opened from the header's menu button: a drawer over the page.
+    &.mobileOpen {
+      display: flex;
+      width: min(280px, 85vw);
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+    }
   }
 
   // Collapsed state
@@ -65,13 +72,11 @@
       text-decoration: none;
 
       .brand {
-        h1 {
-          font-size: 1.1rem;
-          font-weight: 700;
-          color: $text-primary;
-          text-transform: uppercase;
-          letter-spacing: -0.5px;
-        }
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: $text-primary;
+        text-transform: uppercase;
+        letter-spacing: -0.5px;
       }
 
       .logoIcon {
@@ -152,16 +157,13 @@
 
   .footer {
     margin-top: 1rem;
-    padding-top: 1rem;
+    padding: 1rem 1.5rem;
     border-top: 1px solid $border-color;
-
-    @include mobile {
-      display: none;
-    }
 
     .copyright {
       font-size: 0.7rem;
-      color: rgba($text-secondary, 0.5);
+      // Full-strength secondary text: at half opacity it failed contrast (2.7:1).
+      color: $text-secondary;
       line-height: 1.5;
     }
   }
@@ -269,5 +271,17 @@
         display: none;
       }
     }
+  }
+}
+
+.backdrop {
+  display: none;
+
+  @include mobile {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background: rgba(0, 0, 0, 0.55);
   }
 }

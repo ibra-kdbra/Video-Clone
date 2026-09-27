@@ -1,8 +1,9 @@
 import { searchVideos as ytSearch, getVideoDetails as ytDetails, getRelatedVideos as ytRelated } from '../youtubeApi.js';
+import { formatDuration } from '../../utils/format.js';
 import { PROVIDERS } from './types.js';
 
 /**
- * Normalize a raw YouTube API item (from /search or /videos) into the common shape.
+ * Normalize a YouTube item (from search or videos) into the common shape.
  */
 const normalize = (item) => {
   const snippet = item?.snippet ?? {};
@@ -13,14 +14,15 @@ const normalize = (item) => {
     provider: PROVIDERS.YOUTUBE,
     title: snippet.title ?? '',
     thumbnail: snippet.thumbnails?.high?.url ?? snippet.thumbnails?.medium?.url ?? '',
+    thumbnails: snippet.thumbnails ?? {},
     channelTitle: snippet.channelTitle ?? '',
     channelId: snippet.channelId ?? '',
     publishedAt: snippet.publishedAt ?? '',
     viewCount: item?.statistics?.viewCount ?? '',
-    duration: '',
+    duration: formatDuration(item?.contentDetails?.duration),
     description: snippet.description ?? '',
     playerUrl: `https://www.youtube.com/watch?v=${rawId}`,
-    // Keep original payload so existing components still work
+    // Keep the original payload: Watch Later and History store it.
     _raw: item,
   };
 };
@@ -46,3 +48,5 @@ export const youtubeProvider = {
     return items.map(normalize);
   },
 };
+
+export { normalize as normalizeYouTube };

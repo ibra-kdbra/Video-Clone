@@ -9,7 +9,7 @@ const History = () => {
     <div className={`layout-container ${styles.container}`}>
       <header className={styles.header}>
         <div>
-          <h2>Watch History</h2>
+          <h1>Watch History</h1>
           <p>{history.length} videos previously watched</p>
         </div>
         
@@ -26,11 +26,12 @@ const History = () => {
       {history.length === 0 ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>🕰️</div>
-          <h3>Your history is empty</h3>
+          <h2>Your history is empty</h2>
           <p>Videos you watch will show up here. Start exploring to build your personalized feed.</p>
         </div>
       ) : (
-        <Videos 
+        <Videos
+          titleAs="h2"
           videos={history} 
           emptyLabel="No history yet" 
         />

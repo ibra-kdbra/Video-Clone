@@ -3,15 +3,14 @@ import { Link } from 'react-router-dom';
 
 import {
   demoChannelTitle,
-  demoChannelUrl,
   demoThumbnailUrl,
   demoVideoTitle,
-  demoVideoUrl,
   BookmarkIcon,
   YouTubeIcon,
   TwitchIcon,
   DailymotionIcon,
 } from '../utils/constants';
+import { formatCount, formatDuration, thumbnailSrcSet } from '../utils/format';
 import { useWatchLater } from '../hooks/useWatchLater';
 import styles from './VideoCard.module.scss';
 
@@ -21,109 +20,139 @@ const platformIcons = {
   dailymotion: DailymotionIcon,
 };
 
-const VideoCard = ({ video, layout }) => {
+/** Card widths in the grid (4 → 3 → 2 → 1 across), so the browser picks the right thumbnail. */
+const SIZES = '(min-width: 1400px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw';
+
+/** Everything the card shows, from either a normalized multi-provider item or a raw YouTube one. */
+function readVideo(video) {
+  if (video?.provider) {
+    return {
+      id: video.id,
+      provider: video.provider,
+      title: video.title,
+      thumbnail: video.thumbnail || demoThumbnailUrl,
+      srcSet: thumbnailSrcSet(video.thumbnails),
+      channelTitle: video.channelTitle,
+      channelId: video.channelId,
+      publishedAt: video.publishedAt,
+      viewCount: video.viewCount,
+      duration: video.duration,
+    };
+  }
+  const snippet = video?.snippet ?? {};
+  return {
+    id: typeof video?.id === 'object' ? video.id?.videoId : video?.id,
+    provider: 'youtube',
+    title: snippet.title || demoVideoTitle,
+    thumbnail: snippet.thumbnails?.high?.url || snippet.thumbnails?.medium?.url || demoThumbnailUrl,
+    srcSet: thumbnailSrcSet(snippet.thumbnails),
+    channelTitle: snippet.channelTitle || demoChannelTitle,
+    channelId: snippet.channelId,
+    publishedAt: snippet.publishedAt,
+    viewCount: video?.statistics?.viewCount,
+    duration: formatDuration(video?.contentDetails?.duration),
+  };
+}
+
+const VideoCard = ({ video, layout, titleAs = 'h3' }) => {
+  const Title = titleAs;
   const { toggleWatchLater, isInWatchLater } = useWatchLater();
   const [toast, setToast] = useState(null);
 
-  // Detect whether this is a normalized multi-provider item or a raw YouTube item
-  const isNormalized = Boolean(video?.provider);
+  const v = readVideo(video);
+  const isYouTube = v.provider === 'youtube';
+  const saved = isInWatchLater(v.id);
+  const views = formatCount(v.viewCount);
+  const publishedDate = v.publishedAt ? new Date(v.publishedAt).toLocaleDateString() : null;
+  // YouTube videos open in the app; Twitch and Dailymotion open on their own sites.
+  const href = isYouTube ? `/video/${v.id}` : video?.playerUrl;
+  const PlatformIcon = platformIcons[v.provider];
 
-  const videoId = isNormalized
-    ? video.id
-    : (typeof video?.id === 'object' ? video.id?.videoId : video?.id);
-
-  const snippet = video?.snippet ?? {};
-
-  const title = isNormalized ? video.title : (snippet.title || demoVideoTitle);
-  const thumbnail = isNormalized
-    ? video.thumbnail
-    : (snippet.thumbnails?.high?.url || demoThumbnailUrl);
-  const channelTitle = isNormalized
-    ? video.channelTitle
-    : (snippet.channelTitle || demoChannelTitle);
-  const channelId = isNormalized ? video.channelId : snippet.channelId;
-  const publishedAt = isNormalized ? video.publishedAt : snippet.publishedAt;
-  const provider = isNormalized ? video.provider : 'youtube';
-  const duration = isNormalized ? video.duration : null;
-
-  const saved = isInWatchLater(videoId);
-
-  const publishedDate = publishedAt
-    ? new Date(publishedAt).toLocaleDateString()
-    : null;
-
-  const videoLink = provider === 'youtube'
-    ? (videoId ? `/video/${videoId}` : demoVideoUrl)
-    : (video?.playerUrl ?? demoVideoUrl);
-
-  const isExternal = provider !== 'youtube';
-  const PlatformIcon = platformIcons[provider];
-
-  const handleBookmark = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // Store normalized version for all providers
-    const storableVideo = isNormalized
-      ? video._raw ?? video
-      : video;
-    const added = toggleWatchLater(storableVideo);
+  const handleBookmark = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    // YouTube items are stored raw (the History and Watch Later pages read that shape); the
+    // others keep their normalized form so they still render there.
+    const storable = video?.provider === 'youtube' ? (video._raw ?? video) : video;
+    const added = toggleWatchLater(storable);
     setToast(added ? 'Added to Watch Later' : 'Removed from Watch Later');
     setTimeout(() => setToast(null), 2000);
   };
 
-  const LinkOrAnchor = isExternal
-    ? ({ children, to, className: cls }) => (
-        <a href={to} target="_blank" rel="noopener noreferrer" className={cls}>{children}</a>
-      )
-    : Link;
+  const linkProps = { className: styles.thumbnailWrapper };
+  const thumbnail = (
+    <>
+      <img
+        src={v.thumbnail}
+        srcSet={v.srcSet || undefined}
+        sizes={v.srcSet ? SIZES : undefined}
+        alt=""
+        width="480"
+        height="270"
+        loading="lazy"
+        decoding="async"
+      />
+      {v.duration && <span className={styles.timestamp}>{v.duration}</span>}
+      {!isYouTube && PlatformIcon && (
+        <span className={`${styles.platformBadge} ${styles[v.provider]}`}>
+          <PlatformIcon />
+        </span>
+      )}
+      <button
+        type="button"
+        className={`${styles.bookmarkBtn} ${saved ? styles.bookmarked : ''}`}
+        onClick={handleBookmark}
+        aria-label={saved ? 'Remove from Watch Later' : 'Save to Watch Later'}
+        title={saved ? 'Remove from Watch Later' : 'Save to Watch Later'}
+      >
+        <BookmarkIcon filled={saved} />
+      </button>
+    </>
+  );
+  const heading = <Title className={styles.title}>{v.title}</Title>;
 
   return (
     <article className={`${styles.card} ${layout === 'column' ? styles.rowLayout : ''}`}>
-      <LinkOrAnchor to={videoLink} className={styles.thumbnailWrapper}>
-        <img
-          src={thumbnail}
-          alt={title}
-          loading="lazy"
-        />
-        {duration && <span className={styles.timestamp}>{duration}</span>}
-        {!duration && <span className={styles.timestamp}>12:45</span>}
-        {provider !== 'youtube' && PlatformIcon && (
-          <span className={`${styles.platformBadge} ${styles[provider]}`}>
-            <PlatformIcon />
-          </span>
-        )}
-        <button
-          className={`${styles.bookmarkBtn} ${saved ? styles.bookmarked : ''}`}
-          onClick={handleBookmark}
-          title={saved ? 'Remove from Watch Later' : 'Save to Watch Later'}
-        >
-          <BookmarkIcon filled={saved} />
-        </button>
-      </LinkOrAnchor>
+      {isYouTube ? (
+        <Link to={href} {...linkProps} aria-label={v.title}>
+          {thumbnail}
+        </Link>
+      ) : (
+        <a href={href} target="_blank" rel="noopener noreferrer" {...linkProps} aria-label={v.title}>
+          {thumbnail}
+        </a>
+      )}
 
-      {toast && <div className={styles.toast}>{toast}</div>}
+      {toast && (
+        <div className={styles.toast} role="status">
+          {toast}
+        </div>
+      )}
 
       <div className={styles.content}>
-        <div className={styles.avatar}>
-          {channelTitle?.charAt(0) || 'V'}
+        <div className={styles.avatar} aria-hidden="true">
+          {v.channelTitle?.charAt(0) || 'V'}
         </div>
-        
-        <div className={styles.details}>
-          <LinkOrAnchor to={videoLink}>
-            <h3 className={styles.title}>{title}</h3>
-          </LinkOrAnchor>
 
-          <Link to={channelId ? `/channel/${channelId}` : demoChannelUrl} className={styles.channelName}>
-            {channelTitle}
-            {provider === 'youtube' && (
-              <span className={styles.verifiedBadge}>
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zM10 17l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" /></svg>
-              </span>
-            )}
-          </Link>
+        <div className={styles.details}>
+          {isYouTube ? (
+            <Link to={href}>{heading}</Link>
+          ) : (
+            <a href={href} target="_blank" rel="noopener noreferrer">
+              {heading}
+            </a>
+          )}
+
+          {isYouTube && v.channelId ? (
+            <Link to={`/channel/${v.channelId}`} className={styles.channelName}>
+              {v.channelTitle}
+            </Link>
+          ) : (
+            <span className={styles.channelName}>{v.channelTitle}</span>
+          )}
 
           <div className={styles.metadata}>
-            <span>{publishedDate || 'Just now'}</span>
+            {[views && `${views} views`, publishedDate].filter(Boolean).join(' · ')}
           </div>
         </div>
       </div>

@@ -24,9 +24,9 @@ const SearchFeed = () => {
   return (
     <div className={`layout-container ${styles.container}`}>
       <header className={styles.header}>
-        <h2>
+        <h1>
           Search results for <span className={styles.searchTerm}>{searchTerm}</span>
-        </h2>
+        </h1>
         <p className={styles.resultCount}>{videos.length} videos found</p>
       </header>
 
@@ -41,6 +41,7 @@ const SearchFeed = () => {
         <VideoSkeleton count={12} />
       ) : (
         <Videos
+          titleAs="h2"
           videos={videos}
           emptyLabel="No results matched your search."
           emptyDescription="Try a different keyword or explore a category instead."

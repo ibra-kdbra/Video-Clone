@@ -9,7 +9,7 @@ const WatchLater = () => {
     <div className={`layout-container ${styles.container}`}>
       <header className={styles.header}>
         <div>
-          <h2>Watch Later</h2>
+          <h1>Watch Later</h1>
           <p>{watchLater.length} {watchLater.length === 1 ? 'video' : 'videos'} saved</p>
         </div>
         
@@ -26,11 +26,12 @@ const WatchLater = () => {
       {watchLater.length === 0 ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>🔖</div>
-          <h3>No videos saved yet</h3>
+          <h2>No videos saved yet</h2>
           <p>Tap the bookmark icon on any video to save it for later. Your saved videos will appear here.</p>
         </div>
       ) : (
-        <Videos 
+        <Videos
+          titleAs="h2"
           videos={watchLater} 
           emptyLabel="No saved videos" 
         />

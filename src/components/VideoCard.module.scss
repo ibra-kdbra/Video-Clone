@@ -35,7 +35,6 @@
       transition: transform 0.5s ease;
     }
 
-
     .timestamp {
       position: absolute;
       bottom: 8px;
@@ -77,6 +76,19 @@
         transform: scale(1);
         color: $primary-color;
         background-color: rgba(139, 92, 246, 0.2);
+      }
+
+      // Reachable by keyboard, and always visible on touch screens (they have no hover).
+      &:focus-visible {
+        opacity: 1;
+        transform: scale(1);
+        outline: 2px solid $primary-color;
+        outline-offset: 2px;
+      }
+
+      @media (hover: none) {
+        opacity: 1;
+        transform: scale(1);
       }
     }
 
@@ -190,16 +202,6 @@
           color: $text-primary;
         }
 
-        .verifiedBadge {
-          display: flex;
-          align-items: center;
-          
-          svg {
-            width: 0.9rem;
-            height: 0.9rem;
-            color: $text-secondary;
-          }
-        }
       }
 
       .metadata {

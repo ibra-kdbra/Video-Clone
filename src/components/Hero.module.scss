@@ -66,17 +66,15 @@
   }
 
   h1 {
-    font-size: 3.5rem;
+    // Long titles wrap to two lines and end with an ellipsis instead of being cut mid-word.
+    font-size: clamp(1.75rem, 3.6vw, 3rem);
     font-weight: 800;
-    line-height: 1.1;
-    margin-bottom: 0.5rem;
-    letter-spacing: -1px;
-    
-    @include text-gradient;
+    line-height: 1.12;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.5px;
+    @include line-clamp(2);
 
-    @include mobile {
-      font-size: 2rem;
-    }
+    @include text-gradient;
   }
 
   p {
@@ -84,6 +82,7 @@
     color: $text-secondary;
     margin-bottom: 2rem;
     line-height: 1.6;
+    @include line-clamp(3);
 
     @include mobile {
       font-size: 0.95rem;
@@ -94,6 +93,8 @@
 }
 
 .actionBtn {
+  display: inline-block;
+  text-decoration: none;
   padding: 0.8rem 2rem;
   border-radius: 12px;
   border: none;
@@ -124,4 +125,9 @@
   z-index: 6;
   text-transform: uppercase;
   letter-spacing: 1px;
+
+  // On phones it would sit on top of the title.
+  @include mobile {
+    display: none;
+  }
 }

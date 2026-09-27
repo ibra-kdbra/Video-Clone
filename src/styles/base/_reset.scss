@@ -1,15 +1,20 @@
 @use "../abstracts/variables" as *;
 
-* {
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
-  box-box: border-box;
+  // Was "box-box", a typo: widths with padding overflowed their containers (the right edge of
+  // every page was clipped by 48px).
+  box-sizing: border-box;
 }
 
 body {
   background-color: $bg-dark;
   color: $text-primary;
-  font-family: 'Roboto', sans-serif;
+  // Inter ships with the app (@fontsource-variable/inter, imported in main.jsx): no third-party font request.
+  font-family: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   overflow-x: hidden;
 }
 
@@ -22,7 +27,14 @@ button {
   background: none;
   border: none;
   cursor: pointer;
-  outline: none;
+  font: inherit;
+  color: inherit;
+}
+
+// Keyboard users can see where they are (the reset used to remove every button's outline).
+:focus-visible {
+  outline: 2px solid $primary-color;
+  outline-offset: 2px;
 }
 
 ul {

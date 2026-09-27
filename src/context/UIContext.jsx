@@ -6,6 +6,8 @@ const UIContext = createContext();
 export const UIProvider = ({ children }) => {
   const [selectedCategory, setSelectedCategory] = useState('New');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Phones hide the sidebar; the header's menu button opens it as a drawer instead.
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [activeProviders, setActiveProviders] = useState([PROVIDERS.YOUTUBE]);
 
   const setCategory = useCallback((category) => {
@@ -15,6 +17,9 @@ export const UIProvider = ({ children }) => {
   const toggleSidebar = useCallback(() => {
     setSidebarOpen((prev) => !prev);
   }, []);
+
+  const openMobileNav = useCallback(() => setMobileNavOpen(true), []);
+  const closeMobileNav = useCallback(() => setMobileNavOpen(false), []);
 
   const toggleProvider = useCallback((providerId) => {
     setActiveProviders((prev) => {
@@ -31,6 +36,7 @@ export const UIProvider = ({ children }) => {
     <UIContext.Provider value={{
       selectedCategory, setCategory,
       sidebarOpen, toggleSidebar,
+      mobileNavOpen, openMobileNav, closeMobileNav,
       activeProviders, toggleProvider,
     }}>
       {children}

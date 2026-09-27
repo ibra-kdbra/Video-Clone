@@ -29,11 +29,14 @@ const Feed = () => {
         </div>
       )}
 
+      <h2 className={styles.sectionTitle}>{selectedCategory} videos</h2>
+
       {isLoading ? (
         <VideoSkeleton count={12} />
       ) : (
         <Videos
-          videos={videos} // Pass all videos, could slice to exclude first if needed
+          // The first video is the hero above, so the grid starts with the second.
+          videos={videos.length > 1 ? videos.slice(1) : videos}
           emptyLabel="No videos in this category yet."
           emptyDescription="Try a different category or check back soon for new uploads."
         />

@@ -16,7 +16,7 @@ const formatTimeAgo = (dateString) => {
 };
 
 const Comments = ({ videoId }) => {
-  const { data: comments = [], isLoading, isError } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['comments', videoId],
     queryFn: () => getCommentThreads(videoId),
     enabled: Boolean(videoId),
@@ -26,7 +26,7 @@ const Comments = ({ videoId }) => {
   if (isLoading) {
     return (
       <div className={styles.container}>
-        <h3 className={styles.heading}>Comments</h3>
+        <h2 className={styles.heading}>Comments</h2>
         <div className={styles.skeletonList}>
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className={styles.skeleton}>
@@ -43,10 +43,12 @@ const Comments = ({ videoId }) => {
     );
   }
 
+  const comments = data?.items ?? [];
+
   if (isError) {
     return (
       <div className={styles.container}>
-        <h3 className={styles.heading}>Comments</h3>
+        <h2 className={styles.heading}>Comments</h2>
         <p className={styles.errorText}>Unable to load comments for this video.</p>
       </div>
     );
@@ -54,14 +56,14 @@ const Comments = ({ videoId }) => {
 
   return (
     <div className={styles.container}>
-      <h3 className={styles.heading}>
+      <h2 className={styles.heading}>
         {comments.length} Comment{comments.length !== 1 ? 's' : ''}
-      </h3>
+      </h2>
 
       {comments.length === 0 ? (
         <div className={styles.empty}>
-          <span>💬</span>
-          <p>No comments yet</p>
+          <span aria-hidden="true">💬</span>
+          <p>{data?.disabled ? 'Comments are turned off for this video.' : 'No comments yet'}</p>
         </div>
       ) : (
         <div className={styles.list}>
