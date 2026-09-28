@@ -57,14 +57,6 @@ describe('keys stay on the server', () => {
     expect(text).not.toContain('test-google-key');
   });
 
-  it('falls back to RapidAPI when only RAPIDAPI_KEY is set', async () => {
-    const { calls, fetchImpl } = recorder();
-    await get('youtube/search?q=react', { RAPIDAPI_KEY: 'rapid' }, fetchImpl);
-    expect(calls[0].url.hostname).toBe('youtube-v31.p.rapidapi.com');
-    expect(calls[0].init.headers['X-RapidAPI-Key']).toBe('rapid');
-    expect(calls[0].url.searchParams.has('key')).toBe(false);
-  });
-
   it('explains a missing key instead of failing silently', async () => {
     const response = await get('youtube/search?q=react', {});
     expect(response.status).toBe(503);
@@ -80,8 +72,20 @@ describe('YouTube', () => {
     expect(body.items[0].contentDetails.duration).toMatch(/^PT/);
     expect(body.items[0].statistics.viewCount).toBeDefined();
     expect(body.items[2].snippet.title).toBe("Nor'easter & Coding: what you need to know");
-    expect(response.headers.get('Netlify-CDN-Cache-Control')).toContain('s-maxage=3600');
     expect(response.headers.get('Netlify-Vary')).toBe('query');
+  });
+
+  it('caches a search for a day in the cache all edge locations share (free tier: 100 searches a day)', async () => {
+    const cdn = (await get('youtube/search?q=Coding')).headers.get('Netlify-CDN-Cache-Control');
+    expect(cdn).toContain('durable');
+    expect(cdn).toContain('max-age=86400');
+    expect(cdn).toMatch(/stale-while-revalidate=\d+/);
+  });
+
+  it('caches other lookups for less time, since they come from the larger 10,000-unit budget', async () => {
+    const cdn = (await get('youtube/channel?id=UCsBjURrPoezykLs9EqgamOA')).headers.get('Netlify-CDN-Cache-Control');
+    expect(cdn).toContain('durable');
+    expect(cdn).toContain('max-age=21600');
   });
 
   it('video details include the channel and its real subscriber count', async () => {

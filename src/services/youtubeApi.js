@@ -1,7 +1,12 @@
 import { apiGet } from './api.js';
 
-/** Videos matching a query, with durations and view counts. */
-export const searchVideos = async (query) => (await apiGet('youtube/search', { q: query })).items ?? [];
+/**
+ * Videos matching a query, with durations and view counts. YouTube search ignores case and extra
+ * spaces, so the query is normalized first: "React" and "react " then share one cached response
+ * (the free tier allows 100 searches a day).
+ */
+export const searchVideos = async (query) =>
+  (await apiGet('youtube/search', { q: String(query).trim().replace(/\s+/g, ' ').toLowerCase() })).items ?? [];
 
 /** One video, including `channel` (name, avatar, subscriber count). */
 export const getVideoDetails = async (videoId) => (await apiGet('youtube/video', { id: videoId })).item ?? null;

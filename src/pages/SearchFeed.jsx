@@ -2,7 +2,7 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
 import { multiSearch } from '../services/providers/index.js';
-import { Videos, VideoSkeleton } from '../components/index.js';
+import { Videos, VideoSkeleton, Notice } from '../components/index.js';
 import { useUI } from '../context/UIContext.jsx';
 import styles from './SearchFeed.module.scss';
 
@@ -11,7 +11,7 @@ const SearchFeed = () => {
   const { activeProviders } = useUI();
 
   const {
-    data: videos = [],
+    data: { videos = [], notice = null } = {},
     isLoading,
     isError,
     error,
@@ -29,6 +29,8 @@ const SearchFeed = () => {
         </h1>
         <p className={styles.resultCount}>{videos.length} videos found</p>
       </header>
+
+      {notice && <Notice>{notice}</Notice>}
 
       {isError && (
         <div className={styles.errorAlert}>

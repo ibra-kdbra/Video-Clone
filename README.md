@@ -43,7 +43,7 @@ tests/            # Vitest: the proxy (with a mock of the upstream APIs) and the
 
 | Endpoint | Upstream | CDN cache |
 | --- | --- | --- |
-| `GET /api/youtube/search?q=` | `search.list` + `videos.list` (durations, views) | 1 h |
+| `GET /api/youtube/search?q=` | `search.list` + `videos.list` (durations, views) | 24 h |
 | `GET /api/youtube/video?id=` | `videos.list` + `channels.list` (subscriber count) | 1 h |
 | `GET /api/youtube/related?id=` | the channel's uploads playlist | 1 h |
 | `GET /api/youtube/channel?id=` | `channels.list` | 6 h |
@@ -54,13 +54,22 @@ tests/            # Vitest: the proxy (with a mock of the upstream APIs) and the
 | `GET /api/twitch/clip?id=` | `clips` | 1 h |
 
 - Only these routes exist, and every parameter is checked (video and channel ID formats, query length, page tokens).
-- Responses are cached at Netlify's CDN per full URL, so repeated searches cost no quota.
+- Responses are cached in Netlify's durable CDN cache, which every edge location shares, so each URL reaches YouTube or Twitch at most once per cache period.
 - The function is rate limited per IP (120 requests a minute).
 - A used-up quota comes back as `429` with a readable message and is never cached.
 
-### YouTube quota
+## What it costs: $0
 
-The Data API gives 10,000 units a day. A search costs 100 units, while playlist, video and channel lookups cost 1 unit each. That is why channel pages and "Up next" read the channel's uploads playlist instead of searching. With the CDN cache in front, a day's quota covers a lot of visitors. If you need more, request an increase in Google Cloud.
+Every service here has a free tier that needs no credit card. None of them can bill you: when a limit is reached, that service pauses or says no until it resets.
+
+| Service | Free tier | How the app stays inside it |
+| --- | --- | --- |
+| YouTube Data API v3 | 100 searches a day, plus 10,000 units a day for everything else | A search (a category or a query) is cached for 24 hours, so it costs at most one search a day, however many people open it. Queries are lower-cased so "React" and "react" share one entry. Watch pages, channels and "Up next" use the 10,000-unit budget (1 to 3 units each). |
+| Twitch Helix | Free, rate limited per minute | Cached 30 minutes to 1 hour. |
+| Dailymotion | Free, no key | Called directly from the browser. |
+| Netlify Free plan | 300 credits a month, a hard cap (the site pauses, you are never charged) | Cached API responses don't run the function. Most credits go to production deploys, so batch changes into fewer deploys. |
+
+If YouTube's searches run out for the day, or no YouTube key is set, the feed and search show Dailymotion videos instead, with a short note. YouTube resets at midnight Pacific time. Google also raises the quota for free on request (YouTube API Services audit form).
 
 ## Getting started
 
@@ -73,9 +82,8 @@ To use the real APIs, copy `.env.example` to `.env` and fill it in:
 
 | Variable | Where to get it | Required |
 | --- | --- | --- |
-| `YOUTUBE_API_KEY` | Google Cloud Console → enable *YouTube Data API v3* → Credentials → API key (restrict it to that API) | yes |
-| `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET` | [dev.twitch.tv/console](https://dev.twitch.tv/console) → Register an application | for Twitch |
-| `RAPIDAPI_KEY` | RapidAPI *youtube-v31*, used only when `YOUTUBE_API_KEY` is not set | no |
+| `YOUTUBE_API_KEY` | Google Cloud Console → enable *YouTube Data API v3* → Credentials → API key (restrict it to that API). No billing account needed. | for YouTube (without it, Dailymotion fills in) |
+| `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET` | [dev.twitch.tv/console](https://dev.twitch.tv/console) → Register an application (free) | for Twitch |
 
 Then `npm run dev`. The dev server answers `/api/*` with the same code Netlify runs. The variables have no `VITE_` prefix on purpose: Vite only bundles `VITE_*` variables into the browser code.
 

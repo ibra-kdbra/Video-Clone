@@ -11,8 +11,11 @@ export class ApiError extends Error {
 }
 
 /**
- * A cacheable JSON response. Browsers keep it for up to 5 minutes; Netlify's CDN keeps it for
- * `ttl` seconds (and serves it stale while refreshing), so repeat visits don't spend API quota.
+ * A cacheable JSON response. Browsers keep it for up to 5 minutes. Netlify's CDN keeps it for
+ * `ttl` seconds in its durable cache, which all edge locations share, so a response is fetched
+ * from YouTube or Twitch once per `ttl` in total rather than once per location. After that it is
+ * served stale while one background request refreshes it. This keeps the free API quotas and
+ * Netlify's free-plan function usage low.
  */
 export const json = (body, ttl) =>
   new Response(JSON.stringify(body), {
@@ -20,7 +23,7 @@ export const json = (body, ttl) =>
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': `public, max-age=${Math.min(ttl, 300)}`,
-      'Netlify-CDN-Cache-Control': `public, s-maxage=${ttl}, stale-while-revalidate=${ttl * 24}`,
+      'Netlify-CDN-Cache-Control': `public, durable, max-age=${ttl}, stale-while-revalidate=${Math.min(ttl * 24, 7 * 86400)}`,
       'Netlify-Vary': 'query',
       'X-Content-Type-Options': 'nosniff',
     },

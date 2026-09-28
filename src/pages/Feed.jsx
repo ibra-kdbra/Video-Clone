@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { multiSearch } from '../services/providers/index.js';
-import { Videos, VideoSkeleton, Hero } from '../components/index.js';
+import { Videos, VideoSkeleton, Hero, Notice } from '../components/index.js';
 import { useUI } from '../context/UIContext.jsx';
 import styles from './Feed.module.scss';
 
@@ -9,7 +9,7 @@ const Feed = () => {
   const { selectedCategory, activeProviders } = useUI();
 
   const {
-    data: videos = [],
+    data: { videos = [], notice = null } = {},
     isLoading,
     isError,
     error,
@@ -30,6 +30,7 @@ const Feed = () => {
       )}
 
       <h2 className={styles.sectionTitle}>{selectedCategory} videos</h2>
+      {notice && <Notice>{notice}</Notice>}
 
       {isLoading ? (
         <VideoSkeleton count={12} />

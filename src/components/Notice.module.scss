@@ -1,0 +1,15 @@
+.notice {
+  margin: 0 2rem 1.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba($primary-color, 0.25);
+  border-left: 3px solid $primary-color;
+  border-radius: 8px;
+  background: rgba($primary-color, 0.08);
+  color: $text-primary;
+  font-size: 0.9rem;
+  line-height: 1.5;
+
+  @include mobile {
+    margin: 0 1rem 1rem;
+  }
+}

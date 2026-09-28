@@ -1,30 +1,21 @@
 import { ApiError, PATTERNS, decodeEntities, maybe, need, query } from './http.mjs';
 
 const GOOGLE = 'https://www.googleapis.com/youtube/v3';
-const RAPID = 'https://youtube-v31.p.rapidapi.com';
 
 /**
- * The official YouTube Data API when YOUTUBE_API_KEY is set; otherwise the RapidAPI mirror of it
- * (same endpoints and response shapes) when RAPIDAPI_KEY is set. The key only ever lives here.
+ * The official YouTube Data API, free with a Google Cloud API key (no billing account). Its free
+ * tier is 100 searches a day plus 10,000 units a day for everything else, so the endpoints below
+ * avoid searching where they can and every response is cached (see json() in http.mjs).
+ * The key only ever lives here.
  */
-function upstream(env) {
-  if (env.YOUTUBE_API_KEY) return { base: GOOGLE, key: { key: env.YOUTUBE_API_KEY }, headers: {} };
-  if (env.RAPIDAPI_KEY)
-    return {
-      base: RAPID,
-      key: {},
-      headers: { 'X-RapidAPI-Key': env.RAPIDAPI_KEY, 'X-RapidAPI-Host': 'youtube-v31.p.rapidapi.com' },
-    };
-  throw new ApiError(503, 'not_configured', 'Video search is not set up yet (missing API key on the server).');
-}
-
 async function call(ctx, path, params) {
-  const { base, key, headers } = upstream(ctx.env);
-  const url = new URL(base + path);
-  for (const [name, value] of Object.entries({ ...params, ...key }))
+  const key = ctx.env.YOUTUBE_API_KEY;
+  if (!key) throw new ApiError(503, 'not_configured', 'YouTube is not set up yet (missing API key on the server).');
+  const url = new URL(GOOGLE + path);
+  for (const [name, value] of Object.entries({ ...params, key }))
     if (value !== undefined && value !== '') url.searchParams.set(name, String(value));
 
-  const response = await ctx.fetch(url, { headers });
+  const response = await ctx.fetch(url);
   if (response.ok) return response.json();
 
   // Never echo the URL: it carries the key.
@@ -36,7 +27,7 @@ async function call(ctx, path, params) {
     // Not JSON; the status is enough.
   }
   if (response.status === 429 || /quota|dailyLimit|rateLimit/i.test(reason))
-    throw new ApiError(429, 'quota', "Today's video quota has run out. Please try again later.");
+    throw new ApiError(429, 'quota', "YouTube's free daily limit has been reached. It resets at midnight Pacific time.");
   if (reason === 'commentsDisabled') throw new ApiError(403, 'comments_disabled', 'Comments are turned off for this video.');
   if (response.status === 404 || /notFound/i.test(reason)) throw new ApiError(404, 'not_found', 'That video or channel was not found.');
   console.error(`[api] YouTube ${path} failed: ${response.status} ${reason}`);
@@ -104,13 +95,17 @@ async function uploads(ctx, channelId, { pageToken, exclude, max = 24 } = {}) {
 }
 
 export const youtube = {
-  /** Search videos. 100 units upstream, so results stay cached for an hour. */
+  /**
+   * Search videos. The free tier allows 100 searches a day, so each result is cached for a day in
+   * Netlify's shared cache: a category or query costs at most one search a day, however many
+   * people open it. (The client lower-cases queries so "React" and "react" share one entry.)
+   */
   async search(params, ctx) {
     const q = query(params);
     const pageToken = maybe(params, 'pageToken', PATTERNS.pageToken);
     const data = await call(ctx, '/search', { part: 'snippet', q, type: 'video', maxResults: 24, safeSearch: 'moderate', pageToken });
     const items = await enrich(ctx, (data.items ?? []).filter((item) => item.id?.videoId));
-    return { body: { items, nextPageToken: data.nextPageToken ?? null }, ttl: 3600 };
+    return { body: { items, nextPageToken: data.nextPageToken ?? null }, ttl: 24 * 3600 };
   },
 
   /** One video with its channel's name, avatar and subscriber count (2 units). */

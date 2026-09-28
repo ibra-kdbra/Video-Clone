@@ -6,16 +6,20 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - **API proxy**: A Netlify Function at `/api/*` (`netlify/functions/api.mjs`, code in `server/api/`) calls YouTube and Twitch with server-side keys. It only answers the listed routes and validates every parameter. It caches at Netlify's CDN, is rate limited per IP, and turns upstream errors (quota, comments turned off, not found) into clear JSON errors.
-- **Official YouTube Data API v3**: Uses `YOUTUBE_API_KEY`, with RapidAPI *youtube-v31* kept as an optional fallback (`RAPIDAPI_KEY`). Channel videos and "Up next" read the channel's uploads playlist (1 quota unit) instead of a search (100 units).
+- **Official YouTube Data API v3**: Uses `YOUTUBE_API_KEY`, which is free and needs no billing account. Channel videos and "Up next" read the channel's uploads playlist (1 quota unit) instead of a search.
+- **Runs entirely on free tiers**:
+  - YouTube's free tier allows 100 searches a day, so each search is cached for 24 hours in Netlify's durable cache, which every edge location shares. Queries are lower-cased so they share cache entries.
+  - When YouTube's daily searches run out, or no key is set, the feed and search fall back to Dailymotion (free, no key) and say so.
+  - RapidAPI, the only paid-plan service, is gone.
 - **Official Twitch Helix API**: Uses an app access token (client credentials), cached and refreshed on `401`. Search looks up a game or channel and returns its top clips, and trending returns this week's clips of the top games.
 - **Mock mode**: `npm run dev:mock` / `preview:mock` serve a local stand-in of the upstream APIs, so the app runs without keys.
-- **Tests and lint**: 51 Vitest tests covering the proxy (routing, validation, keys never reaching the browser, caching, quota and Twitch token handling) and the formatters. ESLint 9 flat config.
+- **Tests and lint**: 58 Vitest tests covering the proxy (routing, validation, keys never reaching the browser, caching, quota and Twitch token handling), the Dailymotion fallback and the formatters. ESLint 9 flat config.
 - **Mobile navigation**: A menu button opens the sidebar as a drawer on phones. It closes on navigation, on Escape and on the backdrop.
 - **Security headers** in `netlify.toml`, plus immutable caching for fingerprinted assets.
 - `.env.example` listing the server-side variables.
 
 ### Changed
-- **No API key in the browser**: The RapidAPI key used to be bundled into the JavaScript (`VITE_RAPID_API_KEY`). The browser now only calls same-origin `/api` endpoints. `axios` was removed in favour of `fetch`.
+- **No API key in the browser, and no RapidAPI**: The RapidAPI key used to be bundled into the JavaScript (`VITE_RAPID_API_KEY`). The app now uses the official free APIs through the proxy, and the browser only calls same-origin `/api` endpoints. `axios` was removed in favour of `fetch`.
 - **Real data only**:
   - Video cards show the real duration and view count. Missing values are left blank instead of showing "12:45".
   - Titles are decoded (`&#39;` shows as `'`), and comments come as plain text.
@@ -40,8 +44,8 @@ All notable changes to this project will be documented in this file.
 - **Circular import warnings** between the component barrel file and its components.
 
 ### Deployment notes
-- In Netlify, set `YOUTUBE_API_KEY`, `TWITCH_CLIENT_ID` and `TWITCH_CLIENT_SECRET`, then remove `VITE_RAPID_API_KEY`.
-- Rotate the old RapidAPI key. It was public in the previous bundle.
+- In Netlify, set `YOUTUBE_API_KEY`, `TWITCH_CLIENT_ID` and `TWITCH_CLIENT_SECRET` (all free), then remove `VITE_RAPID_API_KEY`.
+- Delete the old RapidAPI key, or cancel that subscription. It was public in the previous bundle and is no longer used.
 
 ---
 
