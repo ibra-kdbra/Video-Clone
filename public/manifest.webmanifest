@@ -1,0 +1,14 @@
+{
+  "name": "FundaStream",
+  "short_name": "FundaStream",
+  "description": "YouTube, Dailymotion and Twitch clips in one calm, fast feed.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

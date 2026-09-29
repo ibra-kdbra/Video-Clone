@@ -2,18 +2,29 @@
   command = "npm run build"
   publish = "dist"
 
+[build.environment]
+  NODE_VERSION = "22"
+
 # The /api/* proxy (netlify/functions/api.mjs) declares its own path, so it runs before the SPA
 # fallback below. Its API keys are environment variables: see .env.example.
 [functions]
   directory = "netlify/functions"
 
+# Security headers for every page. The Content-Security-Policy only lets the page run its own
+# code (plus the one inline theme script, by hash), talk to its own API, show images from the
+# video platforms' image servers, and frame their players. vite.config.js serves the same
+# headers in `npm run preview`, and tests/security.test.mjs checks the script hash.
 [[headers]]
   for = "/*"
   [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'sha256-x6Urb8iOTDG5B29AZwBEiDbh4pzI+3HsEn0U3u4zAGQ='; style-src 'self'; img-src 'self' data: https://*.ytimg.com https://yt3.ggpht.com https://yt3.googleusercontent.com https://*.dmcdn.net https://static-cdn.jtvnw.net https://clips-media-assets2.twitch.tv; font-src 'self'; connect-src 'self'; frame-src https://www.youtube-nocookie.com https://www.dailymotion.com https://geo.dailymotion.com https://clips.twitch.tv; media-src 'self'; manifest-src 'self'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; require-trusted-types-for 'script'; upgrade-insecure-requests"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "DENY"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()"
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Resource-Policy = "same-origin"
 
 # Vite fingerprints everything in /assets, so those files never change under the same name.
 [[headers]]

@@ -1,63 +1,55 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatCount, formatDuration, thumbnailSrcSet } from '../src/utils/format.js';
-import { normalizeTwitch } from '../src/services/providers/twitchProvider.js';
-import { normalizeYouTube } from '../src/services/providers/youtubeProvider.js';
+import { formatCount, formatDuration, formatViews, joinMeta, srcSet, timeAgo } from '../src/lib/format.js';
 
-describe('formatDuration', () => {
+describe('formatDuration (seconds)', () => {
   it.each([
-    ['PT4M13S', '4:13'],
-    ['PT1H2M5S', '1:02:05'],
-    ['PT45S', '0:45'],
-    ['PT10M', '10:00'],
-    ['P1DT2H', '26:00:00'],
-    ['P0D', 'LIVE'],
-    [28.5, '0:29'],
+    [253, '4:13'],
     [3725, '1:02:05'],
-    ['', ''],
-    [undefined, ''],
-    ['nonsense', ''],
+    [45, '0:45'],
+    [600, '10:00'],
+    [28.5, '0:29'],
     [0, ''],
+    [null, ''],
+    [undefined, ''],
+    [Number.NaN, ''],
   ])('%s → %s', (input, output) => expect(formatDuration(input)).toBe(output));
 });
 
-describe('formatCount', () => {
+describe('counts', () => {
   it.each([
-    ['3400000', '3.4M'],
+    [3_400_000, '3.4M'],
     [1234, '1.2K'],
     [999, '999'],
+    [null, ''],
     ['', ''],
-    [undefined, ''],
-    ['abc', ''],
-  ])('%s → %s', (input, output) => expect(formatCount(input)).toBe(output));
+  ])('formatCount(%s) → %s', (input, output) => expect(formatCount(input)).toBe(output));
+
+  it('formatViews reads naturally', () => {
+    expect(formatViews(1)).toBe('1 view');
+    expect(formatViews(1500)).toBe('1.5K views');
+    expect(formatViews(null)).toBe('');
+  });
 });
 
-describe('thumbnailSrcSet', () => {
-  it('lists the sizes YouTube provides, smallest first', () => {
-    expect(
-      thumbnailSrcSet({
-        default: { url: 'd.jpg', width: 120 },
-        medium: { url: 'm.jpg', width: 320 },
-        high: { url: 'h.jpg', width: 480 },
-      }),
-    ).toBe('m.jpg 320w, h.jpg 480w');
-  });
-
-  it('is empty when there are none', () => expect(thumbnailSrcSet(undefined)).toBe(''));
+describe('timeAgo', () => {
+  const now = Date.parse('2026-09-28T12:00:00Z');
+  it.each([
+    ['2026-09-28T11:59:30Z', 'just now'],
+    ['2026-09-28T09:00:00Z', '3 hours ago'],
+    ['2026-09-27T12:00:00Z', 'yesterday'],
+    ['2026-09-14T12:00:00Z', '2 weeks ago'],
+    ['2025-09-28T12:00:00Z', 'last year'],
+    ['not a date', ''],
+    [null, ''],
+  ])('%s → %s', (input, output) => expect(timeAgo(input, now)).toBe(output));
 });
 
-describe('providers', () => {
-  it('YouTube items get a real duration, or none (never a made-up one)', () => {
-    const withDuration = normalizeYouTube({ id: { videoId: 'abc' }, snippet: { title: 't' }, contentDetails: { duration: 'PT3M2S' } });
-    const without = normalizeYouTube({ id: { videoId: 'abc' }, snippet: { title: 't' } });
-    expect(withDuration.duration).toBe('3:02');
-    expect(without.duration).toBe('');
+describe('srcSet and joinMeta', () => {
+  it('lists sizes for the browser to choose from', () => {
+    expect(srcSet([{ url: 'm.jpg', width: 320 }, { url: 'h.jpg', width: 480 }, { url: '', width: 9 }])).toBe('m.jpg 320w, h.jpg 480w');
+    expect(srcSet(undefined)).toBe('');
   });
 
-  it('Twitch clips link to clips.twitch.tv and format their seconds', () => {
-    const clip = normalizeTwitch({ id: 'Clip1', url: 'https://clips.twitch.tv/Clip1', title: 'x', duration: 30.4, view_count: 5 });
-    expect(clip.playerUrl).toBe('https://clips.twitch.tv/Clip1');
-    expect(clip.duration).toBe('0:30');
-    expect(normalizeTwitch({ id: 'Clip2' }).playerUrl).toBe('https://clips.twitch.tv/Clip2');
-  });
+  it('joins what is known', () => expect(joinMeta('Channel', '', null, '3 days ago')).toBe('Channel · 3 days ago'));
 });

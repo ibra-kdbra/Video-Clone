@@ -1,0 +1,47 @@
+.block {
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--surface-2) 0%, var(--surface-3) 50%, var(--surface-2) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.thumb {
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md);
+}
+
+.line {
+  height: 0.85rem;
+}
+
+.row {
+  display: flex;
+  gap: 0.75rem;
+
+  .thumb {
+    flex: 0 0 40%;
+    max-width: 240px;
+  }
+}
+
+.rowText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}

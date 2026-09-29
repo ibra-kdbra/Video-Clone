@@ -1,0 +1,85 @@
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  height: var(--topbar-h);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-blur);
+  backdrop-filter: saturate(1.4) blur(16px);
+  -webkit-backdrop-filter: saturate(1.4) blur(16px);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  height: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+.brand {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.6rem;
+  border-radius: var(--radius-sm);
+}
+
+.wordmark {
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.nav {
+  display: flex;
+  gap: 0.25rem;
+
+  @include down(md) {
+    display: none;
+  }
+}
+
+.navLink {
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-pill);
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+
+  @include hover {
+    color: var(--text);
+  }
+
+  &.active {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+}
+
+.search {
+  flex: 1;
+  max-width: 560px;
+  margin-left: auto;
+
+  @include down(md) {
+    display: none;
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+
+  @include up(md) {
+    margin-left: 0;
+  }
+}
+

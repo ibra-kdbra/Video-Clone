@@ -1,0 +1,32 @@
+.body {
+  padding-top: 1rem;
+  transition: opacity var(--medium) var(--ease);
+}
+
+// The previous category, still shown while the next one loads.
+.stale {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.sectionTitle {
+  margin-bottom: 1.25rem;
+  font-size: var(--text-xl);
+}
+
+.more {
+  display: flex;
+  justify-content: center;
+  margin-top: 2.5rem;
+
+  button {
+    padding: 0.65rem 1.5rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-pill);
+    font-weight: 600;
+
+    @include hover {
+      background: var(--surface-2);
+    }
+  }
+}

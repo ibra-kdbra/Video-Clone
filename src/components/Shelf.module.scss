@@ -1,0 +1,64 @@
+.shelf {
+  margin-bottom: 2.5rem;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-size: var(--text-xl);
+}
+
+.more {
+  color: var(--accent-text);
+  font-size: var(--text-sm);
+  font-weight: 600;
+
+  @include hover {
+    text-decoration: underline;
+  }
+}
+
+.arrows {
+  display: flex;
+  gap: 0.35rem;
+  margin-left: auto;
+
+  button {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--line-strong);
+    border-radius: 50%;
+
+    @include hover {
+      background: var(--surface-2);
+    }
+  }
+
+  @media (hover: none) {
+    display: none;
+  }
+}
+
+.scroller {
+  display: grid;
+  grid-auto-columns: minmax(250px, 300px);
+  grid-auto-flow: column;
+  gap: 1.25rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 0;
+  @include hide-scrollbar;
+}
+
+.item {
+  scroll-snap-align: start;
+  min-width: 0;
+}

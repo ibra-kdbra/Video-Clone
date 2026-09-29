@@ -1,0 +1,137 @@
+.start {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  max-width: 720px;
+  padding-top: 1.5rem;
+}
+
+.startTitle {
+  font-size: var(--text-2xl);
+}
+
+.subTitle {
+  margin-bottom: 0.75rem;
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.recent {
+  list-style: none;
+
+  a {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 0.25rem;
+    border-bottom: 1px solid var(--line);
+
+    svg {
+      color: var(--text-3);
+    }
+  }
+}
+
+.categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.category {
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+
+  @include hover {
+    background: var(--surface-3);
+  }
+}
+
+.mobileSearch {
+  padding: 0.75rem 0 0.5rem;
+
+  @include up(md) {
+    display: none;
+  }
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1.25rem 0 1.25rem;
+}
+
+.headText {
+  min-width: 0;
+}
+
+.title {
+  font-size: var(--text-2xl);
+  overflow-wrap: anywhere;
+}
+
+.query {
+  color: var(--accent-text);
+}
+
+.count {
+  margin-top: 0.25rem;
+  color: var(--text-3);
+  font-size: var(--text-sm);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  font-weight: 600;
+
+  @include hover {
+    background: var(--surface-2);
+  }
+
+  &[aria-pressed='true'] {
+    border-color: var(--text);
+    background: var(--text);
+    color: var(--bg);
+  }
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 1100px;
+  list-style: none;
+}
+
+.snippet {
+  margin-top: 0.4rem;
+  color: var(--text-3);
+  font-size: var(--text-sm);
+  @include line-clamp(2);
+
+  @include down(sm) {
+    display: none;
+  }
+}

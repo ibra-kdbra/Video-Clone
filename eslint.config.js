@@ -17,8 +17,9 @@ export default [
     rules: {
       ...js.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
-      // JSX identifiers count as used (no eslint-plugin-react needed for that one rule).
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^_' }],
+      // Capitalized names are components used in JSX (e.g. `titleAs: Title`), which core ESLint
+      // doesn't see as used; this avoids pulling in eslint-plugin-react for that one rule.
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^[A-Z_]' }],
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
   },
