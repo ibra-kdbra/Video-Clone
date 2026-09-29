@@ -1,5 +1,6 @@
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 
 import Avatar from '../components/Avatar.jsx';
 import Comments from '../components/Comments.jsx';
@@ -44,11 +45,18 @@ function WatchSkeleton() {
 
 export default function Watch() {
   const { provider, id } = useParams();
+  const [params] = useSearchParams();
+  // "Play" buttons elsewhere link here with ?play=1: start right away instead of on the poster.
+  const autoStart = params.get('play') === '1';
   const valid = isValidId(provider, id);
 
   const video = useQuery({ queryKey: ['video', provider, id], queryFn: () => getVideo(provider, id), enabled: valid });
   const related = useQuery({ queryKey: ['related', provider, id], queryFn: () => getRelated(provider, id), enabled: valid });
   useDocumentTitle(video.data?.title);
+
+  useEffect(() => {
+    if (autoStart && video.data) library.add('history', video.data);
+  }, [autoStart, video.data]);
 
   if (!valid) return <NotFound title="Video not found">This address doesn't point to a video.</NotFound>;
 
@@ -71,7 +79,7 @@ export default function Watch() {
         ) : (
           <>
             {/* A new video gets a fresh player (key), not the previous one's playing state. */}
-            <Player key={`${provider}:${id}`} video={v} onPlay={() => library.add('history', v)} />
+            <Player key={`${provider}:${id}`} video={v} autoStart={autoStart} onPlay={() => library.add('history', v)} />
 
             <h1 className={styles.title}>{v.title}</h1>
 
@@ -115,9 +123,7 @@ export default function Watch() {
                 </button>
                 <a className={styles.action} href={externalUrl(provider, id)} target="_blank" rel="noopener noreferrer">
                   <Icon name="external" size={18} />
-                  <span>
-                    Open <span className={styles.onSource}>on {source}</span>
-                  </span>
+                  Open on {source}
                 </a>
               </div>
             </div>

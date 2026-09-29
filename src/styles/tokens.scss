@@ -2,7 +2,7 @@
 // system is light and they haven't picked (index.html sets data-theme before the first paint).
 // Text colors are checked for WCAG AA contrast on --bg and --surface in both themes.
 
-:root {
+@mixin dark {
   color-scheme: dark;
 
   --bg: #09090b;
@@ -36,6 +36,12 @@
   --youtube: #ff3b30;
   --dailymotion: #3b82f6;
   --twitch: #a970ff;
+}
+
+:root {
+  @include dark;
+  // The page's own background, kept even inside .theme-dark (e.g. for fading into the page).
+  --page-bg: var(--bg);
 
   // Type
   --font: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -101,6 +107,14 @@
 
 :root[data-theme='light'] {
   @include light;
+  --page-bg: var(--bg);
+}
+
+// Dark whatever the theme: for things drawn over video images (the home billboard, and the top
+// bar while it floats over it), the way streaming apps keep their hero cinematic in light mode.
+.theme-dark {
+  @include dark;
+  color: var(--text);
 }
 
 @media (prefers-reduced-motion: reduce) {

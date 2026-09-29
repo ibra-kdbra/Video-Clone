@@ -6,18 +6,29 @@ Live: https://funda-streamvideos.netlify.app
 
 ## Features
 
-- **One feed, three platforms**: YouTube, Dailymotion and Twitch clips mixed together. Choose which platforms to show with the Sources menu.
-- **Home**: a featured video, "Continue watching", and categories as chips. Each category has its own address (`/?c=music`), so you can share it.
-- **Watch in the app**: every platform plays on the watch page, with "Up next", description, comments (YouTube) and channel details. The player loads only when you press play, so the page stays fast and no third-party cookies are set until then.
+- **Streaming-service home**:
+  - A full-width **billboard** of the top five trending videos: they cross-fade, the image drifts slowly, and progress bars show the next slide. You can swipe it, use the arrows, or press pause. It pauses on hover and focus, and doesn't autoplay with "reduce motion".
+  - Rows below: **Continue watching**, a numbered **Top 10 today**, **More trending**, and a row per category.
+  - Rows slide sideways, with paging arrows and soft edges, and each one loads only when it scrolls near.
+- **One feed, three platforms**: YouTube, Dailymotion and Twitch clips mixed together. The **Sources** menu in the top bar picks which platforms to show.
+- **Browse** (`/browse/music`): each category gets its own page, with chips whose highlight slides from one to the next.
+- **Watch in the app**: every platform plays on the watch page, with ambient light from the video's colors glowing behind the player.
+  - The player loads only when you press play, so no third-party cookies are set until then. "Play" on the billboard starts the video right away.
+  - Up next, description, comments (YouTube) and channel details sit alongside.
+- **Motion that stays out of the way**:
+  - Pages fade in, the top bar floats over the billboard until you scroll, and cards lift and show a play button on hover.
+  - Tabs have sliding indicators, and toasts and menus spring into place.
+  - It's all built with [Motion](https://motion.dev/), which loads after the first paint, and all of it follows "reduce motion".
 - **Search**: recent searches, the `/` shortcut to jump to the field, results filtered by platform, and a full search screen on phones.
 - **Library**: saved videos and watch history, kept in this browser only.
-- **Dark and light themes**, following your system until you pick one.
+- **Dark and light themes**, following your system until you pick one. The billboard stays cinematic in both.
 - **Works on any screen**: top bar on desktop, bottom tabs on phones.
-- **Accessible**: keyboard shortcuts and visible focus, a skip link, one heading outline per page, labelled controls, contrast checked in both themes, and respect for reduced motion.
+- **Accessible**: keyboard shortcuts and visible focus, a skip link, one heading outline per page, labelled controls, and contrast checked in both themes.
 
 ## Tech stack
 
 - **UI**: [React 19](https://react.dev/), [React Router 7](https://reactrouter.com/), Sass modules on CSS-variable design tokens, self-hosted Inter
+- **Motion and carousels**: [Motion](https://motion.dev/) (animation features lazy-loaded) and [Embla](https://www.embla-carousel.com/) for the billboard (loaded when the browser is idle), both styled with SCSS
 - **Data**: [TanStack Query v5](https://tanstack.com/query) in the browser, a [Netlify Function](https://docs.netlify.com/functions/overview/) as the API proxy
 - **Video APIs** (all free): [YouTube Data API v3](https://developers.google.com/youtube/v3), [Dailymotion](https://developers.dailymotion.com/api/) (no key), [Twitch Helix](https://dev.twitch.tv/docs/api/) (clips)
 - **Tooling**: [Vite 8](https://vitejs.dev/), ESLint 9, [Vitest](https://vitest.dev/)
@@ -41,7 +52,7 @@ server/api/        the proxy: router, one module per platform, the shared video 
 netlify/functions  the Netlify entry point for /api/*
 src/
   app/             routes and layout (skip link, focus on navigation, error boundary)
-  pages/           Home, Watch, Search, Channel, Library, NotFound
+  pages/           Home, Browse, Watch, Search, Channel, Library, NotFound
   components/      UI pieces, each with its SCSS module
   lib/             API client, data loading, stores (library, preferences), formatting
   styles/          design tokens (colors, type, spacing for both themes), base styles, mixins

@@ -1,15 +1,18 @@
 .bar {
-  position: sticky;
-  top: var(--topbar-h);
-  z-index: 20;
   display: flex;
   align-items: center;
   gap: 0.75rem;
   margin: 0 calc(var(--gutter) * -1);
   padding: 0.75rem var(--gutter);
+}
+
+.sticky {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 20;
   background: var(--bg-blur);
-  backdrop-filter: saturate(1.4) blur(16px);
-  -webkit-backdrop-filter: saturate(1.4) blur(16px);
+  backdrop-filter: saturate(1.5) blur(18px);
+  -webkit-backdrop-filter: saturate(1.5) blur(18px);
 }
 
 .track {
@@ -27,8 +30,9 @@
 }
 
 .chip {
+  position: relative;
   flex: none;
-  padding: 0.45rem 0.95rem;
+  padding: 0.5rem 1rem;
   border-radius: var(--radius-pill);
   background: var(--surface-2);
   color: var(--text);
@@ -38,20 +42,31 @@
   scroll-snap-align: start;
   transition:
     background var(--fast) var(--ease),
-    color var(--fast) var(--ease);
+    color var(--medium) var(--ease);
 
   @include hover {
     background: var(--surface-3);
   }
 
   &[aria-current='page'] {
-    background: var(--text);
     color: var(--bg);
   }
 
   &:focus-visible {
     outline-offset: -2px;
   }
+}
+
+// The chosen chip's fill; it slides from chip to chip (Motion layoutId).
+.pill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--text);
+}
+
+.label {
+  position: relative;
 }
 
 .arrow {

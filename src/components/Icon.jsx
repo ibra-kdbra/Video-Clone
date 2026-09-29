@@ -86,6 +86,19 @@ const PATHS = {
     </>
   ),
   message: <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-5.1A8 8 0 1 1 21 12z" />,
+  compass: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m15.5 8.5-2 5-5 2 2-5z" />
+    </>
+  ),
+  info: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5M12 8v.01" />
+    </>
+  ),
+  pause: <path d="M8 5v14M16 5v14" strokeWidth="2.5" />,
   thumbUp: <path d="M7 11v9H4v-9zm0 0 4-8a2.5 2.5 0 0 1 2.5 2.5V9h5.2a2 2 0 0 1 2 2.3l-1.2 7A2 2 0 0 1 17.5 20H7" />,
 };
 

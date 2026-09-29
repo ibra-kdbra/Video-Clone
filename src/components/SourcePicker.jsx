@@ -1,12 +1,16 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { AnimatePresence, m } from 'motion/react';
 
 import { toggleSource, useSources } from '../lib/preferences.js';
 import { SOURCES, SOURCE_LABELS } from '../lib/sources.js';
 import Icon, { SourceMark } from './Icon.jsx';
 import styles from './SourcePicker.module.scss';
 
-/** Which platforms to mix into the feed and search. A small disclosure menu of switches. */
-export default function SourcePicker() {
+/**
+ * Which platforms to mix into the feed and search: a small disclosure menu of switches.
+ * `compact` (in the top bar) shows just the platforms' marks.
+ */
+export default function SourcePicker({ compact = false }) {
   const sources = useSources();
   const [open, setOpen] = useState(false);
   const root = useRef(null);
@@ -34,21 +38,30 @@ export default function SourcePicker() {
       <button
         ref={button}
         type="button"
-        className={styles.trigger}
+        className={`${styles.trigger} ${compact ? styles.compact : ''}`}
         aria-expanded={open}
-        aria-controls={panelId}
+        aria-controls={open ? panelId : undefined}
         onClick={() => setOpen((value) => !value)}
+        title="Choose sources"
       >
         <span className={styles.marks} aria-hidden="true">
           {sources.map((source) => (
             <SourceMark key={source} source={source} size={16} />
           ))}
         </span>
-        <span className={styles.triggerLabel}>Sources</span>
-        <Icon name="chevronDown" size={16} />
+        <span className={compact ? 'visually-hidden' : styles.triggerLabel}>Sources</span>
+        <Icon name="chevronDown" size={16} className={styles.chevron} />
       </button>
 
-      <div id={panelId} className={styles.panel} hidden={!open}>
+      <AnimatePresence>
+      {open && (
+      <m.div
+        id={panelId}
+        className={`${styles.panel} ${compact ? styles.alignEnd : ''}`}
+        initial={{ opacity: 0, y: -6, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -6, scale: 0.97, transition: { duration: 0.12 } }}
+      >
         <p className={styles.heading}>Show videos from</p>
         {SOURCES.map((source) => {
           const on = sources.includes(source);
@@ -71,7 +84,9 @@ export default function SourcePicker() {
           );
         })}
         <p className={styles.hint}>Twitch shows clips when it's connected on the server.</p>
-      </div>
+      </m.div>
+      )}
+      </AnimatePresence>
     </div>
   );
 }

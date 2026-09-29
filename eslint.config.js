@@ -17,9 +17,10 @@ export default [
     rules: {
       ...js.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
-      // Capitalized names are components used in JSX (e.g. `titleAs: Title`), which core ESLint
-      // doesn't see as used; this avoids pulling in eslint-plugin-react for that one rule.
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^[A-Z_]' }],
+      // Capitalized names (e.g. `titleAs: Title`) and Motion's `m` are used in JSX (`<m.div>`),
+      // which core ESLint doesn't see as used; this avoids pulling in eslint-plugin-react for
+      // that one rule.
+      'no-unused-vars': ['error', { varsIgnorePattern: '^([A-Z_]|m$)', argsIgnorePattern: '^[A-Z_]' }],
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
   },

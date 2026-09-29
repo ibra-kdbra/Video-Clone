@@ -14,6 +14,7 @@ export default function VideoGrid({ videos = [], loading = false, count = 12, ti
               video={video}
               titleAs={titleAs}
               priority={i < priorityCount}
+              index={i}
               extra={renderExtra?.(video)}
             />
           ))}

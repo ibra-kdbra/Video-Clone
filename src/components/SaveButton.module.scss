@@ -45,3 +45,14 @@
     color: var(--accent-text);
   }
 }
+
+// A small pop when a video gets saved.
+.saved svg {
+  animation: pop 320ms var(--ease);
+}
+
+@keyframes pop {
+  40% {
+    transform: scale(1.3);
+  }
+}

@@ -5,7 +5,6 @@ import { Link, useSearchParams } from 'react-router-dom';
 import Icon, { SourceMark } from '../components/Icon.jsx';
 import SearchBox, { MAX_QUERY } from '../components/SearchBox.jsx';
 import { RowSkeleton } from '../components/Skeleton.jsx';
-import SourcePicker from '../components/SourcePicker.jsx';
 import { EmptyState, ErrorState, Notice } from '../components/States.jsx';
 import VideoCard from '../components/VideoCard.jsx';
 import { CATEGORIES } from '../lib/categories.js';
@@ -46,7 +45,7 @@ function Start() {
         </h2>
         <div className={styles.categories}>
           {CATEGORIES.map((category) => (
-            <Link key={category.slug} to={category.trending ? '/' : `/?c=${category.slug}`} className={styles.category}>
+            <Link key={category.slug} to={`/browse/${category.slug}`} className={styles.category}>
               {category.label}
             </Link>
           ))}
@@ -86,7 +85,6 @@ function Results({ q }) {
           </h1>
           {!isPending && !isError && <p className={`${styles.count} tabular`}>{shown.length === 1 ? '1 video' : `${shown.length} videos`}</p>}
         </div>
-        <SourcePicker />
       </header>
 
       {data?.notice && <Notice>{data.notice}</Notice>}

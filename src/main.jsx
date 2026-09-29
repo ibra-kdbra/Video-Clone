@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@fontsource-variable/inter';
 import './styles/main.scss';
 import App from './app/App.jsx';
-import { categoryBySlug } from './lib/categories.js';
+import { TRENDING } from './lib/categories.js';
 import { getSources } from './lib/preferences.js';
 import { categoryVideos } from './lib/videos.js';
 
@@ -20,11 +20,10 @@ const queryClient = new QueryClient({
   },
 });
 
-// On the home page, ask for the feed right away, in parallel with rendering, rather than after.
-if (window.location.pathname === '/') {
-  const category = categoryBySlug(new URLSearchParams(window.location.search).get('c'));
+// On the home page, ask for the trending feed right away, in parallel with rendering.
+if (window.location.pathname === '/' && !window.location.search.includes('c=')) {
   const sources = getSources();
-  queryClient.prefetchQuery({ queryKey: ['feed', category.slug, sources], queryFn: () => categoryVideos(category, sources) });
+  queryClient.prefetchQuery({ queryKey: ['feed', TRENDING.slug, sources], queryFn: () => categoryVideos(TRENDING, sources) });
 }
 
 createRoot(document.getElementById('root')).render(

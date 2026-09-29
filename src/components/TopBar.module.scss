@@ -5,14 +5,25 @@
   height: var(--topbar-h);
   border-bottom: 1px solid var(--line);
   background: var(--bg-blur);
-  backdrop-filter: saturate(1.4) blur(16px);
-  -webkit-backdrop-filter: saturate(1.4) blur(16px);
+  backdrop-filter: saturate(1.5) blur(18px);
+  -webkit-backdrop-filter: saturate(1.5) blur(18px);
+  transition:
+    background var(--medium) var(--ease),
+    border-color var(--medium) var(--ease);
+}
+
+// Over the billboard: no fill, just a soft shade so the controls stay readable on any image.
+.floating {
+  border-bottom-color: transparent;
+  background: linear-gradient(180deg, rgb(0 0 0 / 0.55) 0%, rgb(0 0 0 / 0) 100%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .inner {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1.25rem;
   height: 100%;
   max-width: var(--content-max);
   margin: 0 auto;
@@ -43,28 +54,40 @@
 }
 
 .navLink {
-  padding: 0.45rem 0.85rem;
+  position: relative;
+  padding: 0.45rem 0.9rem;
   border-radius: var(--radius-pill);
   color: var(--text-2);
   font-size: var(--text-sm);
   font-weight: 600;
-  transition:
-    background var(--fast) var(--ease),
-    color var(--fast) var(--ease);
+  transition: color var(--fast) var(--ease);
 
   @include hover {
     color: var(--text);
   }
 
-  &.active {
-    background: var(--surface-2);
+  &[aria-current='page'] {
     color: var(--text);
   }
 }
 
+// The active link's background; it slides between links (Motion layoutId).
+.pill {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background: var(--surface-3);
+}
+
+.navLabel {
+  position: relative;
+  z-index: 1;
+}
+
 .search {
   flex: 1;
-  max-width: 560px;
+  max-width: 520px;
   margin-left: auto;
 
   @include down(md) {
@@ -75,11 +98,10 @@
 .actions {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.35rem;
   margin-left: auto;
 
   @include up(md) {
     margin-left: 0;
   }
 }
-

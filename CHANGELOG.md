@@ -7,11 +7,19 @@ All notable changes to this project will be documented in this file.
 A redesign and a security overhaul. The app now runs entirely on free services.
 
 ### Added
+- **Streaming-service home**:
+  - A full-width billboard of the top five trending videos, with cross-fades, a slow image drift, progress bars, swipe, arrows and a pause button. It pauses on hover and focus, and doesn't autoplay with reduced motion.
+  - Rows for Continue watching, a numbered Top 10 today, More trending, and each category. Rows slide sideways with paging arrows, and each loads only when it scrolls near.
+- **Browse pages** (`/browse/:slug`) with a sliding chip highlight. Old `/?c=` links redirect.
+- **Motion**:
+  - Page transitions, a top bar that floats over the billboard until you scroll, and cards that lift with a play button on hover.
+  - Sliding nav and tab indicators, spring toasts and menus, and a save "pop".
+  - It uses Motion, whose features are lazy-loaded after the first paint, and everything respects reduced motion.
+- **Watch page**: ambient glow from the video's colors behind the player. "Play" from the billboard starts the video right away (`?play=1`).
 - **New design**:
   - A calm "cinema" look built on design tokens, with dark and light themes (following the system until you pick one, applied before the first paint).
   - A sticky top bar on desktop and bottom tabs on phones replace the long sidebar.
   - Categories are chips with their own addresses (`/?c=music`), and a Sources menu picks the platforms.
-- **Home**: a featured spotlight video, "Continue watching", and a grid that shows 24 videos with "Show more".
 - **Watch any platform in the app** (`/watch/:provider/:id`): YouTube, Dailymotion and Twitch clips.
   - The player is a poster until you press play: no third-party frame, script or cookie before that.
   - The page also has "Up next", a description with safe links, comments, share, save, and "Open on …".
@@ -56,7 +64,9 @@ A redesign and a security overhaul. The app now runs entirely on free services.
 - **Performance**:
   - The home page ships with the app and requests its feed before rendering. Other pages load on demand.
   - Thumbnails are responsive and lazy loaded, and Inter is self-hosted.
-  - `react-player` is removed: the main bundle is 85 KB gzipped (was 121 KB).
+  - `react-player` is removed: the main bundle is 101 KB gzipped (was 121 KB), even with Motion.
+  - The carousel engine loads when the browser is idle, and billboard slides are built only when shown or next.
+  - Rows below the first screen render after the first paint, and off-screen rows skip layout (`content-visibility`).
 - **Accessibility**:
   - A skip link, and focus moves to the new page on navigation.
   - One h1 per page and an ordered outline.

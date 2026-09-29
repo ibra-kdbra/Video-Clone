@@ -20,7 +20,21 @@
 
   &[aria-expanded='true'] {
     background: var(--surface-2);
+
+    .chevron {
+      transform: rotate(180deg);
+    }
   }
+}
+
+.compact {
+  height: 38px;
+  padding: 0 0.55rem 0 0.65rem;
+  border-color: var(--line-strong);
+}
+
+.chevron {
+  transition: transform var(--fast) var(--ease);
 }
 
 .marks {
@@ -44,6 +58,7 @@
   z-index: 40;
   width: 260px;
   padding: 0.5rem;
+  transform-origin: top left;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: var(--surface);
@@ -116,4 +131,10 @@
   padding: 0.5rem 0.6rem 0.25rem;
   color: var(--text-3);
   font-size: var(--text-xs);
+}
+
+.alignEnd {
+  right: 0;
+  left: auto;
+  transform-origin: top right;
 }

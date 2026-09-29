@@ -87,11 +87,26 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+
+  // Phones: one row that scrolls sideways, instead of wrapping onto two lines.
+  @include down(sm) {
+    flex-wrap: nowrap;
+    width: calc(100% + 2 * var(--gutter));
+    margin: 0 calc(-1 * var(--gutter));
+    padding: 0 var(--gutter);
+    overflow-x: auto;
+    @include hide-scrollbar;
+
+    > * {
+      flex: none;
+    }
+  }
 }
 
 .stat,
 .action {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: 0.45rem;
   height: 40px;
@@ -110,11 +125,6 @@
   }
 }
 
-.onSource {
-  @include down(sm) {
-    display: none;
-  }
-}
 
 .aside {
   min-width: 0;
