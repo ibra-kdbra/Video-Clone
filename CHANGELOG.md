@@ -2,50 +2,75 @@
 
 All notable changes to this project will be documented in this file.
 
-## [5.0.0] - 2026-09-27
+## [5.0.0] - 2026-09-29
+
+A redesign and a security overhaul. The app now runs entirely on free services.
 
 ### Added
-- **API proxy**: A Netlify Function at `/api/*` (`netlify/functions/api.mjs`, code in `server/api/`) calls YouTube and Twitch with server-side keys. It only answers the listed routes and validates every parameter. It caches at Netlify's CDN, is rate limited per IP, and turns upstream errors (quota, comments turned off, not found) into clear JSON errors.
-- **Official YouTube Data API v3**: Uses `YOUTUBE_API_KEY`, which is free and needs no billing account. Channel videos and "Up next" read the channel's uploads playlist (1 quota unit) instead of a search.
-- **Runs entirely on free tiers**:
-  - YouTube's free tier allows 100 searches a day, so each search is cached for 24 hours in Netlify's durable cache, which every edge location shares. Queries are lower-cased so they share cache entries.
-  - When YouTube's daily searches run out, or no key is set, the feed and search fall back to Dailymotion (free, no key) and say so.
-  - RapidAPI, the only paid-plan service, is gone.
-- **Official Twitch Helix API**: Uses an app access token (client credentials), cached and refreshed on `401`. Search looks up a game or channel and returns its top clips, and trending returns this week's clips of the top games.
-- **Mock mode**: `npm run dev:mock` / `preview:mock` serve a local stand-in of the upstream APIs, so the app runs without keys.
-- **Tests and lint**: 58 Vitest tests covering the proxy (routing, validation, keys never reaching the browser, caching, quota and Twitch token handling), the Dailymotion fallback and the formatters. ESLint 9 flat config.
-- **Mobile navigation**: A menu button opens the sidebar as a drawer on phones. It closes on navigation, on Escape and on the backdrop.
-- **Security headers** in `netlify.toml`, plus immutable caching for fingerprinted assets.
-- `.env.example` listing the server-side variables.
+- **New design**:
+  - A calm "cinema" look built on design tokens, with dark and light themes (following the system until you pick one, applied before the first paint).
+  - A sticky top bar on desktop and bottom tabs on phones replace the long sidebar.
+  - Categories are chips with their own addresses (`/?c=music`), and a Sources menu picks the platforms.
+- **Home**: a featured spotlight video, "Continue watching", and a grid that shows 24 videos with "Show more".
+- **Watch any platform in the app** (`/watch/:provider/:id`): YouTube, Dailymotion and Twitch clips.
+  - The player is a poster until you press play: no third-party frame, script or cookie before that.
+  - The page also has "Up next", a description with safe links, comments, share, save, and "Open on …".
+- **Search**: recent searches as suggestions (keyboard-friendly combobox), the `/` shortcut, filters by platform, and a search screen on phones with recent searches and categories.
+- **Library** (`/library`): saved videos and history, with remove and a two-step "Clear all". Kept in the browser only.
+- **Channel page**: banner, stats, description, and "Load more" through the channel's uploads.
+- **Error boundary, 404 page, and empty and error states**, each with a way forward.
+- **API**:
+  - One video shape for every platform.
+  - `trending` endpoints (YouTube's popular chart costs no search), `related` for Dailymotion and Twitch, and Dailymotion routed through the proxy.
+- **API proxy**: a Netlify Function at `/api/*` calls the official YouTube Data API v3, Dailymotion and Twitch Helix with server-side keys. RapidAPI is removed.
+- **Mock mode**: `npm run dev:mock` / `preview:mock` run the app with no keys, against a realistic stand-in of the platforms.
+- **Tests**: 103 Vitest tests for the proxy, client logic (source mixing and fallback, storage validation and migration, formatting) and security rules. ESLint 9.
+- **App icons** and a web app manifest.
+
+### Security
+- **Content-Security-Policy**:
+  - Scripts only from the app itself, plus the inline theme script by hash. No `eval`, and Trusted Types required.
+  - API calls only to the site's own origin, images only from the platforms' image servers, frames only from their players, and the site can't be framed.
+  - Also HSTS, COOP, CORP, `Permissions-Policy`, `Referrer-Policy` and `nosniff`. The preview server sends the same headers.
+- **No keys in the browser**: the old RapidAPI key was bundled into the public JavaScript. It's gone, and all keys live on the server.
+- **API**:
+  - Routes are allow-listed, and unknown or repeated parameters are rejected.
+  - Cross-site requests are refused before any quota is spent.
+  - Cache keys use only real parameters, and upstream calls time out after 8 s.
+  - Rate limited per IP, and errors never cached.
+- **Untrusted data**:
+  - HTML is stripped server-side and only https image URLs are passed on.
+  - No raw HTML rendering.
+  - Description links are limited to `http(s)` and opened with `noopener noreferrer`.
+- **Local storage is validated on read**. Lists from the previous version are migrated once, and invalid entries dropped.
+- **Dependencies updated**: React Router 7.18 fixes its published advisories, including an open redirect through `<Link>`. Vite 8 and Vitest 5 fix the dev-server advisories. `npm audit` reports 0 vulnerabilities.
 
 ### Changed
-- **No API key in the browser, and no RapidAPI**: The RapidAPI key used to be bundled into the JavaScript (`VITE_RAPID_API_KEY`). The app now uses the official free APIs through the proxy, and the browser only calls same-origin `/api` endpoints. `axios` was removed in favour of `fetch`.
 - **Real data only**:
-  - Video cards show the real duration and view count. Missing values are left blank instead of showing "12:45".
-  - Titles are decoded (`&#39;` shows as `'`), and comments come as plain text.
-  - The watch page shows the real channel avatar and subscriber count.
+  - Real durations, views, likes, subscriber counts and channel avatars, and decoded titles.
+  - No fake verified badges, and no buttons that did nothing.
   - "Subscribe" opens YouTube's subscribe confirmation.
-- **No fake UI**: Removed the verified badges that every channel showed, and the upload, notifications and profile buttons that did nothing.
-- **Hero**: "Start watching" opens the video. The title is limited to two lines and the text to three. The featured video is no longer repeated in the grid.
+- **Free tiers**:
+  - YouTube search results are cached for a day in Netlify's durable cache, and queries are lower-cased to share entries.
+  - When YouTube's daily limit is reached, or no key is set, Dailymotion fills in with a note.
 - **Performance**:
-  - Every page is a lazily loaded chunk. The video player (YouTube only) loads on the watch page alone, which cuts the main bundle from 377 KB to 284 KB (121 KB to 90 KB gzipped).
-  - Thumbnails are responsive (`srcset`), lazy and sized, and the hero image loads first.
-  - Inter is self-hosted (`@fontsource-variable/inter`) instead of loaded from Google Fonts.
+  - The home page ships with the app and requests its feed before rendering. Other pages load on demand.
+  - Thumbnails are responsive and lazy loaded, and Inter is self-hosted.
+  - `react-player` is removed: the main bundle is 85 KB gzipped (was 121 KB).
 - **Accessibility**:
-  - Headings follow the page outline (one `h1` per page).
-  - Controls have labels, focus is visible, and the bookmark button shows on touch screens.
-  - The sidebar text meets contrast, and platform toggles expose `aria-pressed`.
-- **Layout**: The watch page stacks below 1200px, and long channel names no longer push "Subscribe" out of view.
+  - A skip link, and focus moves to the new page on navigation.
+  - One h1 per page and an ordered outline.
+  - Labelled controls, visible focus, contrast checked in both themes, and reduced-motion support.
+- **Old addresses redirect**: `/video/:id`, `/search/:term`, `/history` and `/watch-later` lead to their new pages.
 
 ### Fixed
-- **Page overflow**: `box-sizing` was misspelled (`box-box`) in the reset, so padded elements overflowed and every page was clipped on the right.
-- **Font**: The body font was Roboto, which was never loaded. It is now Inter, as intended.
-- **Watch history**: Watching a second video wiped the history, because it compared `id.videoId` on items stored with a plain string id.
-- **Circular import warnings** between the component barrel file and its components.
+- **Page overflow**: `box-sizing` was misspelled in the reset, so every page was clipped on the right.
+- **Watch history**: watching a second video wiped the history.
+- **Saves didn't sync**: saving a video on one card didn't update the others.
 
 ### Deployment notes
-- In Netlify, set `YOUTUBE_API_KEY`, `TWITCH_CLIENT_ID` and `TWITCH_CLIENT_SECRET` (all free), then remove `VITE_RAPID_API_KEY`.
-- Delete the old RapidAPI key, or cancel that subscription. It was public in the previous bundle and is no longer used.
+- In Netlify, set `YOUTUBE_API_KEY` and, for Twitch clips, `TWITCH_CLIENT_ID` and `TWITCH_CLIENT_SECRET` (all free). Remove `VITE_RAPID_API_KEY`.
+- Delete the old RapidAPI key, or cancel that subscription. It was public in the previous bundle.
 
 ---
 
