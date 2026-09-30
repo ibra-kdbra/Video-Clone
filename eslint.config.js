@@ -1,39 +1,31 @@
 import js from '@eslint/js';
 import globals from 'globals';
-import reactHooks from 'eslint-plugin-react-hooks';
-import reactRefresh from 'eslint-plugin-react-refresh';
+import tseslint from 'typescript-eslint';
 
-export default [
-  { ignores: ['dist', 'node_modules', '.netlify'] },
+/**
+ * Lint rules for the TypeScript packages (API, worker, contracts). The web app has its own
+ * eslint.config.js in apps/web.
+ */
+export default tseslint.config(
+  { ignores: ['**/dist/**', '**/node_modules/**', 'apps/web/**', '**/coverage/**'] },
   {
-    files: ['src/**/*.{js,jsx}'],
-    languageOptions: {
-      ecmaVersion: 2023,
-      sourceType: 'module',
-      globals: globals.browser,
-      parserOptions: { ecmaFeatures: { jsx: true } },
-    },
-    plugins: { 'react-hooks': reactHooks, 'react-refresh': reactRefresh },
+    files: ['apps/api/**/*.ts', 'apps/worker/**/*.ts', 'packages/**/*.ts'],
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: globals.node },
     rules: {
-      ...js.configs.recommended.rules,
-      ...reactHooks.configs.recommended.rules,
-      // Capitalized names (e.g. `titleAs: Title`) and Motion's `m` are used in JSX (`<m.div>`),
-      // which core ESLint doesn't see as used; this avoids pulling in eslint-plugin-react for
-      // that one rule.
-      'no-unused-vars': ['error', { varsIgnorePattern: '^([A-Z_]|m$)', argsIgnorePattern: '^[A-Z_]' }],
-      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_' }],
+      // Nest injects by constructor parameter types, so those imports must stay value imports.
+      '@typescript-eslint/consistent-type-imports': 'off',
+      'no-console': ['error', { allow: ['warn', 'error'] }],
     },
   },
   {
-    files: ['server/**/*.mjs', 'netlify/**/*.mjs', 'tests/**/*.{js,mjs}', '*.config.js'],
-    languageOptions: {
-      ecmaVersion: 2023,
-      sourceType: 'module',
-      globals: { ...globals.node, Netlify: 'readonly' },
-    },
-    rules: {
-      ...js.configs.recommended.rules,
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-    },
+    files: ['**/test/**/*.ts', '**/*.spec.ts', 'apps/api/src/database/migrate.ts', 'apps/api/src/database/migrator.ts'],
+    rules: { '@typescript-eslint/no-explicit-any': 'off', 'no-console': 'off', '@typescript-eslint/no-non-null-assertion': 'off' },
   },
-];
+  {
+    files: ['scripts/**/*.mjs'],
+    extends: [js.configs.recommended],
+    languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: globals.node },
+  },
+);

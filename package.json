@@ -1,40 +1,32 @@
 {
-  "name": "video-clone",
-  "version": "5.0.0",
+  "name": "grand-lms",
+  "version": "0.1.0",
   "private": true,
+  "description": "Grand LMS: a multi-school learning platform built around video, with a NestJS backend and real-time features.",
   "type": "module",
-  "dependencies": {
-    "@fontsource-variable/inter": "^5.3.0",
-    "@tanstack/react-query": "^5.104.0",
-    "embla-carousel": "^8.6.0",
-    "embla-carousel-autoplay": "^8.6.0",
-    "embla-carousel-fade": "^8.6.0",
-    "motion": "^13.4.6",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-router-dom": "^7.18.4"
-  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "dev:mock": "vite --mode mock",
-    "build": "vite build",
-    "preview": "vite preview",
-    "preview:mock": "vite preview --mode mock",
-    "lint": "eslint .",
-    "test": "vitest run"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.39.5",
-    "@vitejs/plugin-react": "^6.1.1",
-    "eslint": "^9.39.5",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.26",
-    "globals": "^16.5.0",
-    "sass": "^1.105.0",
-    "vite": "^8.3.1",
-    "vitest": "^5.0.2"
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "dev:web": "npm run dev -w @grand/web",
+    "dev:api": "npm run dev -w @grand/api",
+    "dev:worker": "npm run dev -w @grand/worker",
+    "db:migrate": "npm run db:migrate -w @grand/api",
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml down"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "globals": "^16.5.0",
+    "typescript-eslint": "^8.71.0"
   }
 }

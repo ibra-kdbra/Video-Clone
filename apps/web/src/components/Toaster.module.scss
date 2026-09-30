@@ -1,0 +1,48 @@
+// Spans the screen (less the gutters) and centers the toast in it, so a long message wraps
+// instead of running off a phone's edge.
+.region {
+  position: fixed;
+  right: 0;
+  bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  left: 0;
+  z-index: 60;
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--gutter);
+  pointer-events: none;
+
+  @include down(md) {
+    bottom: calc(var(--bottomnav-h) + 0.75rem + env(safe-area-inset-bottom));
+  }
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 34rem;
+  padding: 0.6rem 1.1rem 0.6rem 0.65rem;
+  border-radius: var(--radius-lg);
+  background: var(--text);
+  color: var(--bg);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.35;
+  box-shadow: var(--shadow-lg);
+}
+
+.check {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-solid);
+  color: var(--on-accent);
+
+  [data-tone='error'] > & {
+    background: var(--danger);
+    color: var(--bg);
+  }
+}

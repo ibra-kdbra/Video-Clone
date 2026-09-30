@@ -1,0 +1,10 @@
+// Sign-in and sign-up forms, inside the AuthShell card.
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.submit {
+  margin-top: 0.35rem;
+}

@@ -1,0 +1,54 @@
+// The <dialog> fills the screen (so a press outside the panel lands on it) and centers the panel.
+.dialog {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: var(--gutter);
+  border: 0;
+  background: transparent;
+  color: var(--text);
+
+  &[open] {
+    display: grid;
+    place-items: center;
+  }
+
+  &::backdrop {
+    background: var(--overlay, rgb(0 0 0 / 0.7));
+    backdrop-filter: blur(6px);
+  }
+}
+
+.panel {
+  width: min(100%, 420px);
+  padding: 1.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.title {
+  font-size: var(--text-xl);
+  letter-spacing: -0.025em;
+}
+
+.text {
+  margin-top: 0.6rem;
+  color: var(--text-2);
+
+  strong {
+    color: var(--text);
+    font-weight: 650;
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.75rem;
+}
