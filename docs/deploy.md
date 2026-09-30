@@ -1,0 +1,148 @@
+# Deploying Grand LMS for free
+
+The web app runs on Netlify. The API, the worker, Postgres and Redis run on one Oracle Cloud
+Always Free server, behind Caddy for HTTPS. The API gets a free DuckDNS name. Nothing here
+charges money: Netlify's free plan pauses at its limit instead of billing, and Always Free
+resources stay free unless you upgrade the Oracle account to Pay As You Go. Oracle asks for a card
+to verify your identity when you sign up; it isn't charged for Always Free resources.
+
+```text
+visitors ──► https://your-site.netlify.app ──(/api/v1/* proxied)──► https://grand-lms.duckdns.org
+         └──────────────── WebSocket (wss) ───────────────────────►  Caddy ► API ► Postgres, Redis
+                                                                               worker ► email (SMTP)
+```
+
+## 1. The server
+
+1. Create an [Oracle Cloud](https://www.oracle.com/cloud/free/) account and a compute instance:
+   - **Image**: Ubuntu 24.04.
+   - **Shape**: VM.Standard.A1.Flex (Ampere, Always Free eligible), 2 OCPUs and 12 GB of memory
+     (plenty; the free allowance is larger).
+   - **Networking**: assign a public IPv4 address. Reserve it, so it survives a restart.
+   - **SSH**: add your SSH key.
+2. Let web traffic in, in two places:
+   - **The subnet**: in the subnet's security list, add ingress rules for TCP 80 and 443 (and
+     UDP 443 for HTTP/3) from `0.0.0.0/0`.
+   - **The server's own firewall**: Oracle's Ubuntu images block everything but SSH. Run:
+     ```bash
+     sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 80 -j ACCEPT
+     sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 443 -j ACCEPT
+     sudo iptables -I INPUT 6 -m state --state NEW -p udp --dport 443 -j ACCEPT
+     sudo netfilter-persistent save
+     ```
+3. Install Docker with the Compose plugin, following Docker's guide for Ubuntu:
+   ```bash
+   curl -fsSL https://get.docker.com | sudo sh
+   sudo usermod -aG docker $USER   # log out and back in
+   ```
+
+## 2. A name for the API
+
+At [duckdns.org](https://www.duckdns.org), sign in and create a subdomain, such as `grand-lms`.
+Point it at the server's public IP. The API will be `https://grand-lms.duckdns.org`. Any domain
+you own works the same way, with an `A` record.
+
+## 3. Email
+
+The worker sends invitation emails over SMTP. Free options:
+- **[Brevo](https://www.brevo.com)**: 300 emails a day. Use
+  `smtp://LOGIN:SMTP_KEY@smtp-relay.brevo.com:587`, and verify your sender address.
+- **[Resend](https://resend.com)**: 100 emails a day. Use `smtps://resend:API_KEY@smtp.resend.com:465`.
+
+## 4. Start the backend
+
+```bash
+git clone https://github.com/ibra-kdbra/video-clone.git grand-lms && cd grand-lms
+cp infra/.env.prod.example infra/.env.prod
+nano infra/.env.prod
+```
+
+Fill in every value:
+- `API_DOMAIN`: the DuckDNS name.
+- `WEB_ORIGINS` and `PUBLIC_WEB_URL`: the Netlify site's address.
+- `SMTP_URL` and `MAIL_FROM`: from step 3.
+- The four secrets: `POSTGRES_PASSWORD`, `APP_DB_PASSWORD`, `REDIS_PASSWORD` and `JWT_SECRET`.
+  Generate each with:
+  ```bash
+  openssl rand -base64 48 | tr -d '/+=' | cut -c1-40
+  ```
+
+Then start everything:
+
+```bash
+docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --build
+```
+
+Compose builds the images and starts Postgres and Redis. Next it runs the migrations, as the
+database owner, in a one-off `migrate` container. Then it starts the API and the worker, and Caddy,
+which fetches a Let's Encrypt certificate for `API_DOMAIN`.
+
+Check it:
+
+```bash
+curl https://grand-lms.duckdns.org/api/v1/health/ready
+docker compose -f infra/docker-compose.prod.yml logs -f api worker
+```
+
+## 5. The web app on Netlify
+
+1. In Netlify, import the repository. `netlify.toml` sets the build: base is the repository root,
+   the command is `npm run build -w @grand/web`, and it publishes `apps/web/dist`.
+2. Under **Site configuration → Environment variables**, add:
+
+| Variable | Value |
+| --- | --- |
+| `API_ORIGIN` | `https://grand-lms.duckdns.org` (no trailing slash) |
+| `YOUTUBE_API_KEY`, `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET` | Optional, for the Explore pages (see the README) |
+
+3. Deploy. The build writes `dist/_redirects`, which proxies `/api/v1/*` to the API, and
+   `dist/_headers`, whose Content-Security-Policy allows WebSockets to the API's host.
+4. Put the site's address in `WEB_ORIGINS` and `PUBLIC_WEB_URL` on the server. If you changed
+   them, restart the API and worker:
+   ```bash
+   docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d
+   ```
+
+Requests through Netlify carry the visitor's address in `x-nf-client-connection-ip`, which the API
+uses for rate limits (`CLIENT_IP_HEADER` in the compose file). Otherwise, all visitors would share
+Netlify's few addresses and one busy visitor could slow everyone down.
+
+## Backups
+
+Take a nightly compressed dump and keep the last 14:
+
+```bash
+mkdir -p ~/backups
+crontab -e
+# add:
+15 2 * * * cd ~/grand-lms && docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod exec -T postgres pg_dump -U grand -Fc grand > ~/backups/grand-$(date +\%F).dump && find ~/backups -name 'grand-*.dump' -mtime +14 -delete
+```
+
+Copy the dumps off the server too. [rclone](https://rclone.org) to Cloudflare R2's free tier works.
+
+To restore into an empty database:
+
+```bash
+docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod exec -T postgres \
+  pg_restore -U grand -d grand --clean --if-exists < ~/backups/grand-2026-09-30.dump
+```
+
+## Updating
+
+```bash
+git pull
+docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --build
+```
+
+Migrations run before the new API starts. They're forward-only: to undo one, restore the backup
+taken before the update and deploy the previous version (`git checkout <tag>`).
+
+## When something's wrong
+
+| Symptom | Look at |
+| --- | --- |
+| The certificate isn't issued | The DuckDNS name must point at the server, and ports 80 and 443 must be open (step 1). See `docker compose ... logs caddy`. |
+| `/health/ready` says down | `logs postgres redis api`. The API waits for the migrations; check `logs migrate`. |
+| Sign-in works but the session is lost on reload | `WEB_ORIGINS` must exactly match the site's origin. The refresh call is refused from any other origin. |
+| No live updates | The browser console shows the WebSocket error. Check that `API_ORIGIN` was set when the site was built, since the CSP names the API's host. |
+| Invitations aren't emailed | `logs worker`. Failed sends retry with backoff, and the error is saved in `outbox.last_error`. |

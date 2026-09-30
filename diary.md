@@ -4,6 +4,7 @@ Date format: YYYY-MM-DD
 
 ## Index
 - 2026-02-03 — Kickoff
+- 2026-09-30 — Grand LMS, Phase 0
 
 ---
 
@@ -83,3 +84,41 @@ Date format: YYYY-MM-DD
 ### Pending
 - Remove or reconcile legacy CRA public index.html if needed.
 - Continue component-level polish for cards and layouts.
+
+---
+
+## 2026-09-30 — Grand LMS, Phase 0
+
+### Completed
+- Turned the repository into an npm-workspaces monorepo: apps/web (the React app, moved as is),
+  apps/api (NestJS 12 on Fastify), apps/worker (NestJS and BullMQ), and packages/contracts (zod
+  schemas shared by all three).
+- Built the data layer:
+  - Postgres with hand-written SQL migrations and a migrator that uses an advisory lock and checksums.
+  - Row-level security on every school-scoped table, with a non-owner app role.
+  - An append-only audit log and a transactional outbox.
+- Built accounts: Argon2id, 15-minute JWTs kept in memory, and rotating refresh cookies with reuse
+  detection. Added devices with remote sign-out, and a login lockout.
+- Built schools, roles, members and email invitations (outbox → BullMQ → SMTP).
+- Added real-time over Socket.IO: ticket sign-in, school rooms, presence and instant sign-out,
+  with the Redis adapter.
+- Added operations: health checks, pino logs with request ids, OpenAPI from the zod schemas,
+  graceful shutdown, Docker images, and Compose for local development and production.
+- Added tests against real Postgres and Redis (API and worker), CI on GitHub Actions, and docs:
+  architecture, ADRs, deployment and roadmap.
+
+### Decisions
+- Many schools share one database, separated by Postgres row-level security rather than by
+  application code alone (ADR 2).
+- Access tokens stay in memory, and refresh tokens live in a SameSite=Strict cookie, single use
+  (ADR 3).
+- A transactional outbox instead of sending from request handlers (ADR 4).
+- Free hosting: Netlify for the app, one Oracle Always Free server for the API, and a DuckDNS name
+  (ADR 6).
+- Netlify doesn't proxy WebSockets, so the socket connects to the API host with single-use tickets
+  (ADR 5).
+
+### Pending
+- Phase 1: courses, modules and lessons; video uploads to R2 with HLS transcoding.
+- Email verification and password reset.
+- Deploy the backend to Oracle Cloud and set API_ORIGIN on Netlify.
