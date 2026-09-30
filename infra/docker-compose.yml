@@ -1,0 +1,39 @@
+# Local development services: `npm run infra:up`. The API and worker run on your machine
+# (npm run dev:api / dev:worker) against these.
+name: grand-lms-dev
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: grand
+      POSTGRES_PASSWORD: grand
+      POSTGRES_DB: grand
+      APP_DB_PASSWORD: grand_app
+    ports: ["127.0.0.1:5432:5432"]
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U grand -d grand"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports: ["127.0.0.1:6379:6379"]
+    volumes: [redis:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+  # Catches every email the worker sends: http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    ports: ["127.0.0.1:1025:1025", "127.0.0.1:8025:8025"]
+
+volumes:
+  postgres:
+  redis:
