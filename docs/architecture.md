@@ -343,6 +343,28 @@ See [ADR 8](adr/0008-learning-progress.md).
   5-second stretch), or how often each quiz question is answered correctly.
 - Both are computed on request, from enrolled students' rows only.
 
+## Demo mode
+
+The public site has no API server, so it's built with `VITE_DEMO=true` and runs the LMS against a
+mock of the API inside the page (`apps/web/src/demo`):
+
+- **One switch point**: `lib/session.js` sends every `/api/v1` request through one function, which
+  in demo builds hands it to the mock instead of `fetch`. The mock answers with a real `Response`,
+  so error handling, token refresh and the rest of the app don't know the difference. The socket
+  and the upload of handed-in files have in-page stand-ins too.
+- **The API's rules, ported**: the same checks in the same order (session, school role,
+  validation with the shared zod schemas), the same access rules, quiz grading and reveal,
+  watch-progress bitsets, insights, and the worker's notification rules. Each request runs like a
+  transaction and is undone if it fails.
+- **Data**: a seed built from `src/demo/content.js` on every visit (a school, its people and
+  courses, and generated activity for about forty classmates), with times relative to now. Only
+  the visitor's changes are saved, in one `localStorage` entry; "Reset demo" forgets them.
+- **Video**: lessons embed YouTube lectures, except *The Physics of Sound*, whose HLS files are
+  served from `public/demo/media` and played by the app's own player.
+- **Nothing of it in a real build**: with the flag off, a build plugin resolves every import of
+  `src/demo` to an empty module and drops `public/demo`. A test checks that `src/demo` is only ever
+  imported dynamically, behind the flag, which is what lets the build drop it.
+
 ## Operations
 
 - **Health**:

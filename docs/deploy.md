@@ -109,6 +109,10 @@ docker compose -f infra/docker-compose.prod.yml logs -f api worker
 
 1. In Netlify, import the repository. `netlify.toml` sets the build: base is the repository root,
    the command is `npm run build -w @grand/web`, and it publishes `apps/web/dist`.
+
+   As it comes, `netlify.toml` also sets `VITE_DEMO = "true"`: the site runs the demo school in the
+   browser, with no API (see the README's *Demo mode*). That's how the public demo is built. To use
+   your own server, delete that line and set the variables below.
 2. Under **Site configuration → Environment variables**, add:
 
 | Variable | Value |

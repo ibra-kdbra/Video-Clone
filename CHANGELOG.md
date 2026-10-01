@@ -2,6 +2,46 @@
 
 All notable changes to this project will be documented in this file.
 
+## [8.1.0] - 2026-10-01
+
+**A demo school on the public site, and an LMS-first front page.** The public site has no API
+server, so until now it showed the streaming pages and nothing of the LMS. It now runs the whole
+LMS in the browser against a mock of the API, with a sample school to explore.
+
+### Added
+- **Demo mode** (`VITE_DEMO=true`, set in `netlify.toml`):
+  - Every API call goes to a mock in the page that follows the API's rules (roles, validation,
+    grading, progress, insights, notifications) and answers in the same shapes.
+  - Sign in as a student, an instructor or the school's owner with one click, or sign up. Changes
+    are kept in that browser; "Reset demo" starts over.
+  - Live touches: handed-in work is graded a few seconds later, and classmates hand in work while
+    an instructor is signed in, both arriving as notifications.
+  - A banner says it's a demo, and how to reset it.
+- **Grand Academy**, the demo school:
+  - Eight courses (linear algebra, calculus, neural networks, how computers work, a first
+    website, the physics of sound, four big ideas, the first civilizations) and a draft, each
+    with notes, quizzes and assignments.
+  - Video lessons embed lectures from 3Blue1Brown, CrashCourse and freeCodeCamp, credited in the
+    notes.
+  - *The Physics of Sound* has the school's own videos: animated waveforms over synthesized
+    tones, made from scratch (`apps/web/scripts/demo-media`) and packaged as HLS the way the
+    worker packages uploads, so the demo shows the app's player, resume and retention charts.
+  - About forty classmates, whose progress, quiz attempts and handed-in work fill the
+    instructors' grading queues and insights.
+- **Tests**: web, 371 (49 new), covering the mock's rules, sessions and persistence, and that the
+  demo code is only loaded behind the flag.
+
+### Changed
+- **The front page is the LMS**: an introduction with the demo school's courses when signed out,
+  and a dashboard when signed in (continue learning, your schools, and for staff, the courses you
+  teach).
+- **The streaming pages moved to `/explore`** ("Explore videos" in the menu). Their search box and
+  platform switcher show only there.
+- **Normal builds drop the demo entirely**: no demo code and no demo videos in `dist/`.
+
+### Fixed
+- The sign-in card and the school welcome card overflowed the screen by a few pixels at 360 px.
+
 ## [8.0.0] - 2026-10-01
 
 **Grand LMS, Phase 2: learning progress.** Students' watching, quizzes and handed-in work are
