@@ -52,7 +52,7 @@ record for each name.
 
 ## 3. Email
 
-The worker sends invitation emails over SMTP. Free options:
+The worker sends invitations and notification emails (grades, by default) over SMTP. Free options:
 - **[Brevo](https://www.brevo.com)**: 300 emails a day. Use
   `smtp://LOGIN:SMTP_KEY@smtp-relay.brevo.com:587`, and verify your sender address.
 - **[Resend](https://resend.com)**: 100 emails a day. Use `smtps://resend:API_KEY@smtp.resend.com:465`.
@@ -67,7 +67,8 @@ nano infra/.env.prod
 
 Fill in every value:
 - `API_DOMAIN`: the DuckDNS name. `MEDIA_DOMAIN`: the video store's name, `media.` and the same.
-- `WEB_ORIGINS` and `PUBLIC_WEB_URL`: the Netlify site's address.
+- `WEB_ORIGINS` and `PUBLIC_WEB_URL`: the Netlify site's address. Links in emails start with
+  `PUBLIC_WEB_URL`.
 - `SMTP_URL` and `MAIL_FROM`: from step 3.
 - The four secrets: `POSTGRES_PASSWORD`, `APP_DB_PASSWORD`, `REDIS_PASSWORD` and `JWT_SECRET`.
   Generate each with:
@@ -172,7 +173,8 @@ taken before the update and deploy the previous version (`git checkout <tag>`).
 | `/health/ready` says down | `logs postgres redis api`. The API waits for the migrations; check `logs migrate`. |
 | Sign-in works but the session is lost on reload | `WEB_ORIGINS` must exactly match the site's origin. The refresh call is refused from any other origin. |
 | No live updates | The browser console shows the WebSocket error. Check that `API_ORIGIN` was set when the site was built, since the CSP names the API's host. |
-| Invitations aren't emailed | `logs worker`. Failed sends retry with backoff, and the error is saved in `outbox.last_error`. |
+| Invitations or notification emails don't arrive | `logs worker`. Failed sends retry with backoff, and the error is saved in `outbox.last_error`. Notification emails also depend on each person's settings (Account → Notifications). |
+| Handing in a file fails | Same as uploads below: the site's origin must be in `WEB_ORIGINS`, and the school must have storage left. |
 | Uploads fail at once, with a CORS error in the console | The site's origin must be in `WEB_ORIGINS`; run `up -d` again so `storage-setup` updates the bucket. See `logs storage-setup`. |
 | Videos stay at "Processing" | `logs worker`: ffmpeg's error is there, and in the lesson's error message once it gives up. |
 | Videos don't play | `MEDIA_ORIGIN` must be set on Netlify (the CSP names it), and `https://MEDIA_DOMAIN` must have a certificate (`logs caddy`). |

@@ -6,6 +6,9 @@ what is built so far:
   invitations, real-time updates, background jobs and the security model.
 - **Phase 1**, courses and video lessons: course outlines, drafts and publishing, enrollments,
   uploads straight to storage, transcoding to adaptive HLS, and signed playback.
+- **Phase 2**, learning progress: what students watched and completed, quizzes graded on the
+  server, assignments with files and feedback, notifications in the app and by email, and
+  insights for a course's editors.
 
 The decisions behind it are recorded in [docs/adr](adr).
 
@@ -34,7 +37,7 @@ browser ──https (signed URLs: uploads, video)───┐   │      │
 | --- | --- |
 | `apps/web` | The React app (Vite, React Router, TanStack Query, Motion, Sass modules). Also the Netlify function that proxies the video platforms. |
 | `apps/api` | The HTTP and WebSocket API. |
-| `apps/worker` | Background work: moves outbox events into BullMQ, sends email, transcodes videos with ffmpeg, cleans up expired rows and abandoned uploads. |
+| `apps/worker` | Background work: moves outbox events into BullMQ, sends email and notifications, transcodes videos with ffmpeg, cleans up expired rows and abandoned uploads. |
 | `packages/contracts` | The API contract shared by all three: zod schemas for every request body, response types, real-time event types. |
 
 ## A request, end to end
@@ -80,6 +83,9 @@ browser ──https (signed URLs: uploads, video)───┐   │      │
 | `courses`, `course_modules`, `lessons`, `media_assets` | read, create, update, delete | Only the acting school's rows. Who may see or edit which course is decided in the API (below), on top of this. |
 | `enrollments` | read, create, delete | Only the acting school's rows, plus read access to your own enrollments. |
 | `school_storage` | read, update | Only the acting school's row. A trigger creates it with every school. |
+| `lesson_progress`, `quizzes`, `assignments`, `assignment_submissions`, `submission_files` | read, create, update, delete | Only the acting school's rows. Whose progress or submission you see is decided in the API, as for courses. |
+| `quiz_attempts` | read, add | Only the acting school's rows. Attempts are never changed or deleted, except with their lesson or membership. |
+| `notifications` | read, update, delete | Only your own, in any school. There's no insert grant: they're written through `app.add_notifications(...)`, a `SECURITY DEFINER` function that only writes for members of the acting school. |
 | `users`, `sessions`, `refresh_tokens`, `outbox` | as granted | Not school-scoped. They're reached only through the services, by id or by token hash. |
 
 There are more guarantees:
@@ -90,6 +96,8 @@ There are more guarantees:
 - Course tables reference each other through composite keys that include the school:
   `(course_id, school_id)` and `(module_id, course_id)`. A lesson can't point at another school's
   course, or at a module of another course, even if a bug in the API tried.
+- Progress, attempts and submissions point at `(lesson_id, course_id, school_id)` and at the
+  person's membership `(school_id, user_id)`. Leaving a school deletes them.
 
 `apps/api/test/rls.test.ts` checks all of this straight against Postgres as `grand_app`:
 - queries with no school filter at all
@@ -141,6 +149,7 @@ See [ADR 5](adr/0005-realtime.md).
   - Members joining, changing role or leaving.
   - Presence: who is connected to a school.
   - Session revoked.
+  - A new notification, and notifications read on another device (`user:{id}` only).
 - **Limits**:
   - 16 KiB per message.
   - 20 events in a burst, then 5 a second.
@@ -165,7 +174,10 @@ See [ADR 4](adr/0004-outbox.md).
 ## Courses and lessons
 
 - **Shape**: a school has courses, and each course has modules holding lessons. A lesson has notes
-  in Markdown and, optionally, one video: an upload, or a YouTube, Dailymotion or Twitch embed.
+  in Markdown. It's one of three kinds, fixed when it's created:
+  - a *lesson*, with optionally one video: an upload, or a YouTube, Dailymotion or Twitch embed
+  - a *quiz*
+  - an *assignment*
 - **Addresses**: a course's slug is made from its title and is unique within the school. A clash
   gets `-2`, `-3` and so on.
 - **Who may do what** (`apps/api/src/courses/course-access.ts`):
@@ -179,9 +191,9 @@ See [ADR 4](adr/0004-outbox.md).
 - **Drafts and publishing**: courses and lessons start as drafts.
   - Only a course's editors see drafts. Anyone else gets "not found", so a draft's address gives
     nothing away.
-  - Publishing a course records when, and adds a `course.published` event to the outbox for
-    Phase 2's notifications. Archiving hides a course from the catalog but keeps it for its
-    editors.
+  - Publishing a course records when, and adds a `course.published` event to the outbox. The
+    first time a lesson of a published course is published, a `lesson.published` event follows.
+    Archiving hides a course from the catalog but keeps it for its editors.
 - **Outline**: `PUT .../outline` reorders modules and lessons and moves lessons between modules,
   all in one request.
   - The request must list every module and lesson exactly once, otherwise the answer is a 409.
@@ -240,6 +252,97 @@ browser                API                       storage (Garage)          worke
   - The web app plays the stream with hls.js. Workers are off, because the page's CSP has
     `worker-src 'none'`. The CSP allows `MEDIA_ORIGIN` for images, media and fetches.
 
+## Progress
+
+See [ADR 8](adr/0008-learning-progress.md).
+
+- **What's recorded**: one `lesson_progress` row per student and lesson, created on the first
+  report. Only enrolled students have rows. Previews and editors looking around leave none.
+- **Watching**:
+  - Every ~10 seconds, and when the page is hidden, the player sends
+    `PUT .../lessons/:id/progress` with the 5-second stretches that played normally since the last
+    report, and the position.
+  - The API ORs the stretches into a bitset (`watched`, 1 bit per stretch), with the row locked.
+    Replays count once, and skipping ahead counts nothing.
+  - An uploaded video's lesson completes once 90% of its stretches have played.
+  - The position is kept for resuming.
+- **Completing by hand**: `POST .../complete` for a lesson without an uploaded video. Quizzes
+  complete when passed, assignments when handed in. Completion is never undone.
+- **Where it shows**: in each lesson summary (`progress: { completed, percent }`), in the course
+  page (`progress`: lessons done, percent, the last lesson for "Continue"), in the catalog's "My
+  courses", and in the Students tab for editors.
+
+## Quizzes
+
+- **Shape**: a quiz has a pass mark (70% by default), an optional attempt limit, and up to 100
+  questions: one answer, several answers, or a short typed answer. Editors save all of it at once
+  with `PUT .../quiz`; question and choice ids are kept across edits.
+- **Taking it**:
+  - `GET .../quiz` gives the questions without answers, the person's attempts, and how many are
+    left.
+  - `POST .../quiz/attempts` grades the answers on the server. Choice questions are all or
+    nothing. Short answers match ignoring case, accents, spacing and final punctuation.
+  - An advisory lock on the quiz and person makes the attempt limit exact, even for parallel
+    requests.
+  - Each attempt stores its marks, so editing a quiz later doesn't change past scores.
+  - The right answers and explanations are only returned once the quiz is passed or no attempts
+    are left.
+  - `GET .../quiz/attempts/:id` returns one of your past attempts again, with your answers, under
+    the same rule.
+
+## Assignments
+
+- **Shape**: points (100 by default), an optional due date, and whether a written answer, files
+  or both are accepted. The instructions are the lesson's notes.
+- **Handing in**:
+  - Each student has one submission per assignment: a draft until handed in, then *graded* or
+    *returned* for another try.
+  - Files (PDF, text, images, Office and OpenDocument documents, ZIP, MP3 and MP4; up to 5 of
+    25 MiB each) go straight to storage with a signed `PUT`. The signature covers the declared Content-Type, so
+    nothing else can be stored under it.
+  - Files count against the school's quota, as videos do: reserved when the upload starts, then
+    checked for size and counted as used.
+  - Uploads not finished within a day are removed by the worker's nightly clean-up.
+- **Grading**: the course's editors list the handed-in work (waiting first), open a submission,
+  and grade it or return it with feedback.
+- **Downloads** go through presigned GETs that force `Content-Disposition: attachment` and a
+  generic Content-Type, so the browser never displays a student's file. Only the student and the
+  course's editors may get one.
+- Deleting a lesson, course or member queues their files for deletion; the worker removes them
+  and frees their space.
+
+## Notifications
+
+- **Where they come from**: outbox events, handled by the worker.
+
+| Event | Who's told | Email by default |
+| --- | --- | --- |
+| `course.published` | Every member of the school, but the publisher | No |
+| `lesson.published` | The course's enrolled students | No |
+| `assignment.submitted` | The course's author; if they've left, the school's admins and owner | No |
+| `assignment.graded` | The student (graded or returned) | Yes |
+| `video.processed` | Whoever uploaded the video (ready or failed) | No |
+
+- **Delivery**:
+  - The worker writes one row per person through `app.add_notifications(...)`. Its key, from the
+    outbox event, makes a retried event notify nobody twice.
+  - It pushes each new row to the person's devices over Socket.IO (`notification:new`), through
+    the Redis emitter.
+  - It emails those who asked, paced by `MAIL_RATE_PER_SECOND`. Links use `PUBLIC_WEB_URL`.
+- **Reading**: `GET /notifications` (newest first, a cursor per page, with the unread count),
+  `POST /notifications/read` (some or all), and `GET`/`PUT /notifications/settings` for each kind,
+  in the app and by email.
+- Notifications are kept for 90 days.
+
+## Insights
+
+- `GET .../insights` gives a course's editors enrolled students, those active in the last 7
+  days, those who finished, the average progress, and per lesson: started, completed, the
+  average share of the video watched, quiz pass rates and attempts, and assignment grades.
+- `GET .../lessons/:id/insights` gives a video's retention curve (how many students played each
+  5-second stretch), or how often each quiz question is answered correctly.
+- Both are computed on request, from enrolled students' rows only.
+
 ## Operations
 
 - **Health**:
@@ -262,9 +365,10 @@ browser                API                       storage (Garage)          worke
 | Suite | Runs against | Covers |
 | --- | --- | --- |
 | `apps/api/test/*.test.ts` | Real Postgres and Redis (`grand_test`, Redis db 15) | Row-level security, sign-up and login, refresh rotation and reuse, devices, schools, members and roles, invitations, rate limits, WebSockets, headers and errors. |
-| `apps/api/src/**/*.spec.ts` | Nothing external | Configuration, cursors, address masking. |
+| `apps/api/src/**/*.spec.ts` | Nothing external | Configuration, cursors, address masking, the progress bitset, quiz grading. |
 | `apps/api/test/courses.test.ts`, `media.test.ts` | Real Postgres, Redis and Garage | Courses, drafts and permissions, outlines, enrollments, uploads and quotas, playback tokens and rewritten playlists. |
-| `apps/worker/test` | Real Postgres, Redis and Garage, and ffmpeg | Relay deduplication, email and scrubbing, idempotent retries, clean-up. Transcoding landscape, portrait and silent video, refusing files that aren't video or are too long, deletion, abandoned uploads. |
+| `apps/api/test/learning.test.ts`, `notifications.test.ts` | Real Postgres, Redis and Garage | Lesson kinds, watch progress and completion, quiz grading and attempt limits under parallel requests, assignment files and grading, insights, the notification inbox and settings. |
+| `apps/worker/test` | Real Postgres, Redis and Garage, and ffmpeg | Relay deduplication, email and scrubbing, idempotent retries, clean-up. Transcoding landscape, portrait and silent video, refusing files that aren't video or are too long, deletion, abandoned uploads. Notification recipients, choices and emails; handed-in files' deletion. |
 | `apps/worker/scripts/check-ffmpeg.mjs` | The worker image's ffmpeg (in CI) | The pipeline's ffmpeg commands work with the ffmpeg the image ships. |
 | `apps/web/tests` | Mocks | The video proxy, client logic, security rules for the page. |
 

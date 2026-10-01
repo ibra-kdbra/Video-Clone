@@ -17,7 +17,7 @@ stays within free tiers.
 - Rate limits, audit log, health checks, OpenAPI, structured logs.
 - Deployment on Netlify plus one Oracle Always Free server.
 
-## Phase 1: courses and video (this release)
+## Phase 1: courses and video (done)
 
 - Courses, modules and lessons, with drafts and publishing. Owners and admins edit every course;
   instructors edit their own; students see what is published.
@@ -32,14 +32,22 @@ stays within free tiers.
 - A lesson can use a YouTube, Dailymotion or Twitch video instead.
 - Enrollments, free preview lessons, and a course catalog for each school.
 
-## Phase 2: learning progress
+## Phase 2: learning progress (this release)
 
-- Watch progress: which 5-second stretches were actually watched, saved as a bitset. Resume where
-  you left off; a lesson completes at a threshold.
-- Quizzes (multiple choice, short answer), graded on the server, with attempts and scores.
-- Assignments with file submissions and feedback.
-- Notifications in the app, live over the socket and by email, with preferences.
-- Instructor dashboards: completion, drop-off points in each video, quiz results.
+- Lessons come in three kinds: a lesson (video and notes), a quiz, or an assignment.
+- **Watch progress**:
+  - Which 5-second stretches were actually watched, saved as a bitset. Skipping ahead counts
+    nothing.
+  - Resume where you left off. An uploaded video's lesson completes at 90%; others are marked
+    done by hand.
+  - Progress through each course, "Continue learning", and per-student progress for editors.
+- **Quizzes**: one answer, several answers or a short typed answer; graded on the server, with a
+  pass mark, an optional attempt limit, and answers shown once they're earned.
+- **Assignments**: a written answer and/or files, a due date, grading or returning with feedback.
+  Files go straight to storage and count against the school's quota.
+- **Notifications** in the app, live over the socket, and by email, with a choice for each kind.
+- **Insights** for a course's editors: activity, completion, where students stop watching each
+  video, quiz pass rates and the hardest questions, and grades.
 
 ## Phase 3: live and social
 

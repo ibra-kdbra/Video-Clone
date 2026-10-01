@@ -78,6 +78,8 @@ services:
       <<: [*env, *s3]
       SMTP_URL: ${SMTP_URL:?Set SMTP_URL}
       MAIL_FROM: ${MAIL_FROM:?Set MAIL_FROM}
+      # Links in notification emails point here.
+      PUBLIC_WEB_URL: ${PUBLIC_WEB_URL:?Set PUBLIC_WEB_URL}
       # Videos transcoded at once, and the threads each may use. The Always Free server's four
       # cores handle two at a time without slowing the API.
       TRANSCODE_CONCURRENCY: ${TRANSCODE_CONCURRENCY:-1}

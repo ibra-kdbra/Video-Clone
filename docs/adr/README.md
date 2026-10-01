@@ -12,3 +12,4 @@ A decision that changes gets a new record that supersedes the old one.
 | [5](0005-realtime.md) | Socket.IO with single-use tickets and a Redis adapter | Accepted |
 | [6](0006-free-hosting.md) | Free hosting: Netlify for the app, one Oracle Always Free server for the rest | Accepted |
 | [7](0007-video-pipeline.md) | Videos in self-hosted S3 storage (Garage), uploaded directly, transcoded to HLS by the worker, played through signed URLs | Accepted |
+| [8](0008-learning-progress.md) | Watch progress as a bitset of 5-second stretches; quizzes graded on the server; assignments with signed uploads; notifications from the outbox | Accepted |

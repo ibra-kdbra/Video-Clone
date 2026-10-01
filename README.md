@@ -4,14 +4,17 @@ A learning platform for many schools at once, built around video. Schools invite
 instructors and students, and everything they do stays inside the school. The platform runs on a
 NestJS backend with real-time updates, and deploys on free tiers only.
 
-This is **Phase 1: courses and video lessons**, on top of Phase 0's foundation:
+This is **Phase 2: learning progress**, on top of the courses and video of Phase 1 and the
+foundation of Phase 0:
+- watch progress that counts only what was actually watched, resume, and completion
+- quizzes graded on the server, and assignments with files, grades and feedback
+- notifications in the app, live, and by email, as each person chooses
+- insights for a course's editors: completion, where students stop watching, quiz results
 - courses, modules and lessons, with drafts, publishing and enrollments
 - video uploads straight to storage, transcoded to adaptive HLS by a worker
-- a lesson player with quality, speed and scrubbing previews
 - accounts and devices, schools and roles, email invitations, live presence
-- background jobs and the security model
 
-Learning progress, quizzes and assignments come next; see the [roadmap](docs/roadmap.md). The video Explore pages
+Live classes and discussions come next; see the [roadmap](docs/roadmap.md). The video Explore pages
 from the earlier FundaStream app are still here: trending, browse, search and watch across
 YouTube, Dailymotion and Twitch.
 
@@ -38,6 +41,7 @@ YouTube, Dailymotion and Twitch.
   - A course has modules of lessons. Lessons have Markdown notes and a video, and can be free
     previews.
   - Members enroll to watch. Owners and admins edit every course; instructors edit their own.
+  - A lesson is a video lesson, a quiz or an assignment.
 - **Course editor**: publish and archive; build the outline by drag and drop, across modules;
   edit each lesson in a drawer. A storage meter shows the school's quota.
 - **Video**:
@@ -48,6 +52,22 @@ YouTube, Dailymotion and Twitch.
   - Playback is adaptive, through signed links that expire. The player has quality, speed,
     picture in picture, keyboard shortcuts and thumbnails over the seek bar.
   - A lesson can use a YouTube, Dailymotion or Twitch video instead.
+- **Progress**:
+  - The player reports which 5-second stretches actually played. Skipping ahead counts nothing,
+    and a lesson with an uploaded video completes at 90%.
+  - Lessons resume where you stopped. Other lessons have Mark as complete.
+  - Each course shows how far you are, and Continue learning takes you to the right lesson.
+- **Quizzes**: one answer, several answers or a short typed answer, with a pass mark and an
+  optional attempt limit. The server grades each attempt, and shows the right answers only once
+  you've passed or run out of attempts. Passing completes the lesson.
+- **Assignments**:
+  - Students write an answer, attach files (up to 5 of 25 MB), save a draft and hand it in.
+  - Editors see what's waiting, download the files, and grade or return the work with feedback.
+- **Notifications**: a bell with the unread count, live, for new courses and lessons, handed-in
+  work, grades and processed videos. Each kind can be turned on or off in the app and by email.
+- **Insights** for a course's editors: enrolled and active students, completion per lesson, a
+  retention curve for each video, quiz pass rates and the hardest questions, and grades. The
+  Students tab shows each student's progress.
 - **Explore**: the streaming-style video pages. A billboard, rows, search and in-app players for
   YouTube, Dailymotion and Twitch, through a server-side proxy that keeps the keys off the page.
 
@@ -67,11 +87,12 @@ browser ──► Netlify: apps/web (React)          /api/*    → video proxy f
 | --- | --- |
 | [`apps/web`](apps/web) | React 19, React Router 7, TanStack Query, Motion, Sass modules on design tokens. Vite 8. |
 | [`apps/api`](apps/api) | NestJS 12 on Fastify: REST under `/api/v1`, Socket.IO at `/api/v1/ws`. Drizzle ORM on postgres.js. |
-| [`apps/worker`](apps/worker) | Moves outbox events into BullMQ, sends email over SMTP, transcodes videos to HLS with ffmpeg, cleans up nightly. |
+| [`apps/worker`](apps/worker) | Moves outbox events into BullMQ, sends notifications and email over SMTP, transcodes videos to HLS with ffmpeg, cleans up nightly. |
 | [`packages/contracts`](packages/contracts) | Zod schemas for every request and the types of every response and real-time event, shared by all three. |
 
 [docs/architecture.md](docs/architecture.md) walks through a request end to end. It also covers
-the tenancy model, sign-in, real-time, background jobs, courses and the video pipeline. The decisions are recorded in
+the tenancy model, sign-in, real-time, background jobs, courses, the video pipeline, progress,
+quizzes, assignments, notifications and insights. The decisions are recorded in
 [docs/adr](docs/adr).
 
 ## Security
@@ -100,6 +121,13 @@ the tenancy model, sign-in, real-time, background jobs, courses and the video pi
   - Message size caps and per-connection budgets.
 - **Video**: the bucket is private. Uploads, segments and images use presigned URLs that expire,
   and playlists need a token signed for that one video, given out after the enrollment check.
+- **Quizzes and handed-in work**:
+  - Quizzes are graded on the server, and their answers never reach the page before they're
+    earned. Attempt limits hold under parallel requests.
+  - Handed-in files are uploaded under a signature that fixes their type. They're only
+    downloaded as attachments, never displayed, and only by the student and the course's editors.
+- **Notifications** are readable only by their owner, enforced by row-level security, and can only
+  be written for members of the school an event belongs to.
 - **Audit log**: append-only at the database level. Invitation links are removed from stored
   events once they're emailed.
 - **Web app**:
@@ -116,7 +144,7 @@ the tenancy model, sign-in, real-time, background jobs, courses and the video pi
 | DuckDNS | Free subdomains | The API's and the video store's addresses |
 | Let's Encrypt (through Caddy) | Free certificates | HTTPS for the API and the video store |
 | Garage (self-hosted) | Open source, on the server's free disk | Video storage, S3-compatible |
-| Brevo or Resend | 300 or 100 emails a day | Invitation emails |
+| Brevo or Resend | 300 or 100 emails a day | Invitation and notification emails |
 | YouTube Data API, Dailymotion, Twitch | Free quotas | The Explore pages |
 
 The step-by-step setup is in [docs/deploy.md](docs/deploy.md).
@@ -175,9 +203,11 @@ The suites cover:
 - WebSocket tickets, rooms, presence and instant sign-out
 - courses, drafts, outlines and enrollments, and who may do what
 - uploads, quotas, playback tokens and the rewritten playlists
+- watch progress and completion, quiz grading and attempt limits under parallel requests,
+  assignment files and grading, insights, the notification inbox and settings
 - transcoding real clips (landscape, portrait, silent), refusing broken or too-long files, deleting
   videos and clearing abandoned uploads
-- the worker's relay, email and clean-up
+- the worker's relay, email and clean-up, and who is notified of what
 - the page's security rules
 
 CI runs everything on every push and pull request, with Garage and ffmpeg. It also builds the
@@ -189,8 +219,8 @@ Docker images and transcodes test clips inside the worker image
 ```text
 apps/
   web/        React app, the Netlify video proxy (server/, netlify/), security headers (config/)
-  api/        NestJS API: src/{auth,schools,courses,storage,realtime,database,rate-limit,events,health}, migrations/, test/
-  worker/     NestJS worker: src/{jobs,mail,media}, scripts/, test/
+  api/        NestJS API: src/{auth,schools,courses,learning,notifications,storage,realtime,database,rate-limit,events,health}, migrations/, test/
+  worker/     NestJS worker: src/{jobs,mail,media,notifications,files}, scripts/, test/
 packages/
   contracts/  shared zod schemas and types
 infra/        docker-compose (local and production), Caddyfile, Postgres init, Garage config

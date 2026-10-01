@@ -2,6 +2,69 @@
 
 All notable changes to this project will be documented in this file.
 
+## [8.0.0] - 2026-10-01
+
+**Grand LMS, Phase 2: learning progress.** Students' watching, quizzes and handed-in work are
+recorded and graded, everyone hears about what concerns them, and a course's editors can see how
+it's going.
+
+### Added
+- **Lesson kinds**: a lesson is a video lesson, a quiz or an assignment, chosen when it's added.
+- **Watch progress**:
+  - The player reports which 5-second stretches actually played, stored as a bitset. Replays
+    count once and skipping ahead counts nothing.
+  - A lesson with an uploaded video completes at 90%. Others have Mark as complete.
+  - Lessons resume where you stopped.
+  - Progress shows on the course page, the lesson outline and My courses. Continue learning
+    follows your latest lesson.
+- **Quizzes**:
+  - A builder for one-answer, several-answer and short-answer questions, with points,
+    explanations, a pass mark and an optional attempt limit.
+  - Graded on the server. Short answers match ignoring case, accents and spacing.
+  - The right answers and explanations are shown once you pass or run out of attempts. Passing
+    completes the lesson.
+  - Past attempts can be reviewed, question by question, with the answers you gave.
+- **Assignments**:
+  - Points, a due date, and a written answer, files or both.
+  - Students save a draft, attach up to 5 files of 25 MB, and hand it in, which completes the
+    lesson.
+  - Editors see handed-in work, waiting first, download the files, and grade it or return it
+    with feedback, moving from one submission to the next.
+- **Notifications**:
+  - A bell with the unread count and a notifications page (`/notifications`), updated live and
+    across devices.
+  - For new courses and lessons, handed-in work, grades and processed videos.
+  - Email too, as each person chooses for each kind in Account → Notifications. Grades are
+    emailed by default.
+- **Insights** for a course's editors: enrolled, active and finished students, completion per
+  lesson, the retention curve of each video, quiz pass rates and per-question results, and
+  grades. The Students tab shows each student's progress.
+- **Tests**:
+  - API: 117 tests, including progress, quiz grading and attempt limits under parallel
+    requests, assignment files, insights and notifications.
+  - Worker: 20 tests, including who is notified, their choices, and email.
+  - Web: 322 tests, including what counts as watched, resume points, quiz answers and the
+    builder's checks, due dates, grades, file checks and notification updates.
+- **Docs**: [ADR 8](docs/adr/0008-learning-progress.md), and the progress, quiz, assignment,
+  notification and insight sections of the architecture page.
+
+### Security
+- **Quiz answers** never reach the page before they're earned, and attempt limits are enforced
+  under an advisory lock.
+- **Handed-in files** are uploaded under a signature that fixes their Content-Type, counted
+  against the school's quota, and downloaded only as attachments, by the student or the course's
+  editors.
+- **Notifications** are readable only by their owner (row-level security). The worker writes them
+  through a function that refuses anyone outside the event's school.
+- **Database**: progress, attempts and submissions reference the lesson's course and school and
+  the person's membership, so they can't cross schools, and go when the member leaves.
+
+### Changed
+- **Production settings**: the worker now needs `PUBLIC_WEB_URL`, for the links in emails. It's
+  already in `infra/.env.prod` for the API.
+- **Real-time**: role changes move a person's devices in or out of the staff room with a
+  broadcast, so an API instance that's restarting can't make them fail.
+
 ## [7.0.0] - 2026-10-01
 
 **Grand LMS, Phase 1: courses and video lessons.** Schools build courses from modules and
