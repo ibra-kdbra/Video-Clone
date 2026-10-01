@@ -1,0 +1,304 @@
+.course {
+  // The hero runs edge to edge, right under the top bar.
+  margin-top: -0.5rem;
+}
+
+// The billboard: always dark (.theme-dark), the cover on the right fading into the dark on the
+// left, where the text sits; at the bottom it fades into the page's own background.
+.hero {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  isolation: isolate;
+}
+
+.heroLoading {
+  min-height: clamp(420px, 60vh, 620px);
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: -1;
+  width: min(100%, 74%);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background:
+      linear-gradient(90deg, var(--bg) 0%, rgb(var(--scrim) / 0.6) 30%, transparent 70%),
+      linear-gradient(0deg, var(--bg) 0%, transparent 35%),
+      linear-gradient(180deg, rgb(var(--scrim) / 0.45) 0%, transparent 25%);
+  }
+
+  // Phones and tablets: the cover sits on top, full width, and the text follows below it.
+  @include down(lg) {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    max-height: 56vh;
+
+    &::after {
+      background: linear-gradient(0deg, var(--bg) 0%, transparent 45%);
+    }
+  }
+}
+
+.heroInner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: var(--content-max);
+  min-height: clamp(440px, 62vh, 660px);
+  margin: 0 auto;
+  padding: 1.25rem var(--gutter) clamp(2.5rem, 6vh, 4.5rem);
+
+  @include down(lg) {
+    min-height: 0;
+    margin-top: -3rem;
+    padding-top: 0;
+  }
+}
+
+.heroText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  width: min(42rem, 100%);
+  margin-top: auto;
+}
+
+.eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-2);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+  > span:not([data-tone]) {
+    margin-right: 0.25rem;
+  }
+
+  > [data-tone] {
+    letter-spacing: 0.01em;
+    text-transform: none;
+  }
+}
+
+.title {
+  font-size: clamp(2rem, 1.1rem + 3.2vw, 4rem);
+  font-weight: 800;
+  line-height: 1.03;
+  letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
+}
+
+.summary {
+  max-width: 38rem;
+  color: var(--text-2);
+  font-size: var(--text-lg);
+  line-height: 1.5;
+  @include line-clamp(3);
+
+  @include down(md) {
+    font-size: var(--text-md);
+  }
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.students::before {
+  content: '·';
+  margin-right: 0.75rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: 0.4rem;
+}
+
+// Play: the white button of streaming apps; secondary actions are glass.
+.play,
+.glass {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 52px;
+  padding: 0.4rem 1.5rem 0.4rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-size: var(--text-md);
+  font-weight: 700;
+  transition:
+    transform var(--fast) var(--ease),
+    background var(--fast) var(--ease),
+    opacity var(--fast) var(--ease);
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  svg {
+    flex: none;
+  }
+}
+
+.play {
+  max-width: 100%;
+  background: var(--text);
+  color: var(--bg);
+
+  @include hover {
+    opacity: 0.88;
+  }
+}
+
+.playLabel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.playSub {
+  max-width: 16rem;
+  overflow: hidden;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  opacity: 0.72;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glass {
+  background: var(--stage-hover);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  @include hover {
+    background: var(--stage-hover-strong);
+  }
+}
+
+.enroll {
+  min-height: 52px;
+  padding-inline: 1.6rem;
+  border-radius: var(--radius-md);
+  font-size: var(--text-md);
+}
+
+.statusNote {
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}
+
+// Below the hero: the outline, with the description beside it on wide screens.
+.body {
+  display: grid;
+  gap: 2.5rem;
+  padding-top: clamp(1.5rem, 3vw, 2.5rem);
+
+  @include up(lg) {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+    gap: 3.5rem;
+    align-items: start;
+  }
+}
+
+.lessons {
+  min-width: 0;
+}
+
+.sectionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.sectionTitle {
+  font-size: var(--text-xl);
+  letter-spacing: -0.025em;
+}
+
+.sectionMeta {
+  color: var(--text-3);
+  font-size: var(--text-sm);
+}
+
+.hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  font-size: var(--text-sm);
+
+  svg {
+    flex: none;
+    margin-top: 0.1rem;
+    color: var(--accent-text);
+  }
+}
+
+.about {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+
+  @include up(lg) {
+    position: sticky;
+    top: calc(var(--topbar-h) + 1.5rem);
+  }
+}
+
+.muted {
+  color: var(--text-2);
+}
+
+.details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 0.5rem;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+
+  dt {
+    color: var(--text-3);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  dd {
+    margin-top: 0.15rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+}

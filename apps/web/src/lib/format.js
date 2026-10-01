@@ -66,3 +66,40 @@ export function formatDate(iso, style = 'day') {
   const date = new Date(iso);
   return Number.isFinite(date.getTime()) ? DATE_STYLES[style].format(date) : '';
 }
+
+/** Seconds → "0:00", "4:05" or "1:02:05", for a player's clock (zero included). */
+export function formatClock(seconds) {
+  const total = Number.isFinite(seconds) && seconds > 0 ? Math.floor(seconds) : 0;
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const secs = String(total % 60).padStart(2, '0');
+  return hours ? `${hours}:${String(minutes).padStart(2, '0')}:${secs}` : `${minutes}:${secs}`;
+}
+
+/** A course's running time: "1 h 20 min", "45 min", "40 sec". Empty for nothing. */
+export function formatRuntime(seconds) {
+  if (!Number.isFinite(seconds) || seconds <= 0) return '';
+  if (seconds < 60) return `${Math.round(seconds)} sec`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  return minutes % 60 ? `${hours} h ${minutes % 60} min` : `${hours} h`;
+}
+
+const BYTE_UNITS = ['KB', 'MB', 'GB', 'TB'];
+
+/** 1536 → "1.5 KB", 734003200 → "700 MB" (powers of 1024, like the API's messages). */
+export function formatBytes(bytes) {
+  if (!Number.isFinite(bytes) || bytes < 0) return '';
+  if (bytes < 1024) return `${Math.round(bytes)} B`;
+  let value = bytes / 1024;
+  let unit = 0;
+  while (value >= 1024 && unit < BYTE_UNITS.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${value < 10 ? value.toFixed(1).replace(/\.0$/, '') : Math.round(value)} ${BYTE_UNITS[unit]}`;
+}
+
+/** "1 lesson", "3 lessons". */
+export const plural = (count, word, many = `${word}s`) => `${count} ${count === 1 ? word : many}`;

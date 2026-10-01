@@ -7,6 +7,7 @@ import ErrorBoundary from '../components/ErrorBoundary.jsx';
 import RequireAuth from '../components/RequireAuth.jsx';
 import Toaster from '../components/Toaster.jsx';
 import TopBar from '../components/TopBar.jsx';
+import UploadDock from '../components/UploadDock.jsx';
 // Most visits start on the home page, so it ships with the app instead of as a separate
 // download; the other pages are their own chunks, loaded when first opened.
 import Home from '../pages/Home.jsx';
@@ -28,6 +29,11 @@ const Account = lazy(() => import('../pages/Account.jsx'));
 const CreateSchool = lazy(() => import('../pages/CreateSchool.jsx'));
 const School = lazy(() => import('../pages/School.jsx'));
 const Invite = lazy(() => import('../pages/Invite.jsx'));
+// Courses and lessons. The player (with hls.js), the Markdown renderer and the editor (with its
+// drag and drop) are further chunks of their own, loaded by these pages when needed.
+const Course = lazy(() => import('../pages/Course.jsx'));
+const Lesson = lazy(() => import('../pages/Lesson.jsx'));
+const CourseEditor = lazy(() => import('../pages/CourseEditor.jsx'));
 
 /** Addresses from the previous version keep working. */
 function OldVideo() {
@@ -120,6 +126,9 @@ function Layout() {
                 <Route path="register" element={<Alias to="/signup" />} />
                 <Route path="invite" element={<Invite />} />
                 <Route path="s/:slug" element={<School />} />
+                <Route path="s/:slug/c/:courseSlug" element={<Course />} />
+                <Route path="s/:slug/c/:courseSlug/l/:lessonId" element={<Lesson />} />
+                <Route path="s/:slug/c/:courseSlug/edit" element={<CourseEditor />} />
                 <Route
                   path="schools/new"
                   element={
@@ -143,6 +152,7 @@ function Layout() {
         </ErrorBoundary>
       </main>
       <BottomNav />
+      <UploadDock />
       <Toaster />
     </>
   );

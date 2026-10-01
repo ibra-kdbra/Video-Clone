@@ -1,0 +1,385 @@
+// The player: the picture, with its controls drawn over the bottom on a soft shade. Always dark,
+// whatever the theme, like a cinema.
+.player {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--stage);
+  color: var(--stage-text);
+  isolation: isolate;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+
+  &:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+  }
+
+  // While playing with nothing moving, the controls and the pointer step aside.
+  &[data-visible='false'] {
+    cursor: none;
+
+    .controls {
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+    }
+  }
+
+  &[data-fullscreen] {
+    aspect-ratio: auto;
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+  }
+
+  @include down(sm) {
+    border-radius: 0;
+  }
+}
+
+.video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--stage);
+  object-fit: contain;
+}
+
+.surface {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+// The bar along the bottom: seek bar, then the buttons.
+.controls {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 2.5rem clamp(0.4rem, 1.5vw, 1rem) clamp(0.25rem, 1vw, 0.6rem);
+  background: linear-gradient(0deg, var(--stage-scrim) 0%, transparent 100%);
+  transition:
+    opacity var(--medium) var(--ease),
+    transform var(--medium) var(--ease);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.button {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  color: var(--stage-text);
+  transition:
+    background var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+
+  @include hover {
+    background: var(--stage-hover);
+  }
+
+  &:active {
+    transform: scale(0.92);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--stage-text);
+    outline-offset: -2px;
+  }
+
+  &[aria-pressed='true'] {
+    background: var(--stage-hover);
+  }
+}
+
+// Extras that phones do without (they have their own gestures and buttons for these).
+.wide {
+  @include down(sm) {
+    display: none;
+  }
+}
+
+// Volume: the button, and a slider that slides open beside it (pointer devices only; phones use
+// their own volume buttons).
+.volume {
+  display: flex;
+  align-items: center;
+
+  &:hover .slider,
+  &:focus-within .slider {
+    width: 84px;
+    margin-right: 0.5rem;
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    .slider {
+      display: none;
+    }
+  }
+}
+
+.slider {
+  width: 0;
+  height: 24px;
+  margin: 0;
+  background: transparent;
+  opacity: 0;
+  cursor: pointer;
+  appearance: none;
+  transition:
+    width var(--medium) var(--ease),
+    opacity var(--medium) var(--ease),
+    margin var(--medium) var(--ease);
+
+  &:focus-visible {
+    outline: 2px solid var(--stage-text);
+    outline-offset: 2px;
+  }
+
+  &::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--stage-text) calc(var(--level, 1) * 100%), var(--stage-track) 0);
+  }
+
+  &::-moz-range-track {
+    height: 4px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--stage-text) calc(var(--level, 1) * 100%), var(--stage-track) 0);
+  }
+
+  &::-webkit-slider-thumb {
+    width: 13px;
+    height: 13px;
+    margin-top: -4.5px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--stage-text);
+    appearance: none;
+  }
+
+  &::-moz-range-thumb {
+    width: 13px;
+    height: 13px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--stage-text);
+  }
+}
+
+.time {
+  margin-left: 0.35rem;
+  color: var(--stage-text);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.total {
+  color: var(--stage-text-2);
+}
+
+.spacer {
+  flex: 1;
+}
+
+// Before the first play: one big button on the poster.
+.bigPlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: clamp(64px, 10vw, 88px);
+  aspect-ratio: 1;
+  padding-left: 5px;
+  border-radius: 50%;
+  background: var(--stage-text);
+  color: var(--stage);
+  box-shadow: 0 12px 40px var(--stage-scrim);
+  transform: translate(-50%, -50%);
+  transition: transform var(--medium) var(--ease);
+
+  @include hover {
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 4px;
+  }
+}
+
+.spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  width: 54px;
+  height: 54px;
+  margin: -27px 0 0 -27px;
+  border: 3px solid var(--stage-track);
+  border-top-color: var(--stage-text);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// What a key press just did ("+10 s", "Volume 60%"), shown briefly in the middle.
+.osd {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 1.1rem;
+  border-radius: var(--radius-pill);
+  background: var(--stage-scrim);
+  font-size: var(--text-md);
+  font-weight: 700;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: osd 700ms var(--ease) both;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+// With "reduce motion" it simply shows, without the pop (it still goes after a moment).
+@media (prefers-reduced-motion: reduce) {
+  .osd {
+    animation-name: none;
+  }
+}
+
+@keyframes osd {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  15%,
+  70% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+// At the end: what's next, with a countdown, over a dimmed last frame.
+.endCard,
+.error {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 1.5rem 1.5rem 5rem;
+  background: var(--stage-scrim);
+  text-align: center;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.error p {
+  max-width: 28rem;
+  font-weight: 600;
+}
+
+.upNext {
+  color: var(--stage-text-2);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.nextTitle {
+  max-width: 34rem;
+  font-size: clamp(1.1rem, 0.9rem + 1.2vw, 1.75rem);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  @include line-clamp(2);
+}
+
+.endActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+
+.nextButton,
+.endSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0 1.2rem;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 700;
+
+  &:focus-visible {
+    outline: 2px solid var(--stage-text);
+    outline-offset: 3px;
+  }
+}
+
+.nextButton {
+  background: var(--stage-text);
+  color: var(--stage);
+}
+
+.endSecondary {
+  background: var(--stage-hover);
+  color: var(--stage-text);
+
+  @include hover {
+    background: var(--stage-hover-strong);
+  }
+}
+
+@include down(sm) {
+  .endCard,
+  .error {
+    gap: 0.35rem;
+    padding-bottom: 4rem;
+  }
+
+  .endActions {
+    margin-top: 0.25rem;
+  }
+}

@@ -1,0 +1,211 @@
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  transition: transform var(--medium) var(--ease);
+  // Cards rise into place one after another ("backwards" lets go of transform once done, so hover
+  // can move the card).
+  animation: rise 420ms var(--ease) backwards;
+  animation-delay: calc(var(--i, 0) * 40ms);
+
+  @include hover {
+    transform: translateY(-4px);
+
+    .media {
+      box-shadow: var(--shadow-lg);
+    }
+
+    .media > :first-child {
+      transform: scale(1.05);
+    }
+
+    .playHint {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+
+  &:has(.link:focus-visible) .playHint {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+.media {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: box-shadow var(--medium) var(--ease);
+  isolation: isolate;
+
+  > :first-child {
+    transition: transform var(--medium) var(--ease);
+  }
+}
+
+.playHint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding-left: 3px;
+  border-radius: 50%;
+  background: var(--stage-scrim);
+  color: var(--stage-text);
+  opacity: 0;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 0 0 1px var(--stage-line);
+  transform: translate(-50%, -50%) scale(0.8);
+  transition:
+    opacity var(--medium) var(--ease),
+    transform var(--medium) var(--ease);
+}
+
+.badges {
+  position: absolute;
+  top: 0.55rem;
+  left: 0.55rem;
+  z-index: 2;
+  display: flex;
+  gap: 0.35rem;
+
+  &:empty {
+    display: none;
+  }
+}
+
+.enrolled {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent-solid);
+  color: var(--on-accent);
+  box-shadow: 0 4px 14px -4px var(--stage-scrim);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.title {
+  font-size: var(--text-md);
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  @include line-clamp(2);
+}
+
+.link {
+  // Covers the whole card.
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    border-radius: var(--radius-md);
+  }
+
+  &:focus-visible {
+    outline: none;
+
+    &::after {
+      @include focus-ring(4px);
+    }
+  }
+}
+
+.summary {
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  @include line-clamp(2);
+}
+
+.resume {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  color: var(--accent-text);
+  font-size: var(--text-sm);
+  font-weight: 600;
+
+  svg {
+    flex: none;
+  }
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.meta {
+  color: var(--text-3);
+  font-size: var(--text-sm);
+}
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.skeletonMedia,
+.skeletonLine {
+  display: block;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--surface-2) 0%, var(--surface-3) 50%, var(--surface-2) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.skeletonMedia {
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md);
+}
+
+.skeletonLine {
+  width: 85%;
+  height: 0.95rem;
+}
+
+.short {
+  width: 45%;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}

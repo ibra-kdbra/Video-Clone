@@ -1,0 +1,56 @@
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  padding-top: 0.5rem;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+
+  & + & {
+    padding-top: 1.75rem;
+    border-top: 1px solid var(--line);
+  }
+}
+
+.heading {
+  color: var(--text-3);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.switches {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.error {
+  color: var(--danger);
+  font-size: var(--text-sm);
+}
+
+.danger {
+  align-items: flex-start;
+}
+
+.dangerText {
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}
+
+// "View" sits apart, on the left of the footer.
+.view {
+  margin-right: auto;
+}

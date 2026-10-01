@@ -12,6 +12,8 @@ import styles from './Player.module.scss';
  */
 export default function Player({ video, onPlay, autoStart = false }) {
   const [playing, setPlaying] = useState(autoStart);
+  // A picture that doesn't load (blocked, or gone) leaves the dark frame rather than a broken image.
+  const [failed, setFailed] = useState(false);
   const poster = video.thumbnails?.at(-1)?.url ?? video.thumbnail;
   const glow = video.thumbnails?.[0]?.url ?? video.thumbnail;
   const source = SOURCE_LABELS[video.provider];
@@ -19,7 +21,7 @@ export default function Player({ video, onPlay, autoStart = false }) {
   return (
     <div className={styles.stage}>
       {/* Ambient light: the video's own colors, blurred, glowing behind the player. */}
-      {glow && (
+      {glow && !failed && (
         <div className={styles.ambient} aria-hidden="true">
           <img src={glow} alt="" width="320" height="180" decoding="async" />
         </div>
@@ -45,7 +47,7 @@ export default function Player({ video, onPlay, autoStart = false }) {
             }}
             aria-label={`Play "${video.title}"`}
           >
-            {poster && <img src={poster} alt="" width="1280" height="720" fetchPriority="high" decoding="async" />}
+            {poster && !failed && <img src={poster} alt="" width="1280" height="720" fetchPriority="high" decoding="async" onError={() => setFailed(true)} />}
             <span className={styles.play} aria-hidden="true">
               <Icon name="play" size={30} />
             </span>

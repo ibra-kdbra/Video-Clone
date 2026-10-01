@@ -1,0 +1,74 @@
+.trail ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem 0.35rem;
+  list-style: none;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.trail li {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  max-width: 22rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  transition: color var(--fast) var(--ease);
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @include hover {
+    color: var(--text);
+  }
+}
+
+.current {
+  overflow: hidden;
+  max-width: 24rem;
+  color: var(--text-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.separator {
+  flex: none;
+  color: var(--text-3);
+}
+
+// The arrow shows only in the phone version, where the trail is a single back link.
+.back {
+  display: none;
+  flex: none;
+}
+
+@include down(sm) {
+  .trail li:not(.parent) {
+    display: none;
+  }
+
+  .parent .separator {
+    display: none;
+  }
+
+  .back {
+    display: block;
+  }
+
+  .link {
+    max-width: 100%;
+  }
+}

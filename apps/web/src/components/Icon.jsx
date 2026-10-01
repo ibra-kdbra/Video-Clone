@@ -163,6 +163,153 @@ const PATHS = {
       <path d="m21 3-6.5 18-4-7.5L3 9.5z" />
     </>
   ),
+  // Courses and lessons
+  layers: (
+    <>
+      <path d="m12 3 9 5-9 5-9-5z" />
+      <path d="m3 13 9 5 9-5" />
+    </>
+  ),
+  lock: (
+    <>
+      <rect x="5" y="10.5" width="14" height="10" rx="2" />
+      <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
+    </>
+  ),
+  grip: (
+    <>
+      <circle cx="9" cy="6" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="6" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="18" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="18" r="1.4" fill="currentColor" stroke="none" />
+    </>
+  ),
+  arrowUp: <path d="M12 19V5m-6 6 6-6 6 6" />,
+  arrowDown: <path d="M12 5v14m6-6-6 6-6-6" />,
+  chevronUp: <path d="m5 15 7-7 7 7" />,
+  edit: (
+    <>
+      <path d="M4 20h4L19 9a2.83 2.83 0 0 0-4-4L4 16z" />
+      <path d="m13.5 6.5 4 4" />
+    </>
+  ),
+  upload: (
+    <>
+      <path d="M7 18.5a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a4 4 0 0 1 .5 7.97" />
+      <path d="M12 12v8.5M8.5 15.5 12 12l3.5 3.5" />
+    </>
+  ),
+  link: (
+    <>
+      <path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1" />
+      <path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1" />
+    </>
+  ),
+  more: (
+    <>
+      <circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
+      <circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none" />
+    </>
+  ),
+  film: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M7.5 4v16M16.5 4v16M3 9h4.5M3 15h4.5M16.5 9H21M16.5 15H21" />
+    </>
+  ),
+  list: (
+    <>
+      <path d="M9 6h11M9 12h11M9 18h11" />
+      <path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01" strokeWidth="2.5" />
+    </>
+  ),
+  notes: (
+    <>
+      <path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H17l2 2v14.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19.5z" />
+      <path d="M9 9h6M9 13h6M9 17h3" />
+    </>
+  ),
+  archive: (
+    <>
+      <rect x="3" y="4" width="18" height="4.5" rx="1" />
+      <path d="M5 8.5V18a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5M10 12.5h4" />
+    </>
+  ),
+  globe: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+    </>
+  ),
+  checkCircle: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m8.5 12.5 2.5 2.5 4.5-5" />
+    </>
+  ),
+  skipNext: (
+    <>
+      <path d="M5 5.5v13a1 1 0 0 0 1.53.85l10-6.5a1 1 0 0 0 0-1.7l-10-6.5A1 1 0 0 0 5 5.5z" fill="currentColor" stroke="none" />
+      <path d="M19.5 5v14" strokeWidth="2.25" />
+    </>
+  ),
+  skipPrevious: (
+    <>
+      <path d="M19 5.5v13a1 1 0 0 1-1.53.85l-10-6.5a1 1 0 0 1 0-1.7l10-6.5A1 1 0 0 1 19 5.5z" fill="currentColor" stroke="none" />
+      <path d="M4.5 5v14" strokeWidth="2.25" />
+    </>
+  ),
+  // The player
+  volume: (
+    <>
+      <path d="M4 9.5v5h3.5l4.5 4v-13l-4.5 4z" fill="currentColor" />
+      <path d="M15.5 9a4.2 4.2 0 0 1 0 6M18.3 6.3a8 8 0 0 1 0 11.4" />
+    </>
+  ),
+  volumeLow: (
+    <>
+      <path d="M4 9.5v5h3.5l4.5 4v-13l-4.5 4z" fill="currentColor" />
+      <path d="M15.5 9a4.2 4.2 0 0 1 0 6" />
+    </>
+  ),
+  volumeOff: (
+    <>
+      <path d="M4 9.5v5h3.5l4.5 4v-13l-4.5 4z" fill="currentColor" />
+      <path d="m16 9.5 5 5m0-5-5 5" />
+    </>
+  ),
+  fullscreen: <path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4" />,
+  fullscreenExit: <path d="M9 4v4a1 1 0 0 1-1 1H4M20 9h-4a1 1 0 0 1-1-1V4M15 20v-4a1 1 0 0 1 1-1h4M4 15h4a1 1 0 0 1 1 1v4" />,
+  pip: (
+    <>
+      <path d="M21 11V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h5" />
+      <rect x="13" y="13" width="9" height="7" rx="1.5" fill="currentColor" stroke="none" />
+    </>
+  ),
+  back10: (
+    <>
+      <path d="M4.5 12.5A7.5 7.5 0 1 0 7 6.9" />
+      <path d="M7.5 3v4.2H3.3" />
+      <path d="M10 10.2v5.6M13.4 10.2h2.1v5.6h-2.1z" strokeWidth="1.5" />
+    </>
+  ),
+  forward10: (
+    <>
+      <path d="M19.5 12.5A7.5 7.5 0 1 1 17 6.9" />
+      <path d="M16.5 3v4.2h4.2" />
+      <path d="M8.6 10.2v5.6M12 10.2h2.1v5.6H12z" strokeWidth="1.5" />
+    </>
+  ),
+  replay: (
+    <>
+      <path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3" />
+      <path d="M6.5 3v4h4" />
+      <path d="M10.5 9.5v5l4-2.5z" fill="currentColor" stroke="none" />
+    </>
+  ),
 };
 
 export default function Icon({ name, size = 20, className, label }) {

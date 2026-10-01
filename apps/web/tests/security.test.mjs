@@ -3,7 +3,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { contentSecurityPolicy, securityHeaders, websocketOrigin } from '../config/headers.mjs';
+import { contentSecurityPolicy, mediaOrigin, securityHeaders, websocketOrigin } from '../config/headers.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const read = (file) => readFileSync(path.join(root, file), 'utf8');
@@ -48,6 +48,18 @@ describe('Content-Security-Policy', () => {
     expect(websocketOrigin('http://localhost:3000')).toBe('ws://localhost:3000');
     expect(() => websocketOrigin('http://grand-lms.duckdns.org')).toThrow(/https/);
     expect(() => websocketOrigin('https://grand-lms.duckdns.org/path')).toThrow(/bare origin/);
+  });
+
+  it('lets videos and posters come from the video store only, and the player use blob: streams', () => {
+    const policy = contentSecurityPolicy({ mediaOrigin: 'https://media.grand-lms.duckdns.org' });
+    const get = (name) => policy.split(';').map((d) => d.trim()).find((d) => d.startsWith(`${name} `));
+    expect(get('media-src')).toBe("media-src 'self' blob: https://media.grand-lms.duckdns.org");
+    expect(get('connect-src')).toBe("connect-src 'self' https://media.grand-lms.duckdns.org");
+    expect(get('img-src')).toContain('https://media.grand-lms.duckdns.org');
+    expect(get('worker-src')).toBe("worker-src 'none'");
+    expect(directive('media-src')).toBe("media-src 'self' blob:");
+    expect(() => mediaOrigin('http://media.example.com')).toThrow(/https/);
+    expect(mediaOrigin('http://localhost:3900')).toBe('http://localhost:3900');
   });
 
   it('forces HTTPS in production and drops only that for local previews', () => {

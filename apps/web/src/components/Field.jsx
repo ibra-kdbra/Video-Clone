@@ -42,6 +42,52 @@ export function TextField({ label, hint, error, prefix, trailing, ref, id, class
   );
 }
 
+/**
+ * A labelled multi-line input, tied to its error and hint like TextField. With `maxLength`, a
+ * quiet counter shows how much room is left (the limit itself is enforced by the browser).
+ */
+export function TextAreaField({ label, hint, error, ref, id, className = '', hideLabel = false, labelExtra, ...textarea }) {
+  const autoId = useId();
+  const fieldId = id ?? autoId;
+  const describedBy = [error && `${fieldId}-error`, hint && `${fieldId}-hint`].filter(Boolean).join(' ') || undefined;
+  const length = String(textarea.value ?? '').length;
+
+  return (
+    <div className={`${styles.field} ${className}`}>
+      <div className={styles.labelRow}>
+        <label htmlFor={fieldId} className={hideLabel ? 'visually-hidden' : styles.label}>
+          {label}
+        </label>
+        {labelExtra}
+        {textarea.maxLength && (
+          <span className={`${styles.counter} tabular`} aria-hidden="true">
+            {length.toLocaleString()}/{textarea.maxLength.toLocaleString()}
+          </span>
+        )}
+      </div>
+      <textarea
+        ref={ref}
+        id={fieldId}
+        className={`${styles.textarea} ${error ? styles.invalidArea : ''}`}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy}
+        {...textarea}
+      />
+      {error && (
+        <p id={`${fieldId}-error`} className={styles.error}>
+          <Icon name="alert" size={15} />
+          {error}
+        </p>
+      )}
+      {hint && (
+        <p id={`${fieldId}-hint`} className={styles.hint}>
+          {hint}
+        </p>
+      )}
+    </div>
+  );
+}
+
 /** A password input with a show/hide switch, for checking what was typed on a phone keyboard. */
 export function PasswordField(props) {
   const [shown, setShown] = useState(false);
