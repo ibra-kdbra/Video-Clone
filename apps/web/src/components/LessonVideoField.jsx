@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
 import { getPlayback, keys, lessonPath, patchLesson, updateLesson } from '../lib/courses.js';
+import { DEMO } from '../lib/demo.js';
 import { formatBytes, formatDuration } from '../lib/format.js';
 import { errorMessage } from '../lib/forms.js';
 import { SOURCE_LABELS, directThumbnail, externalUrl } from '../lib/sources.js';
@@ -181,9 +182,22 @@ function LinkForm({ onLink }) {
   );
 }
 
+/** In the demo there's no video store to upload to: linking still works. */
+function UploadsOff() {
+  return (
+    <div className={styles.drop} role="note">
+      <span className={styles.dropIcon} aria-hidden="true">
+        <Icon name="upload" size={26} />
+      </span>
+      <p className={styles.dropTitle}>Uploading videos is turned off in the demo.</p>
+      <p className={styles.dropHint}>Embed a YouTube, Dailymotion or Twitch video instead, under Link a video.</p>
+    </div>
+  );
+}
+
 /** Upload or link: the two ways to give a lesson its video. */
 function Chooser({ storage, onFile, onLink, onCancel }) {
-  const [tab, setTab] = useState('upload');
+  const [tab, setTab] = useState(DEMO ? 'link' : 'upload');
   return (
     <div className={styles.chooser}>
       <div className={styles.tabs} role="group" aria-label="How to add the video">
@@ -196,7 +210,7 @@ function Chooser({ storage, onFile, onLink, onCancel }) {
           Link a video
         </button>
       </div>
-      {tab === 'upload' ? <DropZone storage={storage} onFile={onFile} /> : <LinkForm onLink={onLink} />}
+      {tab === 'upload' ? DEMO ? <UploadsOff /> : <DropZone storage={storage} onFile={onFile} /> : <LinkForm onLink={onLink} />}
       {onCancel && (
         <Button size="sm" variant="ghost" onClick={onCancel}>
           Keep the current video

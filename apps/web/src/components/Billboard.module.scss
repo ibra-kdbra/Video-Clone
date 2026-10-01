@@ -3,7 +3,8 @@
 .billboard {
   position: relative;
   height: clamp(440px, 76vh, 860px);
-  margin-top: calc(-1 * (var(--topbar-h) + 0.5rem));
+  // Up under the top bar (and the demo's note, when there is one).
+  margin-top: calc(-1 * (var(--topbar-h) + 0.5rem + var(--demo-banner-h, 0px)));
   margin-bottom: clamp(1rem, 3vw, 2.5rem);
   overflow: hidden;
   background: var(--bg);

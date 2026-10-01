@@ -109,10 +109,6 @@
   > * {
     flex-shrink: 0;
   }
-
-  @include up(md) {
-    margin-left: 0;
-  }
 }
 
 .signIn {

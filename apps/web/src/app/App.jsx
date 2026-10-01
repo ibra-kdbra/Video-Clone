@@ -8,6 +8,7 @@ import RequireAuth from '../components/RequireAuth.jsx';
 import Toaster from '../components/Toaster.jsx';
 import TopBar from '../components/TopBar.jsx';
 import UploadDock from '../components/UploadDock.jsx';
+import { DEMO } from '../lib/demo.js';
 // Most visits start on the home page, so it ships with the app instead of as a separate
 // download; the other pages are their own chunks, loaded when first opened.
 import Home from '../pages/Home.jsx';
@@ -15,6 +16,8 @@ import Motion from './Motion.jsx';
 import SessionProvider from './Session.jsx';
 import styles from './App.module.scss';
 
+// The video Explore pages: the streaming-style home, browse, watch, search, channels, library.
+const Explore = lazy(() => import('../pages/Explore.jsx'));
 const Browse = lazy(() => import('../pages/Browse.jsx'));
 const Watch = lazy(() => import('../pages/Watch.jsx'));
 const Search = lazy(() => import('../pages/Search.jsx'));
@@ -39,6 +42,8 @@ const Submissions = lazy(() => import('../pages/Submissions.jsx'));
 const Grading = lazy(() => import('../pages/Grading.jsx'));
 const Notifications = lazy(() => import('../pages/Notifications.jsx'));
 const NotificationSettings = lazy(() => import('../pages/NotificationSettings.jsx'));
+// The demo's note under the top bar, only in demo builds.
+const DemoBanner = DEMO ? lazy(() => import('../demo/DemoBanner.jsx')) : null;
 
 /** Addresses from the previous version keep working. */
 function OldVideo() {
@@ -109,12 +114,18 @@ function Layout() {
         Skip to content
       </a>
       <TopBar />
+      {DEMO && (
+        <Suspense fallback={null}>
+          <DemoBanner />
+        </Suspense>
+      )}
       <main id="main" ref={main} tabIndex={-1} className={styles.main}>
         <ErrorBoundary resetKey={pathname}>
           <Suspense fallback={<div className={styles.loading} role="progressbar" aria-label="Loading page" />}>
             <PageTransition>
               <Routes>
                 <Route index element={<Home />} />
+                <Route path="explore" element={<Explore />} />
                 <Route path="browse" element={<Navigate to="/browse/trending" replace />} />
                 <Route path="browse/:slug" element={<Browse />} />
                 <Route path="watch/:provider/:id" element={<Watch />} />

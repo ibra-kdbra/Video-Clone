@@ -8,3 +8,40 @@
 .submit {
   margin-top: 0.35rem;
 }
+
+// The demo's "Try the demo as…", above the email form.
+.demo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+.demoTitle {
+  font-size: var(--text-md);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.demoLoading {
+  height: 14rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.4rem;
+  color: var(--text-3);
+  font-size: var(--text-sm);
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+}

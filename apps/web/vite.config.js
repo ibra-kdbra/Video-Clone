@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import { rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { securityHeaders } from './config/headers.mjs';
@@ -59,6 +60,39 @@ function apiServer(env, mode) {
   };
 }
 
+/**
+ * Without the demo (VITE_DEMO isn't 'true'), src/demo isn't part of the build at all: its imports,
+ * every one of them dynamic and behind `if (DEMO)`, resolve to an empty module that's never
+ * written out, so not even an unused chunk of the demo ends up in dist/. Nor do the demo school's
+ * videos (public/demo), copied in with the rest of public/.
+ */
+function demoOff(enabled) {
+  const demoDir = path.join(__dirname, 'src', 'demo') + path.sep;
+  const EMPTY = '\0grand-demo-off';
+  let outDir;
+  return {
+    name: 'grand-demo-off',
+    apply: 'build',
+    enforce: 'pre',
+    configResolved(config) {
+      outDir = path.resolve(config.root, config.build.outDir);
+    },
+    closeBundle() {
+      if (!enabled) rmSync(path.join(outDir, 'demo'), { recursive: true, force: true });
+    },
+    async resolveId(source, importer, options) {
+      if (enabled || !importer || importer.startsWith(demoDir)) return null;
+      const resolved = await this.resolve(source, importer, { ...options, skipSelf: true });
+      return resolved?.id.startsWith(demoDir) ? EMPTY : null;
+    },
+    load: (id) => (id === EMPTY ? 'export {};' : null),
+    generateBundle(_, bundle) {
+      // The empty stand-in's chunk, which nothing imports once the dead branches are gone.
+      for (const [name, chunk] of Object.entries(bundle)) if (chunk.type === 'chunk' && chunk.facadeModuleId === EMPTY && !chunk.code.trim()) delete bundle[name];
+    },
+  };
+}
+
 export default defineConfig(({ command, mode }) => {
   // All variables from .env, not only VITE_ ones: the API keys stay on this (server) side.
   const env = loadEnv(mode, repoRoot, '');
@@ -69,12 +103,16 @@ export default defineConfig(({ command, mode }) => {
     '/api/v1': { target: env.LOCAL_API_URL || 'http://localhost:3000', ws: true },
   };
   const realtimeOrigin = command === 'build' ? (env.REALTIME_ORIGIN || env.API_ORIGIN || '').replace(/\/$/, '') : '';
+  // Demo mode (VITE_DEMO=true): the LMS runs against a mock API in the page (src/lib/demo.js).
+  // Always defined, as 'true' or 'false', so the build can drop the demo code when it's off.
+  const demo = env.VITE_DEMO === 'true';
 
   return {
     envDir: repoRoot,
-    plugins: [react(), apiServer(env, mode)],
+    plugins: [demoOff(demo), react(), apiServer(env, mode)],
     define: {
       'import.meta.env.VITE_REALTIME_ORIGIN': JSON.stringify(realtimeOrigin),
+      'import.meta.env.VITE_DEMO': JSON.stringify(demo ? 'true' : 'false'),
     },
     css: {
       preprocessorOptions: {

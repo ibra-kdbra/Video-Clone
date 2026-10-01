@@ -5,7 +5,7 @@
   left: 0;
   z-index: 30;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(var(--items, 4), 1fr);
   height: calc(var(--bottomnav-h) + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
   border-top: 1px solid var(--line);

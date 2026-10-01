@@ -1,5 +1,6 @@
 import { MAX_SUBMISSION_FILES, MAX_SUBMISSION_FILE_BYTES, SUBMISSION_CONTENT_TYPES } from '@grand/contracts';
 
+import { DEMO } from './demo.js';
 import { formatBytes, formatDate } from './format.js';
 import { uploadName } from './upload.js';
 
@@ -154,14 +155,16 @@ const abortError = () => new DOMException('The upload was cancelled.', 'AbortErr
  * `api`: `{ start(input), complete(fileId), remove(fileId) }`; `onStart(ticket)` once the file has
  * an id; `onProgress(loaded, total)`; `createRequest` is there for tests.
  */
-export async function uploadSubmissionFile(file, { api, onStart, onProgress, signal, createRequest = () => new XMLHttpRequest() }) {
+export async function uploadSubmissionFile(file, { api, onStart, onProgress, signal, createRequest }) {
   if (signal?.aborted) throw abortError();
   const ticket = await api.start({ fileName: uploadName(file.name), size: file.size, contentType: submissionContentType(file) });
   try {
     onStart?.(ticket);
+    // In the demo, the file stays in this tab's memory instead (src/demo/xhr.js).
+    const makeRequest = createRequest ?? (DEMO ? (await import('../demo/xhr.js')).createDemoRequest : () => new XMLHttpRequest());
     await new Promise((resolve, reject) => {
       if (signal?.aborted) return reject(abortError());
-      const request = createRequest();
+      const request = makeRequest();
       const stop = () => request.abort();
       signal?.addEventListener('abort', stop, { once: true });
       const settle = (fn, value) => {

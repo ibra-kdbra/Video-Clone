@@ -76,3 +76,10 @@
     background: repeating-radial-gradient(circle, transparent 0 34px, var(--tone-edge) 34px 36px);
   }
 }
+
+// A small thumbnail beside the title (the home dashboard): no title of its own, finer rings.
+.thumb {
+  .rings {
+    background: repeating-radial-gradient(circle, transparent 0 10px, var(--tone-edge) 10px 11px);
+  }
+}

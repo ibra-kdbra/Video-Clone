@@ -1,4 +1,5 @@
 import { ApiError } from './api.js';
+import { DEMO, loadDemo } from './demo.js';
 
 /**
  * Signing in, and every call to the Grand LMS API (`/api/v1` on this origin).
@@ -63,6 +64,12 @@ export function subscribeSession(listener) {
   return () => listeners.delete(listener);
 }
 
+/**
+ * Sends one request: over the network, or, in demo builds, to the mock API running in this page
+ * (src/demo), which answers with a real Response, so everything below works the same either way.
+ */
+const request = (url, init) => (DEMO ? loadDemo().then((demo) => demo.demoFetch(url, init)) : fetch(url, init));
+
 /** One request, as is. Resolves with the parsed JSON (null for 204), or throws an ApiError. */
 async function send(path, { method = 'GET', body, signal, bearer } = {}) {
   const headers = { Accept: 'application/json' };
@@ -71,7 +78,7 @@ async function send(path, { method = 'GET', body, signal, bearer } = {}) {
 
   let response;
   try {
-    response = await fetch(`${BASE}${path}`, {
+    response = await request(`${BASE}${path}`, {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -227,7 +234,7 @@ export async function apiFetchKeepalive(path, { method = 'POST', body } = {}) {
   if (!token || Date.now() >= expiresAt) throw new ApiError(401, 'session_expired', 'Please sign in.');
   let response;
   try {
-    response = await fetch(`${BASE}${path}`, {
+    response = await request(`${BASE}${path}`, {
       method,
       keepalive: true,
       credentials: 'same-origin',
