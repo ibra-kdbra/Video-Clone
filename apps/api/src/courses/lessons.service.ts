@@ -121,12 +121,13 @@ export class LessonsService {
           ip,
           data: { provider: video?.provider ?? null },
         });
-        return this.describe(tx, school, userId, course, updated!, null, false);
+        return this.describe(tx, school, userId, course, updated!, null, await this.isEnrolled(tx, course.id, userId));
       }
 
       const [updated] = await tx.update(lessons).set(changes).where(eq(lessons.id, lesson.id)).returning();
       const [media] = updated!.mediaId ? await tx.select().from(mediaAssets).where(eq(mediaAssets.id, updated!.mediaId)) : [];
-      return this.describe(tx, school, userId, course, updated!, media ?? null, false);
+      // An editor can be enrolled too: their progress comes back with the lesson.
+      return this.describe(tx, school, userId, course, updated!, media ?? null, await this.isEnrolled(tx, course.id, userId));
     });
   }
 

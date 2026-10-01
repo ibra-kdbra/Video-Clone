@@ -122,6 +122,14 @@ describe('watch progress', () => {
     expect((await as(author).get(`${url}/lessons/${lessons.video}`)).body.progressDetail).toBeNull();
   });
 
+  it('returns an enrolled editor their progress with a lesson they change', async () => {
+    const { as, author, url, lessons } = await course();
+    await as(author).post(`${url}/enrollment`);
+    await as(author).post(`${url}/lessons/${lessons.text}/complete`);
+    const renamed = await as(author).patch(`${url}/lessons/${lessons.text}`, { title: 'Read this first' });
+    expect(renamed.body).toMatchObject({ progress: { completed: true, percent: 100 }, progressDetail: { completed: true } });
+  });
+
   it('lets a lesson without an uploaded video be marked done by hand, and no other', async () => {
     const { as, student, url, lessons } = await course();
     expect((await as(student).post(`${url}/lessons/${lessons.text}/complete`)).body).toMatchObject({ completed: true, percent: 100 });
@@ -185,7 +193,7 @@ describe('quizzes', () => {
   });
 
   it('grades attempts, reveals answers only once passed or out of attempts, and completes the lesson on a pass', async () => {
-    const { as, student, url, lessons, quizUrl, draft } = await withQuiz();
+    const { as, student, other, url, lessons, quizUrl, draft } = await withQuiz();
     const [single, multiple, short] = draft.questions;
     const right = { [single.id]: [single.options[0].id], [multiple.id]: [multiple.options[0].id, multiple.options[1].id], [short.id]: ' Eighty-Eight ' };
 
@@ -194,6 +202,10 @@ describe('quizzes', () => {
     expect(wrong.body.questions.map((question: { correct: boolean }) => question.correct)).toEqual([false, true, true]);
     expect(wrong.body.questions[0]).toMatchObject({ explanation: null, correctOptionIds: null });
     expect((await as(student).get(`${url}/lessons/${lessons.quiz}`)).body.progress.completed).toBe(false);
+    // A past attempt can be looked at again, with the answers given, under the same rule.
+    const again = await as(student).get(`${quizUrl}/attempts/${wrong.body.id}`);
+    expect(again.body).toMatchObject({ id: wrong.body.id, percent: 50, attemptsLeft: 1, answers: { [single.id]: [single.options[1].id], [short.id]: 'Eighty-Eight' } });
+    expect(again.body.questions[0]).toMatchObject({ correct: false, explanation: null, correctOptionIds: null });
 
     const passed = await as(student).post(`${quizUrl}/attempts`, { answers: right });
     expect(passed.body).toMatchObject({ percent: 100, passed: true, attemptsLeft: 0 });
@@ -203,6 +215,10 @@ describe('quizzes', () => {
 
     expect((await as(student).post(`${quizUrl}/attempts`, { answers: right })).body.error.code).toBe('limit_reached');
     expect((await as(student).get(quizUrl)).body).toMatchObject({ passed: true, bestPercent: 100, attemptsLeft: 0 });
+
+    // Now passed, the first attempt shows the right answers too; nobody else can open it.
+    expect((await as(student).get(`${quizUrl}/attempts/${wrong.body.id}`)).body.questions[0]).toMatchObject({ explanation: 'C4 is middle C.', correctOptionIds: [single.options[0].id] });
+    expect((await as(other).get(`${quizUrl}/attempts/${wrong.body.id}`)).status).toBe(404);
   });
 
   it('keeps to the attempt limit when attempts arrive at once', async () => {

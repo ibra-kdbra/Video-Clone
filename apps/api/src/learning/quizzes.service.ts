@@ -130,29 +130,49 @@ export class QuizzesService {
         .returning();
       if (passed) await this.progress.markCompleted(tx, school.id, lesson, userId);
 
-      const attemptsLeft = quiz.maxAttempts === null ? null : Math.max(0, quiz.maxAttempts - made - 1);
-      const [{ passedBefore } = { passedBefore: 0 }] = passed
-        ? [{ passedBefore: 1 }]
-        : await tx
-            .select({ passedBefore: count() })
-            .from(quizAttempts)
-            .where(and(eq(quizAttempts.lessonId, lesson.id), eq(quizAttempts.userId, userId), eq(quizAttempts.passed, true)));
-      // The right answers, once they can no longer be used to pass.
-      const reveal = passedBefore > 0 || attemptsLeft === 0;
-      return {
-        ...summary(attempt!),
-        attemptsLeft,
-        questions: grade.results.map((result) => {
-          const question = quiz.questions.find((candidate) => candidate.id === result.questionId)!;
-          return {
-            ...result,
-            explanation: reveal ? question.explanation || null : null,
-            correctOptionIds: reveal && question.kind !== 'short' ? question.options.filter((option) => option.correct).map((option) => option.id) : null,
-            acceptedAnswers: reveal && question.kind === 'short' ? question.answers : null,
-          };
-        }),
-      };
+      return this.describeAttempt(tx, quiz, attempt!, userId);
     });
+  }
+
+  /** One of this person's past attempts, question by question, as it was marked. */
+  async getAttempt(school: SchoolContext, userId: string, courseSlug: string, lessonId: string, attemptId: string): Promise<QuizAttemptResult> {
+    return this.db.transaction({ userId, schoolId: school.id }, async (tx) => {
+      const { quiz } = await this.open(tx, school, userId, courseSlug, lessonId);
+      const [attempt] = await tx
+        .select()
+        .from(quizAttempts)
+        .where(and(eq(quizAttempts.id, attemptId), eq(quizAttempts.lessonId, quiz.lessonId), eq(quizAttempts.userId, userId)));
+      if (!attempt) throw notFound('This attempt');
+      return this.describeAttempt(tx, quiz, attempt, userId);
+    });
+  }
+
+  /**
+   * An attempt's marks, with the right answers and explanations once they can no longer be used
+   * to pass: the quiz is passed, or no attempts are left. Questions removed since show their mark
+   * only.
+   */
+  private async describeAttempt(tx: Tx, quiz: QuizRecord, attempt: AttemptRecord, userId: string): Promise<QuizAttemptResult> {
+    const [{ made, passedAny } = { made: 0, passedAny: false }] = await tx
+      .select({ made: count(), passedAny: sql<boolean>`coalesce(bool_or(${quizAttempts.passed}), false)` })
+      .from(quizAttempts)
+      .where(and(eq(quizAttempts.lessonId, quiz.lessonId), eq(quizAttempts.userId, userId)));
+    const attemptsLeft = quiz.maxAttempts === null ? null : Math.max(0, quiz.maxAttempts - made);
+    const reveal = passedAny || attemptsLeft === 0;
+    return {
+      ...summary(attempt),
+      answers: attempt.answers,
+      attemptsLeft,
+      questions: attempt.results.map((result) => {
+        const question = reveal ? quiz.questions.find((candidate) => candidate.id === result.questionId) : undefined;
+        return {
+          ...result,
+          explanation: question?.explanation || null,
+          correctOptionIds: question && question.kind !== 'short' ? question.options.filter((option) => option.correct).map((option) => option.id) : null,
+          acceptedAnswers: question?.kind === 'short' ? question.answers : null,
+        };
+      }),
+    };
   }
 
   /** The quiz of a lesson this person may open. */

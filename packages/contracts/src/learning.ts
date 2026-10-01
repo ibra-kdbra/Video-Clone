@@ -149,6 +149,9 @@ export interface QuestionResult {
 
 export interface QuizAttemptResult extends QuizAttemptSummary {
   questions: QuestionResult[];
+  /** The answers handed in, as sent: choice ids, or the text written. */
+  answers: Record<string, string | string[]>;
+  /** Attempts left now. */
   attemptsLeft: number | null;
 }
 

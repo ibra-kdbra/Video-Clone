@@ -129,6 +129,19 @@ export class LearningController {
     return this.quizzes.attempt(school, auth.userId, slug, lessonId, body);
   }
 
+  @Get('lessons/:lessonId/quiz/attempts/:attemptId')
+  @SchoolRole('student')
+  @ApiOperation({ summary: 'One of your past attempts, question by question' })
+  getAttempt(
+    @Param('courseSlug', { schema: courseSlug }) slug: string,
+    @Param('lessonId', { schema: uuid }) lessonId: string,
+    @Param('attemptId', { schema: uuid }) attemptId: string,
+    @CurrentSchool() school: SchoolContext,
+    @CurrentAuth() auth: AuthContext,
+  ): Promise<QuizAttemptResult> {
+    return this.quizzes.getAttempt(school, auth.userId, slug, lessonId, attemptId);
+  }
+
   // Assignments -----------------------------------------------------------------------------------
 
   @Get('lessons/:lessonId/assignment')
