@@ -15,6 +15,12 @@ import { categoryVideos } from './lib/videos.js';
 // the session from the last visit (if there was one), in parallel with rendering.
 captureInviteToken();
 restoreSession();
+// Progress used to be kept in this browser; it's on the server now, so the old copy goes.
+try {
+  localStorage.removeItem('grand.progress');
+} catch {
+  // Storage blocked: nothing to clear.
+}
 
 // The form checks shared with the API use zod, which otherwise probes for `new Function` to speed
 // itself up. The CSP forbids that, and Trusted Types report even the caught attempt as a

@@ -67,6 +67,17 @@ export function formatDate(iso, style = 'day') {
   return Number.isFinite(date.getTime()) ? DATE_STYLES[style].format(date) : '';
 }
 
+const DATE_TIME = new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+/** "Sep 3, 2026, 5:00 PM", in the reader's time zone. Empty for unknown dates. */
+export function formatDateTime(iso) {
+  const date = new Date(iso ?? '');
+  return Number.isFinite(date.getTime()) ? DATE_TIME.format(date) : '';
+}
+
+/** "Active 3 days ago", or "Not started yet" when there's been no activity. */
+export const lastActive = (iso, now = Date.now()) => (timeAgo(iso, now) ? `Active ${timeAgo(iso, now)}` : 'Not started yet');
+
 /** Seconds → "0:00", "4:05" or "1:02:05", for a player's clock (zero included). */
 export function formatClock(seconds) {
   const total = Number.isFinite(seconds) && seconds > 0 ? Math.floor(seconds) : 0;

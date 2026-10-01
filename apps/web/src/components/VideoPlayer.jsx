@@ -11,7 +11,6 @@ import styles from './VideoPlayer.module.scss';
 
 const RATES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 const HIDE_AFTER_MS = 2800;
-const SAVE_EVERY_S = 5;
 const NEXT_IN_S = 8;
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
@@ -55,8 +54,11 @@ function isTyping(target) {
  * Playback links expire (after a few hours). When loading fails, `onRefresh()` fetches a fresh
  * playback and the video carries on from the same moment; `expiresAt` is also checked before
  * playing again after a long pause.
+ *
+ * `watch` (from useWatchProgress, for enrolled students) hears every time update, seek, pause and
+ * the end, to report what has really been watched.
  */
-export default function VideoPlayer({ playback, title, subtitle, startAt = 0, autoPlay = false, onRefresh, onProgress, onEnded, next }) {
+export default function VideoPlayer({ playback, title, subtitle, startAt = 0, autoPlay = false, onRefresh, watch, onEnded, next }) {
   const { manifestUrl, posterUrl, storyboardUrl, durationSeconds, expiresAt } = playback;
   const preferences = useStore(settings);
   const container = useRef(null);
@@ -66,7 +68,6 @@ export default function VideoPlayer({ playback, title, subtitle, startAt = 0, au
   const wantsPlay = useRef(autoPlay);
   const recoveries = useRef([]);
   const recovering = useRef(false);
-  const lastSaved = useRef(0);
   const hideTimer = useRef(null);
   const osdTimer = useRef(null);
   const hintId = useId();
@@ -275,17 +276,6 @@ export default function VideoPlayer({ playback, title, subtitle, startAt = 0, au
       element.removeEventListener('leavepictureinpicture', leave);
     };
   }, []);
-
-  const save = useCallback(
-    (force = false) => {
-      const element = video.current;
-      if (!element || !onProgress || !(element.duration > 0)) return;
-      if (!force && Math.abs(element.currentTime - lastSaved.current) < SAVE_EVERY_S) return;
-      lastSaved.current = element.currentTime;
-      onProgress(element.currentTime, element.duration);
-    },
-    [onProgress],
-  );
 
   // Actions ------------------------------------------------------------------------------------
 
@@ -510,25 +500,28 @@ export default function VideoPlayer({ playback, title, subtitle, startAt = 0, au
         }}
         onPause={() => {
           setPaused(true);
-          save(true);
+          watch?.pause();
         }}
+        onSeeking={(event) => event.currentTarget.readyState > 0 && watch?.seeking(event.currentTarget.currentTime)}
         onWaiting={() => setWaiting(true)}
         onPlaying={() => setWaiting(false)}
         onCanPlay={() => setWaiting(false)}
         onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || durationSeconds || 0)}
         onDurationChange={(event) => Number.isFinite(event.currentTarget.duration) && setDuration(event.currentTarget.duration)}
         onTimeUpdate={(event) => {
+          const element = event.currentTarget;
+          // Not while the video is being unloaded (leaving, or a reload), which reports 0:00.
+          if (element.readyState > 0) watch?.observe(element.currentTime, { playing: !element.paused, rate: element.playbackRate });
           if (scrubbing) return;
-          setTime(event.currentTarget.currentTime);
-          if (event.currentTarget.currentTime > 0) position.current = event.currentTarget.currentTime;
-          save();
+          setTime(element.currentTime);
+          if (element.currentTime > 0) position.current = element.currentTime;
         }}
         onProgress={(event) => setBuffered(bufferedRanges(event.currentTarget))}
         onEnded={() => {
           setEnded(true);
           setPaused(true);
           wantsPlay.current = false;
-          save(true);
+          watch?.ended();
           onEnded?.();
           if (next) setCountdown(NEXT_IN_S);
         }}

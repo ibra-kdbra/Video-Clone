@@ -35,4 +35,26 @@ export const previewInvitation = (token, signal) => apiFetch('/invitations/previ
 export const acceptInvitation = (token) => apiFetch('/invitations/accept', { method: 'POST', body: { token } });
 
 /** Queries holding one person's data, dropped when they sign out. */
-export const PRIVATE_QUERIES = new Set(['me', 'school', 'members', 'invitations', 'devices', 'courses', 'course', 'lesson', 'playback', 'enrollments', 'storage']);
+export const PRIVATE_QUERIES = new Set([
+  'me',
+  'school',
+  'members',
+  'invitations',
+  'devices',
+  'courses',
+  'course',
+  'lesson',
+  'playback',
+  'enrollments',
+  'storage',
+  'quiz',
+  'quizDraft',
+  'quizAttempt',
+  'assignment',
+  'submissions',
+  'submission',
+  'insights',
+  'lessonInsights',
+  'notifications',
+  'notificationSettings',
+]);

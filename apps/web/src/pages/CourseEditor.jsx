@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { m } from 'motion/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -28,10 +28,14 @@ import { useSchoolLive } from '../lib/useSchoolLive.js';
 import NotFound from './NotFound.jsx';
 import styles from './CourseEditor.module.scss';
 
+// Insights (and their charts) are their own chunk, loaded when the tab is opened.
+const CourseInsights = lazy(() => import('../components/CourseInsights.jsx'));
+
 const TABS = [
   { key: 'outline', label: 'Outline', icon: 'list' },
   { key: 'details', label: 'Details', icon: 'edit' },
   { key: 'students', label: 'Students', icon: 'users' },
+  { key: 'insights', label: 'Insights', icon: 'chart' },
 ];
 
 const STATUS = {
@@ -56,8 +60,9 @@ function EditorSkeleton() {
 /**
  * The course editor (/s/:slug/c/:course/edit), for the course's author and the school's admins:
  * its status (publish, unpublish, archive), the outline builder with each lesson's editor in a
- * drawer, the details (title, address, summary, description), and who's enrolled. Video storage is
- * shown beside the outline. Transcoding progress for the course's uploads arrives live.
+ * drawer, the details (title, address, summary, description), who's enrolled and how far each
+ * has got, and insights into how the course is going. Video storage is shown beside the outline.
+ * Transcoding progress for the course's uploads arrives live.
  */
 function EditorView({ school, courseSlug }) {
   const queryClient = useQueryClient();
@@ -302,6 +307,17 @@ function EditorView({ school, courseSlug }) {
             Students <span className={`${styles.count} tabular`}>{c.enrollmentCount}</span>
           </h2>
           <EnrollmentsPanel school={school} course={c} />
+        </section>
+      )}
+
+      {tab.key === 'insights' && (
+        <section className={styles.panel} aria-labelledby="insights-title">
+          <h2 id="insights-title" className={styles.sectionTitle}>
+            Insights
+          </h2>
+          <Suspense fallback={<Block height="20rem" radius="var(--radius-lg)" />}>
+            <CourseInsights school={school} course={c} />
+          </Suspense>
         </section>
       )}
 

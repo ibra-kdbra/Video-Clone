@@ -1,0 +1,86 @@
+.item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.8rem 1rem;
+  color: var(--text);
+  transition: background var(--fast) var(--ease);
+
+  @include hover {
+    background: var(--surface-2);
+  }
+
+  &:focus-visible {
+    outline-offset: -2px;
+  }
+
+  &[data-unread] {
+    background: var(--accent-soft);
+
+    @include hover {
+      background: color-mix(in srgb, var(--accent) 22%, transparent);
+    }
+  }
+}
+
+.compact {
+  padding: 0.7rem 0.85rem;
+}
+
+.icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-2);
+
+  [data-unread] > & {
+    background: var(--surface);
+    color: var(--accent-text);
+  }
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.title {
+  font-size: var(--text-sm);
+  font-weight: 550;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+
+  [data-unread] & {
+    font-weight: 700;
+  }
+}
+
+.body {
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+  @include line-clamp(2);
+}
+
+.meta {
+  color: var(--text-3);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  margin-top: 0.45rem;
+  border-radius: 50%;
+  background: var(--accent);
+}

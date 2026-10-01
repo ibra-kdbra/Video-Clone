@@ -12,14 +12,14 @@ import CourseOutline from '../components/CourseOutline.jsx';
 import Icon from '../components/Icon.jsx';
 import Markdown from '../components/Markdown.jsx';
 import OverflowMenu from '../components/OverflowMenu.jsx';
+import ProgressBar from '../components/ProgressBar.jsx';
 import RequireAuth from '../components/RequireAuth.jsx';
 import SchoolGate from '../components/SchoolGate.jsx';
 import { Block } from '../components/Skeleton.jsx';
 import { EmptyState, ErrorState } from '../components/States.jsx';
-import { editorPath, enroll, firstOpenLesson, firstPreview, getCourse, keys, leaveCourse, lessonPath, lessonsOf } from '../lib/courses.js';
+import { continueLesson, editorPath, enroll, firstOpenLesson, firstPreview, getCourse, keys, leaveCourse, lessonPath, lessonsOf } from '../lib/courses.js';
 import { formatDate, formatRuntime, joinMeta, plural } from '../lib/format.js';
 import { errorMessage } from '../lib/forms.js';
-import { useProgress } from '../lib/progress.js';
 import { toast } from '../lib/toast.js';
 import { useDocumentTitle } from '../lib/useDocumentTitle.js';
 import NotFound from './NotFound.jsx';
@@ -35,6 +35,7 @@ const withEnrollment = (course, enrolled) =>
   course && {
     ...course,
     enrolled,
+    progress: enrolled ? (course.progress ?? null) : null,
     enrollmentCount: Math.max(0, course.enrollmentCount + (enrolled ? 1 : -1)),
     modules: course.modules.map((module) => ({ ...module, lessons: module.lessons.map((lesson) => ({ ...lesson, locked: !enrolled && !lesson.isPreview })) })),
   };
@@ -56,14 +57,30 @@ function CourseSkeleton() {
   );
 }
 
+/** How far an enrolled student is through the course: a bar, and the lessons done. */
+function CourseProgress({ progress }) {
+  const done = progress.completedLessons >= progress.totalLessons && progress.totalLessons > 0;
+  const text = done ? 'You completed this course' : `${progress.completedLessons} of ${plural(progress.totalLessons, 'lesson')} done`;
+  return (
+    <div className={styles.progress}>
+      <p className={`${styles.progressText} tabular`}>
+        {done && <Icon name="checkCircle" size={16} />}
+        <span>{text}</span>
+        <span className={styles.progressPercent}>{progress.percent}%</span>
+      </p>
+      <ProgressBar value={progress.percent} label="Course progress" valueText={`${progress.percent}%: ${text}`} tone={done ? 'success' : 'accent'} size="md" />
+    </div>
+  );
+}
+
 /**
  * A course's page (/s/:slug/c/:course): a billboard-like hero with its cover, what it is and who
  * made it, and the main action for this person: Enroll, then Start or Continue where they left
- * off (editors: Edit course). Below, the outline of modules and lessons, and the description.
+ * off (editors: Edit course), with their progress through it. Below, the outline of modules and
+ * lessons, and the description.
  */
 function CourseView({ school, courseSlug }) {
   const queryClient = useQueryClient();
-  const progress = useProgress();
   const slug = school.slug;
   const key = keys.course(slug, courseSlug);
   const [confirmLeave, setConfirmLeave] = useState(false);
@@ -132,8 +149,7 @@ function CourseView({ school, courseSlug }) {
   }
 
   const lessons = lessonsOf(c);
-  const last = progress.courses[c.id];
-  const resume = last && lessons.find((lesson) => lesson.id === last.lessonId && !lesson.locked);
+  const resume = continueLesson(c);
   const start = firstOpenLesson(c);
   const preview = firstPreview(c);
   const canWatch = c.enrolled || c.canEdit;
@@ -210,6 +226,7 @@ function CourseView({ school, courseSlug }) {
                 />
               )}
             </div>
+            {c.enrolled && c.progress && c.progress.totalLessons > 0 && <CourseProgress progress={c.progress} />}
             {status && c.canEdit && <p className={styles.statusNote}>{status.note}</p>}
           </div>
         </div>

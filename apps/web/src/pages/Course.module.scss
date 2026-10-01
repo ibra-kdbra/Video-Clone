@@ -302,3 +302,31 @@
     overflow-wrap: anywhere;
   }
 }
+
+// An enrolled student's progress, under the actions.
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: min(26rem, 100%);
+  margin-top: 0.4rem;
+}
+
+.progressText {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+
+  svg {
+    flex: none;
+    color: var(--success);
+  }
+}
+
+.progressPercent {
+  margin-left: auto;
+  color: var(--text);
+}

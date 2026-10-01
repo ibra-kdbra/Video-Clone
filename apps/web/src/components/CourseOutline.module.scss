@@ -222,3 +222,38 @@
     border-radius: 3px;
   }
 }
+
+// Quizzes and assignments say what they are where a lesson shows its length.
+.kind {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-3);
+  font-size: var(--text-sm);
+  font-weight: 600;
+
+  svg {
+    flex: none;
+  }
+}
+
+// A lesson just completed: its check pops in.
+.marker[data-fresh] {
+  animation: complete 520ms var(--ease);
+}
+
+@keyframes complete {
+  0% {
+    transform: scale(0.6);
+    box-shadow: 0 0 0 0 var(--success-soft);
+  }
+  55% {
+    transform: scale(1.18);
+    box-shadow: 0 0 0 8px var(--success-soft);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 transparent;
+  }
+}

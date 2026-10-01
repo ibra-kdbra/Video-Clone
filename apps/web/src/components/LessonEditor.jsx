@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { updateLessonInput } from '@grand/contracts';
 
-import { deleteLesson, getLesson, getStorage, keys, lessonPath, lessonsOf, patchLesson, updateLesson } from '../lib/courses.js';
+import { deleteLesson, getLesson, getStorage, keys, kindOf, lessonPath, lessonsOf, patchLesson, updateLesson } from '../lib/courses.js';
 import { errorMessage } from '../lib/forms.js';
 import { lessonNumbers, locateLesson } from '../lib/outline.js';
 import { toast } from '../lib/toast.js';
 import { useForm } from '../lib/useForm.js';
 import { getUploads } from '../lib/uploads.js';
+import AssignmentSettings from './AssignmentSettings.jsx';
 import Button from './Button.jsx';
 import ConfirmDialog from './ConfirmDialog.jsx';
 import Dialog from './Dialog.jsx';
@@ -18,12 +19,28 @@ import { Block } from './Skeleton.jsx';
 import Switch from './Switch.jsx';
 import styles from './LessonEditor.module.scss';
 
+// The quiz builder is its own chunk, loaded when a quiz is opened here.
+const QuizBuilder = lazy(() => import('./QuizBuilder.jsx'));
+
 const FIELDS = ['title', 'summary', 'notes'];
 
-/** The outline's view of a lesson, from the full lesson the API returns. */
-const summaryOf = ({ notes: _notes, previous: _previous, next: _next, courseId: _courseId, ...summary }) => summary;
+/** What a lesson's deletion takes with it, by kind. */
+const DELETES = {
+  lesson: { short: 'its notes and video', long: 'Its notes and its video are deleted too.' },
+  quiz: { short: 'its questions and attempts', long: "Its questions and every student's attempts are deleted too." },
+  assignment: { short: 'its submissions and their files', long: "Its instructions and every student's work and files are deleted too." },
+};
 
-/** Title, summary and notes: saved together, with the button in the drawer's footer. */
+/**
+ * The outline's view of a lesson, from the full lesson the API returns. Progress is left as it
+ * was: an editor's answer never carries their own.
+ */
+const summaryOf = ({ notes: _notes, previous: _previous, next: _next, courseId: _courseId, progressDetail: _detail, progress: _progress, ...summary }) => summary;
+
+/**
+ * Title, summary and notes (a quiz's or an assignment's instructions): saved together, with the
+ * button in the drawer's footer.
+ */
 function DetailsForm({ formId, lesson, onSubmit, onState }) {
   const form = useForm(updateLessonInput, { title: lesson.title, summary: lesson.summary, notes: lesson.notes }, FIELDS);
   const [busy, setBusy] = useState(false);
@@ -52,20 +69,34 @@ function DetailsForm({ formId, lesson, onSubmit, onState }) {
       <FormAlert>{form.errors['']}</FormAlert>
       <TextField {...form.bind('title')} label="Title" maxLength={120} autoComplete="off" required />
       <TextAreaField {...form.bind('summary')} label="Summary" rows={2} maxLength={300} hint="One or two sentences, shown under the title in the outline." />
-      <MarkdownField {...form.bind('notes')} label="Notes" rows={8} maxLength={50_000} />
+      {lesson.kind === 'lesson' ? (
+        <MarkdownField {...form.bind('notes')} label="Notes" rows={8} maxLength={50_000} />
+      ) : (
+        <MarkdownField
+          {...form.bind('notes')}
+          label="Instructions"
+          rows={8}
+          maxLength={50_000}
+          hint={`What students should do, shown above the ${lesson.kind}. Markdown works here: **bold**, _italic_, lists, links and ## headings.`}
+        />
+      )}
     </form>
   );
 }
 
 /**
  * Editing one lesson, in a drawer over the course editor (?lesson=… in the address, so Back closes
- * it): its video, whether it's published and a free preview (both apply at once), and its title,
- * summary and notes (saved with "Save changes"). Closing with unsaved changes asks first.
+ * it): its video (lessons), its questions (quizzes, with their own Save) or its settings
+ * (assignments), whether it's published and a free preview (both apply at once), and its title,
+ * summary and notes or instructions (saved with "Save changes"). Closing with anything unsaved
+ * asks first.
  */
 export default function LessonEditor({ school, course, lessonId, onClose }) {
   const queryClient = useQueryClient();
   const formId = useId();
   const [dirty, setDirty] = useState({ dirty: false, busy: false });
+  // Unsaved changes in the quiz builder or the assignment's settings.
+  const [workDirty, setWorkDirty] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -118,7 +149,7 @@ export default function LessonEditor({ school, course, lessonId, onClose }) {
 
   const requestClose = () => {
     if (dirty.busy) return;
-    if (dirty.dirty) setConfirmClose(true);
+    if (dirty.dirty || workDirty) setConfirmClose(true);
     else onClose();
   };
 
@@ -154,6 +185,8 @@ export default function LessonEditor({ school, course, lessonId, onClose }) {
   if (!summary) return null;
   const where = locateLesson(course.modules, lessonId);
   const number = lessonNumbers(course.modules).get(lessonId);
+  const kind = kindOf(summary);
+  const deletes = DELETES[summary.kind] ?? DELETES.lesson;
 
   return (
     <Dialog
@@ -161,7 +194,7 @@ export default function LessonEditor({ school, course, lessonId, onClose }) {
       variant="drawer"
       returnFocus={afterClose}
       title={summary.title}
-      description={`Lesson ${number} · ${course.modules[where.moduleIndex].title}`}
+      description={`${summary.kind === 'lesson' ? 'Lesson' : kind.label} ${number} · ${course.modules[where.moduleIndex].title}`}
       onClose={requestClose}
       footer={
         <>
@@ -178,12 +211,34 @@ export default function LessonEditor({ school, course, lessonId, onClose }) {
       }
     >
       <div className={styles.sections}>
-        <section className={styles.section} aria-labelledby={`${formId}-video`}>
-          <h3 id={`${formId}-video`} className={styles.heading}>
-            Video
-          </h3>
-          <LessonVideoField school={school} course={course} lesson={summary} storage={storage.data} />
-        </section>
+        {summary.kind === 'lesson' && (
+          <section className={styles.section} aria-labelledby={`${formId}-video`}>
+            <h3 id={`${formId}-video`} className={styles.heading}>
+              Video
+            </h3>
+            <LessonVideoField school={school} course={course} lesson={summary} storage={storage.data} />
+          </section>
+        )}
+
+        {summary.kind === 'quiz' && (
+          <section className={styles.section} aria-labelledby={`${formId}-quiz`}>
+            <h3 id={`${formId}-quiz`} className={styles.heading}>
+              Quiz
+            </h3>
+            <Suspense fallback={<Block height="12rem" radius="var(--radius-md)" />}>
+              <QuizBuilder school={school} course={course} lessonId={lessonId} onDirtyChange={setWorkDirty} />
+            </Suspense>
+          </section>
+        )}
+
+        {summary.kind === 'assignment' && (
+          <section className={styles.section} aria-labelledby={`${formId}-assignment`}>
+            <h3 id={`${formId}-assignment`} className={styles.heading}>
+              Assignment
+            </h3>
+            <AssignmentSettings school={school} course={course} lessonId={lessonId} onDirtyChange={setWorkDirty} />
+          </section>
+        )}
 
         <section className={styles.section} aria-labelledby={`${formId}-visibility`}>
           <h3 id={`${formId}-visibility`} className={styles.heading}>
@@ -232,11 +287,11 @@ export default function LessonEditor({ school, course, lessonId, onClose }) {
 
         <section className={`${styles.section} ${styles.danger}`} aria-labelledby={`${formId}-delete`}>
           <h3 id={`${formId}-delete`} className={styles.heading}>
-            Delete this lesson
+            Delete this {kind.label.toLowerCase()}
           </h3>
-          <p className={styles.dangerText}>It's removed from the course with its notes and video. This can't be undone.</p>
+          <p className={styles.dangerText}>It's removed from the course with {deletes.short}. This can't be undone.</p>
           <Button variant="danger" size="sm" icon="trash" onClick={() => setConfirmDelete(true)}>
-            Delete lesson
+            Delete {kind.label.toLowerCase()}
           </Button>
         </section>
       </div>
@@ -244,12 +299,12 @@ export default function LessonEditor({ school, course, lessonId, onClose }) {
       <ConfirmDialog
         open={confirmDelete}
         title={`Delete "${summary.title}"?`}
-        confirmLabel="Delete lesson"
+        confirmLabel={`Delete ${kind.label.toLowerCase()}`}
         busy={deleting}
         onConfirm={remove}
         onClose={() => setConfirmDelete(false)}
       >
-        <p>Its notes and its video are deleted too. This can't be undone.</p>
+        <p>{deletes.long} This can't be undone.</p>
       </ConfirmDialog>
       <ConfirmDialog
         open={confirmClose}
@@ -261,7 +316,7 @@ export default function LessonEditor({ school, course, lessonId, onClose }) {
         }}
         onClose={() => setConfirmClose(false)}
       >
-        <p>The title, summary or notes you changed haven't been saved.</p>
+        <p>{workDirty && !dirty.dirty ? `The changes to this ${kind.label.toLowerCase()} haven't been saved.` : "Some of your changes haven't been saved."}</p>
       </ConfirmDialog>
     </Dialog>
   );

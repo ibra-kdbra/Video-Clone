@@ -54,8 +54,16 @@
     }
   }
 
+  // The room at the end is content, not padding, so a sticky bar inside (the quiz builder's Save)
+  // sits right on the edge of the visible area instead of floating 2rem above it.
   .body {
-    padding-bottom: 2rem;
+    padding-bottom: 0;
+
+    &::after {
+      content: '';
+      display: block;
+      height: 2rem;
+    }
   }
 }
 

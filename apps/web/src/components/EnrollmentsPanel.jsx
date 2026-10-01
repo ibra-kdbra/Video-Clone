@@ -1,13 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { getEnrollments, keys } from '../lib/courses.js';
-import { formatDate } from '../lib/format.js';
+import { formatDate, lastActive } from '../lib/format.js';
 import Monogram from './Monogram.jsx';
+import ProgressBar from './ProgressBar.jsx';
 import { Block } from './Skeleton.jsx';
 import { EmptyState, ErrorState } from './States.jsx';
 import styles from './EnrollmentsPanel.module.scss';
 
-/** Who is enrolled in the course, newest first (for its editors). */
+/**
+ * Who is enrolled in the course, newest first (for its editors), with how far each has got:
+ * a bar, the lessons completed of those published, and when they were last active.
+ */
 export default function EnrollmentsPanel({ school, course }) {
   const enrollments = useQuery({
     queryKey: keys.enrollments(school.slug, course.slug),
@@ -41,16 +45,39 @@ export default function EnrollmentsPanel({ school, course }) {
 
   return (
     <ul className={styles.list}>
-      {enrollments.data.map((person) => (
-        <li key={person.userId} className={styles.item}>
-          <Monogram name={person.name} seed={person.userId} size={40} letters={1} round />
-          <div className={styles.who}>
-            <p className={styles.name}>{person.name}</p>
-            <p className={styles.email}>{person.email}</p>
-          </div>
-          <p className={styles.date}>Enrolled {formatDate(person.enrolledAt)}</p>
-        </li>
-      ))}
+      {enrollments.data.map((person) => {
+        const progress = person.progress;
+        const done = progress && progress.totalLessons > 0 && progress.completedLessons >= progress.totalLessons;
+        return (
+          <li key={person.userId} className={styles.item}>
+            <Monogram name={person.name} seed={person.userId} size={40} letters={1} round />
+            <div className={styles.who}>
+              <p className={styles.name}>{person.name}</p>
+              <p className={styles.email}>{person.email}</p>
+            </div>
+            {progress && (
+              <div className={styles.progress}>
+                <p className={`${styles.progressText} tabular`}>
+                  <span>
+                    {progress.completedLessons}/{progress.totalLessons} lessons
+                  </span>
+                  <span className={styles.percent}>{progress.percent}%</span>
+                </p>
+                <ProgressBar
+                  value={progress.percent}
+                  tone={done ? 'success' : 'accent'}
+                  label={`${person.name}'s progress`}
+                  valueText={`${progress.percent}%: ${progress.completedLessons} of ${progress.totalLessons} lessons completed`}
+                />
+              </div>
+            )}
+            <div className={styles.dates}>
+              <p className={styles.active}>{progress ? lastActive(progress.lastActivityAt) : ''}</p>
+              <p className={styles.date}>Enrolled {formatDate(person.enrolledAt)}</p>
+            </div>
+          </li>
+        );
+      })}
     </ul>
   );
 }

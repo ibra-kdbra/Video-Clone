@@ -1,0 +1,111 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 9rem) minmax(0, 1fr);
+  gap: 1rem;
+
+  @include down(sm) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.points {
+  min-width: 0;
+}
+
+.due {
+  min-width: 0;
+
+  // The date-and-time control is wider than most fields; it scrolls rather than overflow.
+  input {
+    min-width: 0;
+  }
+}
+
+.clear {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-right: 0.35rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+
+  @include hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+}
+
+.kinds {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  border: 0;
+}
+
+.legend {
+  margin-bottom: 0.35rem;
+  padding: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+
+  input {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    margin-top: 0.1rem;
+    accent-color: var(--accent-solid);
+    cursor: pointer;
+  }
+}
+
+.optionText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.optionLabel {
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.hint {
+  color: var(--text-3);
+  font-size: var(--text-sm);
+}
+
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  color: var(--danger);
+  font-size: var(--text-sm);
+  font-weight: 500;
+
+  svg {
+    flex: none;
+    margin-top: 0.1rem;
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}

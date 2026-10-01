@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, closestCenter, pointerWithin, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useQueryClient } from '@tanstack/react-query';
 import { moduleInput } from '@grand/contracts';
 
-import { addModule, createLesson, deleteModule, keys, renameModule, saveOutline } from '../lib/courses.js';
+import { LESSON_KINDS, addModule, createLesson, deleteModule, keys, kindOf, renameModule, saveOutline } from '../lib/courses.js';
 import { errorMessage } from '../lib/forms.js';
 import {
   canMoveLesson,
@@ -35,8 +35,8 @@ const lessonKey = (id) => `l:${id}`;
 const idOf = (key) => String(key).slice(2);
 const isModuleKey = (key) => String(key).startsWith('m:');
 
-/** A one-field form in place (add or rename a module, add a lesson): Enter saves, Escape cancels. */
-function InlineForm({ label, initial = '', submitLabel, onSubmit, onCancel, keepOpen = false }) {
+/** A one-field form in place (add or rename a module): Enter saves, Escape cancels. */
+function InlineForm({ label, initial = '', submitLabel, onSubmit, onCancel }) {
   const form = useForm(moduleInput, { title: initial }, ['title']);
   const [busy, setBusy] = useState(false);
 
@@ -48,10 +48,6 @@ function InlineForm({ label, initial = '', submitLabel, onSubmit, onCancel, keep
     setBusy(true);
     try {
       await onSubmit(input.title);
-      if (keepOpen) {
-        form.update({ title: '' });
-        form.refs.title.current?.focus();
-      }
     } catch (error) {
       form.fail(error);
     } finally {
@@ -80,8 +76,86 @@ function InlineForm({ label, initial = '', submitLabel, onSubmit, onCancel, keep
           {submitLabel}
         </Button>
         <Button size="sm" variant="ghost" onClick={onCancel}>
-          {keepOpen ? 'Done' : 'Cancel'}
+          Cancel
         </Button>
+      </div>
+    </form>
+  );
+}
+
+const KIND_CHOICES = [
+  { kind: 'lesson', hint: 'A video and notes' },
+  { kind: 'quiz', hint: 'Questions, marked at once' },
+  { kind: 'assignment', hint: 'Work to hand in and grade' },
+];
+
+/**
+ * Adding lessons to a module: first what kind (a lesson, a quiz or an assignment), then its title.
+ * It stays open for the next one; Escape (anywhere in it) closes it.
+ */
+function NewLessonForm({ module, onSubmit, onCancel }) {
+  const form = useForm(moduleInput, { title: '' }, ['title']);
+  const [kind, setKind] = useState('lesson');
+  const [busy, setBusy] = useState(false);
+  const name = useId();
+  const label = LESSON_KINDS[kind].label;
+
+  const submit = async (event) => {
+    event.preventDefault();
+    if (busy) return;
+    const input = form.validate();
+    if (!input) return;
+    setBusy(true);
+    try {
+      await onSubmit(input.title, kind);
+      form.update({ title: '' });
+      form.refs.title.current?.focus();
+    } catch (error) {
+      form.fail(error);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form
+      className={styles.newLesson}
+      onSubmit={submit}
+      noValidate
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape') return;
+        event.preventDefault();
+        onCancel();
+      }}
+    >
+      <fieldset className={styles.kinds}>
+        <legend className={styles.kindsLegend}>Add a</legend>
+        {KIND_CHOICES.map((choice) => (
+          <label key={choice.kind} className={styles.kindChoice} data-checked={kind === choice.kind || undefined} title={choice.hint}>
+            <input type="radio" name={name} value={choice.kind} checked={kind === choice.kind} onChange={() => setKind(choice.kind)} />
+            <Icon name={LESSON_KINDS[choice.kind].icon} size={16} />
+            <span>{LESSON_KINDS[choice.kind].label}</span>
+          </label>
+        ))}
+      </fieldset>
+      <div className={styles.inline}>
+        <TextField
+          {...form.bind('title')}
+          label={`New ${label.toLowerCase()} in ${module.title}`}
+          maxLength={120}
+          autoComplete="off"
+          autoFocus
+          error={form.errors.title ?? form.errors['']}
+          className={styles.inlineField}
+        />
+        <div className={styles.inlineActions}>
+          <Button type="submit" size="sm" variant="primary" busy={busy}>
+            Add {label.toLowerCase()}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={onCancel}>
+            Done
+          </Button>
+        </div>
       </div>
     </form>
   );
@@ -99,10 +173,11 @@ function RowButton({ icon, label, onClick, disabled, focusKey }) {
 function LessonRow({ lesson, number, modules, upload, onOpen, onMove }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: lessonKey(lesson.id),
-    data: { type: 'lesson', moduleId: lesson.moduleId, title: lesson.title },
+    data: { type: 'lesson', moduleId: lesson.moduleId, title: lesson.title, icon: kindOf(lesson).icon },
   });
   const running = upload && upload.phase !== 'failed';
   const share = running && upload.size ? upload.loaded / upload.size : 0;
+  const kind = kindOf(lesson);
 
   return (
     <li ref={setNodeRef} className={styles.lesson} data-dragging={isDragging || undefined} style={{ transform: CSS.Translate.toString(transform), transition }}>
@@ -114,14 +189,23 @@ function LessonRow({ lesson, number, modules, upload, onOpen, onMove }) {
       </span>
       <div className={styles.lessonMain}>
         <button type="button" className={styles.lessonTitle} onClick={() => onOpen(lesson.id)}>
-          <span className="visually-hidden">Lesson {number}: </span>
+          <Icon name={kind.icon} size={16} className={styles.kindIcon} />
+          <span className="visually-hidden">
+            {kind.label} {number}:{' '}
+          </span>
           {lesson.title}
           <span className="visually-hidden"> (edit)</span>
         </button>
         <div className={styles.badges}>
           <Badge tone={lesson.status === 'published' ? 'success' : 'warning'}>{lesson.status === 'published' ? 'Published' : 'Draft'}</Badge>
           {lesson.isPreview && <Badge tone="teal">Free preview</Badge>}
-          <LessonVideoBadge lesson={lesson} upload={upload} />
+          {lesson.kind === 'lesson' ? (
+            <LessonVideoBadge lesson={lesson} upload={upload} />
+          ) : (
+            <Badge tone="accent" icon={kind.icon}>
+              {kind.label}
+            </Badge>
+          )}
         </div>
         {running && <span className={styles.uploadBar} style={{ '--share': share }} aria-hidden="true" />}
       </div>
@@ -170,6 +254,13 @@ function ModuleCard({
   });
   const renaming = editing === `rename:${module.id}`;
   const adding = editing === `add:${module.id}`;
+  // Closing the new-lesson form (Done, or Escape) puts focus back on "Add lesson".
+  const addButton = useRef(null);
+  const wasAdding = useRef(false);
+  useEffect(() => {
+    if (wasAdding.current && !adding) addButton.current?.focus();
+    wasAdding.current = adding;
+  }, [adding]);
 
   return (
     <li ref={setNodeRef} className={styles.module} data-dragging={isDragging || undefined} style={{ transform: CSS.Translate.toString(transform), transition }}>
@@ -235,15 +326,9 @@ function ModuleCard({
 
       <div className={styles.moduleFoot}>
         {adding ? (
-          <InlineForm
-            label={`New lesson in ${module.title}`}
-            submitLabel="Add lesson"
-            keepOpen
-            onSubmit={(title) => onAddLesson(module, title)}
-            onCancel={() => setEditing(null)}
-          />
+          <NewLessonForm module={module} onSubmit={(title, kind) => onAddLesson(module, title, kind)} onCancel={() => setEditing(null)} />
         ) : (
-          <button type="button" className={styles.add} onClick={() => setEditing(`add:${module.id}`)}>
+          <button ref={addButton} type="button" className={styles.add} onClick={() => setEditing(`add:${module.id}`)}>
             <Icon name="plus" size={18} />
             Add lesson
           </button>
@@ -357,15 +442,15 @@ export default function OutlineEditor({ course, schoolSlug, onOpenLesson }) {
     toast(`Module "${title}" added`);
   };
 
-  const addLesson = async (module, title) => {
-    const lesson = await createLesson(schoolSlug, course.slug, { moduleId: module.id, title });
+  const addLesson = async (module, title, kind = 'lesson') => {
+    const lesson = await createLesson(schoolSlug, course.slug, { moduleId: module.id, title, kind });
     queryClient.setQueryData(
       key,
       (current) =>
         current && { ...current, modules: current.modules.map((item) => (item.id === module.id ? { ...item, lessons: [...item.lessons, lesson] } : item)) },
     );
     queryClient.invalidateQueries({ queryKey: keys.courses(schoolSlug) });
-    setAnnouncement(`Lesson "${title}" added to ${module.title}. Type the next title, or press Escape.`);
+    setAnnouncement(`${LESSON_KINDS[kind].label} "${title}" added to ${module.title}. Type the next title, or press Escape.`);
   };
 
   const [deleting, setDeleting] = useState(false);
@@ -521,7 +606,7 @@ export default function OutlineEditor({ course, schoolSlug, onOpenLesson }) {
         <DragOverlay dropAnimation={null}>
           {active && (
             <div className={styles.overlay}>
-              <Icon name={active.type === 'module' ? 'layers' : 'film'} size={18} />
+              <Icon name={active.type === 'module' ? 'layers' : (active.icon ?? 'film')} size={18} />
               <span>{active.title}</span>
             </div>
           )}

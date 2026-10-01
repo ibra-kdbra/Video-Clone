@@ -1,10 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { lessonPath } from '../lib/courses.js';
+import { kindOf, lessonPath, lessonsOf } from '../lib/courses.js';
 import { formatDuration, formatRuntime, joinMeta, plural } from '../lib/format.js';
 import { lessonNumbers } from '../lib/outline.js';
-import { isWatched, useProgress, watchedShare } from '../lib/progress.js';
 import Badge from './Badge.jsx';
 import Icon from './Icon.jsx';
 import styles from './CourseOutline.module.scss';
@@ -15,7 +14,7 @@ function EditorBadges({ lesson }) {
   return (
     <>
       {lesson.status === 'draft' && <Badge tone="warning">Draft</Badge>}
-      {!video && <Badge>No video</Badge>}
+      {!video && lesson.kind === 'lesson' && <Badge>No video</Badge>}
       {video?.provider === 'upload' && (video.status === 'uploading' || video.status === 'processing') && (
         <Badge tone="info" icon="refresh">
           {video.status === 'uploading' ? 'Uploading' : `Processing ${video.progress}%`}
@@ -31,16 +30,35 @@ function EditorBadges({ lesson }) {
 }
 
 /**
- * A course's modules and lessons, each lesson a link to its page with its number, length and
- * state: a lock while it can't be watched yet (not enrolled), "Free preview", a check once
- * watched, and how far into it this person got. Editors also see drafts and videos still being
- * processed. `currentId` marks the lesson being watched (the sidebar of the lesson page, `compact`),
+ * Lessons completed while the outline is on screen: their check pops in (once), so finishing one
+ * is noticed. Lessons already done when it first showed don't.
+ */
+function useNewlyCompleted(course) {
+  const [fresh, setFresh] = useState(() => new Set());
+  const known = useRef(null);
+  useEffect(() => {
+    const now = new Map(lessonsOf(course).map((lesson) => [lesson.id, Boolean(lesson.progress?.completed)]));
+    const before = known.current;
+    known.current = now;
+    if (!before) return;
+    const done = [...now].filter(([id, completed]) => completed && before.get(id) === false).map(([id]) => id);
+    if (done.length) setFresh((current) => new Set([...current, ...done]));
+  }, [course]);
+  return fresh;
+}
+
+/**
+ * A course's modules and lessons, each lesson a link to its page with its number, length (or its
+ * kind, for quizzes and assignments) and state: a lock while it can't be opened yet (not
+ * enrolled), "Free preview", a check once completed, and how far into its video this person got
+ * (all from the server, for enrolled students). Editors also see drafts and videos still being
+ * processed. `currentId` marks the lesson open now (the sidebar of the lesson page, `compact`),
  * which is scrolled into view within the list.
  */
 export default function CourseOutline({ course, schoolSlug, currentId, compact = false, headingLevel = 3 }) {
-  const progress = useProgress();
   const numbers = lessonNumbers(course.modules);
   const list = useRef(null);
+  const fresh = useNewlyCompleted(course);
   const ModuleTitle = `h${headingLevel}`;
 
   useEffect(() => {
@@ -71,10 +89,10 @@ export default function CourseOutline({ course, schoolSlug, currentId, compact =
               <ol className={styles.lessons}>
                 {module.lessons.map((lesson) => {
                   const current = lesson.id === currentId;
-                  const entry = progress.lessons[lesson.id];
-                  const watched = isWatched(entry);
-                  const share = watchedShare(entry);
-                  const duration = formatDuration(lesson.durationSeconds);
+                  const watched = Boolean(lesson.progress?.completed);
+                  const share = (lesson.progress?.percent ?? 0) / 100;
+                  const kind = lesson.kind !== 'lesson' && kindOf(lesson);
+                  const duration = kind ? '' : formatDuration(lesson.durationSeconds);
                   return (
                     <li key={lesson.id}>
                       <Link
@@ -83,7 +101,11 @@ export default function CourseOutline({ course, schoolSlug, currentId, compact =
                         aria-current={current ? 'page' : undefined}
                         data-locked={lesson.locked || undefined}
                       >
-                        <span className={styles.marker} data-state={current ? 'current' : watched ? 'watched' : lesson.locked ? 'locked' : undefined}>
+                        <span
+                          className={styles.marker}
+                          data-state={current ? 'current' : watched ? 'watched' : lesson.locked ? 'locked' : undefined}
+                          data-fresh={(watched && fresh.has(lesson.id)) || undefined}
+                        >
                           {current ? (
                             <Icon name="play" size={14} />
                           ) : watched ? (
@@ -98,8 +120,9 @@ export default function CourseOutline({ course, schoolSlug, currentId, compact =
                           <span className={styles.lessonTitle}>
                             <span className="visually-hidden">Lesson {numbers.get(lesson.id)}: </span>
                             {lesson.title}
-                            {lesson.locked && <span className="visually-hidden"> (locked: enroll to watch)</span>}
-                            {watched && <span className="visually-hidden"> (watched)</span>}
+                            {lesson.locked && <span className="visually-hidden"> (locked: enroll to open it)</span>}
+                            {watched && <span className="visually-hidden"> (completed)</span>}
+                            {share > 0 && !watched && <span className="visually-hidden"> ({Math.round(share * 100)}% watched)</span>}
                           </span>
                           {!compact && lesson.summary && <span className={styles.summary}>{lesson.summary}</span>}
                           {(lesson.isPreview || course.canEdit) && (
@@ -109,6 +132,12 @@ export default function CourseOutline({ course, schoolSlug, currentId, compact =
                             </span>
                           )}
                         </span>
+                        {kind && (
+                          <span className={styles.kind}>
+                            <Icon name={kind.icon} size={16} />
+                            <span className={compact ? 'visually-hidden' : undefined}>{kind.label}</span>
+                          </span>
+                        )}
                         {duration && (
                           <span className={`${styles.duration} tabular`}>
                             <span className="visually-hidden">Length </span>

@@ -143,7 +143,7 @@ export default function LessonStage({
   lesson,
   course,
   onRefresh,
-  onProgress,
+  watch,
   onEnded,
   onEnroll,
   enrolling,
@@ -216,7 +216,7 @@ export default function LessonStage({
           startAt={startAt}
           autoPlay={autoPlay}
           onRefresh={onRefresh}
-          onProgress={onProgress}
+          watch={watch}
           onEnded={onEnded}
           next={next}
         />

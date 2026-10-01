@@ -144,7 +144,32 @@ function Devices() {
   );
 }
 
-/** The account: who you are, your schools, and the devices you're signed in on. */
+/** Where notifications go: the bell and email, chosen per kind on their own page. */
+function NotificationsLink() {
+  return (
+    <section aria-labelledby="notifications-title" className={styles.section}>
+      <div className={styles.sectionHead}>
+        <h2 id="notifications-title" className={styles.sectionTitle}>
+          Notifications
+        </h2>
+      </div>
+      <div className={styles.list}>
+        <Link to="/account/notifications" className={`${styles.row} ${styles.linkRow}`}>
+          <span className={styles.deviceIcon}>
+            <Icon name="bell" size={22} />
+          </span>
+          <span className={styles.rowText}>
+            <span className={styles.rowTitle}>Notification settings</span>
+            <span className={styles.rowMeta}>Choose what you hear about, in the app and by email.</span>
+          </span>
+          <Icon name="chevronRight" size={18} className={styles.chevron} />
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+/** The account: who you are, your schools, where notifications go, and the devices you're signed in on. */
 export default function Account() {
   const { user, signOut } = useSession();
   useDocumentTitle('Account');
@@ -172,6 +197,7 @@ export default function Account() {
       </header>
 
       <Schools />
+      <NotificationsLink />
       <Devices />
     </div>
   );

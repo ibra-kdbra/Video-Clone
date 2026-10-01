@@ -52,15 +52,71 @@ export const keys = {
   playback: (slug, courseSlug, lessonId) => ['playback', slug, courseSlug, lessonId],
   enrollments: (slug, courseSlug) => ['enrollments', slug, courseSlug],
   storage: (slug) => ['storage', slug],
+  quiz: (slug, courseSlug, lessonId) => ['quiz', slug, courseSlug, lessonId],
+  quizDraft: (slug, courseSlug, lessonId) => ['quizDraft', slug, courseSlug, lessonId],
+  quizAttempt: (slug, courseSlug, lessonId, attemptId) => ['quizAttempt', slug, courseSlug, lessonId, attemptId],
+  assignment: (slug, courseSlug, lessonId) => ['assignment', slug, courseSlug, lessonId],
+  submissions: (slug, courseSlug, lessonId) => ['submissions', slug, courseSlug, lessonId],
+  submission: (slug, courseSlug, lessonId, submissionId) => ['submission', slug, courseSlug, lessonId, submissionId],
+  insights: (slug, courseSlug) => ['insights', slug, courseSlug],
+  lessonInsights: (slug, courseSlug, lessonId) => ['lessonInsights', slug, courseSlug, lessonId],
 };
 
 /** Addresses in the app. */
 export const coursePath = (slug, courseSlug) => `/s/${slug}/c/${courseSlug}`;
 export const lessonPath = (slug, courseSlug, lessonId) => `${coursePath(slug, courseSlug)}/l/${lessonId}`;
 export const editorPath = (slug, courseSlug, lessonId) => `${coursePath(slug, courseSlug)}/edit${lessonId ? `?lesson=${lessonId}` : ''}`;
+export const submissionsPath = (slug, courseSlug, lessonId) => `${lessonPath(slug, courseSlug, lessonId)}/submissions`;
+export const submissionPath = (slug, courseSlug, lessonId, submissionId) => `${submissionsPath(slug, courseSlug, lessonId)}/${submissionId}`;
+
+/** A lesson's kind: a lesson (video and notes), a quiz or an assignment, with its icon. */
+export const LESSON_KINDS = {
+  lesson: { label: 'Lesson', icon: 'film' },
+  quiz: { label: 'Quiz', icon: 'quiz' },
+  assignment: { label: 'Assignment', icon: 'assignment' },
+};
+export const kindOf = (lesson) => LESSON_KINDS[lesson?.kind] ?? LESSON_KINDS.lesson;
 
 /** Every lesson of a course, in outline order. */
 export const lessonsOf = (course) => course?.modules?.flatMap((module) => module.lessons) ?? [];
+
+/**
+ * Where "Continue" leads: the lesson worked on most recently, or, once that one is done, the next
+ * lesson not done yet after it. Null before any progress (then it's "Start").
+ */
+export function continueLesson(course) {
+  const lessons = lessonsOf(course).filter((lesson) => !lesson.locked);
+  const lastId = course?.progress?.lastLessonId;
+  const index = lastId ? lessons.findIndex((lesson) => lesson.id === lastId) : -1;
+  if (index === -1) return null;
+  const last = lessons[index];
+  if (!last.progress?.completed) return last;
+  return lessons.slice(index + 1).find((lesson) => !lesson.progress?.completed) ?? last;
+}
+
+/**
+ * A cached course with one lesson's new progress (a LessonProgress from the API) folded in: the
+ * outline's check and bar, and the course's own count, percent and "Continue" target.
+ */
+export function withLessonProgress(course, lessonId, progress, now = new Date().toISOString()) {
+  if (!course) return course;
+  const before = lessonsOf(course).find((lesson) => lesson.id === lessonId);
+  if (!before) return course;
+  const newlyDone = progress.completed && !before.progress?.completed;
+  const patched = patchLesson(course, lessonId, { progress: { completed: progress.completed, percent: progress.percent } });
+  if (!course.progress) return patched;
+  const completedLessons = Math.min(course.progress.totalLessons, course.progress.completedLessons + (newlyDone ? 1 : 0));
+  return {
+    ...patched,
+    progress: {
+      ...course.progress,
+      completedLessons,
+      percent: course.progress.totalLessons ? Math.round((completedLessons / course.progress.totalLessons) * 100) : 0,
+      lastLessonId: lessonId,
+      lastActivityAt: now,
+    },
+  };
+}
 
 /** Where "Start" leads: the first lesson this person may watch. */
 export const firstOpenLesson = (course) => lessonsOf(course).find((item) => !item.locked) ?? null;
