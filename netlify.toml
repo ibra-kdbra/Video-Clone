@@ -1,8 +1,14 @@
+# Grand LMS on Netlify: the web app (apps/web) and its video proxy function. The NestJS API runs on
+# its own server (see docs/deploy.md); the build proxies /api/v1/* to it when API_ORIGIN is set.
 [build]
-  command = "npm run build"
-  publish = "dist"
+  command = "npm run build -w @grand/web"
+  publish = "apps/web/dist"
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+[build.environment]
+  NODE_VERSION = "22"
+
+# The video proxy (apps/web/netlify/functions/api.mjs) serves /api/* except /api/v1/*, which is the
+# Grand LMS API. The security headers and redirects are written into dist/ by the build
+# (apps/web/scripts/netlify-files.mjs), so the Content-Security-Policy can name the API's server.
+[functions]
+  directory = "apps/web/netlify/functions"

@@ -1,0 +1,111 @@
+# Production on one small server (Oracle Cloud Always Free, see docs/deploy.md): the API, the
+# worker, Postgres, Redis and Caddy (HTTPS). Only Caddy is reachable from outside.
+#
+#   cp infra/.env.prod.example infra/.env.prod   # fill it in
+#   docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --build
+#
+# The values in .env.prod fill in the ${...} below; nothing reads the file directly.
+name: grand-lms
+
+x-env: &env
+  NODE_ENV: production
+  DATABASE_URL: postgres://grand_app:${APP_DB_PASSWORD}@postgres:5432/grand
+  REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+
+# Each container gets only the settings it needs (the database owner's password stays with Postgres
+# and the migration job), runs on a read-only filesystem, and can't gain privileges.
+x-app: &app
+  restart: unless-stopped
+  depends_on:
+    postgres: { condition: service_healthy }
+    redis: { condition: service_healthy }
+    migrate: { condition: service_completed_successfully }
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443", "443:443/udp"]
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?Set API_DOMAIN, such as grand-lms.duckdns.org}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [api]
+
+  api:
+    <<: *app
+    build: { context: .., dockerfile: Dockerfile, target: api }
+    environment:
+      <<: *env
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      WEB_ORIGINS: ${WEB_ORIGINS:?Set WEB_ORIGINS}
+      PUBLIC_WEB_URL: ${PUBLIC_WEB_URL:?Set PUBLIC_WEB_URL}
+      HOST: 0.0.0.0
+      PORT: "3000"
+      # Caddy is the one proxy in front of the API. Requests that came through Netlify carry the
+      # visitor's address in this header; without it, everyone would share Netlify's addresses.
+      TRUST_PROXY: "1"
+      CLIENT_IP_HEADER: x-nf-client-connection-ip
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/health/ready').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  worker:
+    <<: *app
+    build: { context: .., dockerfile: Dockerfile, target: worker }
+    environment:
+      <<: *env
+      SMTP_URL: ${SMTP_URL:?Set SMTP_URL}
+      MAIL_FROM: ${MAIL_FROM:?Set MAIL_FROM}
+
+  # Applies pending migrations as the database owner, then exits. Every `up` runs it first.
+  migrate:
+    build: { context: .., dockerfile: Dockerfile, target: api }
+    command: ["node", "dist/database/migrate.js"]
+    environment:
+      DATABASE_MIGRATION_URL: postgres://grand:${POSTGRES_PASSWORD}@postgres:5432/grand
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: grand
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: grand
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?Set APP_DB_PASSWORD}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U grand -d grand"]
+      interval: 5s
+      retries: 20
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?Set REDIS_PASSWORD}", "--maxmemory", "256mb", "--maxmemory-policy", "noeviction"]
+    volumes: [redis:/data]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping"]
+      interval: 5s
+      retries: 20
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+volumes:
+  postgres:
+  redis:
+  caddy_data:
+  caddy_config:

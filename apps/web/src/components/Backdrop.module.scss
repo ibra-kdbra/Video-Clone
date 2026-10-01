@@ -1,0 +1,81 @@
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.wall {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  grid-template-columns: repeat(8, clamp(150px, 16vw, 240px));
+  gap: clamp(10px, 1.2vw, 18px);
+  opacity: var(--backdrop-strength, 0.62);
+  transform: translate(-50%, -50%) rotate(-9deg) scale(1.12);
+  animation: drift 70s linear infinite alternate;
+  will-change: transform;
+}
+
+// A lesson thumbnail: a gradient with a title line and a shorter subtitle line at the bottom.
+.tile {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md);
+  background:
+    radial-gradient(90% 80% at 15% 0%, var(--tone-sheen), transparent 60%),
+    linear-gradient(135deg, var(--tone-a), var(--tone-b));
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    left: 10%;
+    height: 7%;
+    border-radius: var(--radius-pill);
+    background: var(--tone-edge);
+  }
+
+  &::before {
+    bottom: 22%;
+    width: 46%;
+  }
+
+  &::after {
+    bottom: 11%;
+    width: 28%;
+  }
+}
+
+// A soft light behind the card: the accent, or a school's own colors.
+.glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(1100px, 160vw);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(closest-side, var(--accent-soft), transparent);
+
+  &[data-tinted='true'] {
+    background: radial-gradient(closest-side, var(--tone-a), transparent);
+    opacity: 0.35;
+  }
+}
+
+// Fades the wall into the page: darkest (or, in the light theme, palest) at the edges.
+.vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 75% 65% at 50% 45%, rgb(var(--scrim) / 0.45), rgb(var(--scrim) / 0.88) 70%, rgb(var(--scrim)) 100%),
+    linear-gradient(180deg, rgb(var(--scrim) / 0.7), transparent 25%, transparent 70%, rgb(var(--scrim)) 100%);
+}
+
+@keyframes drift {
+  to {
+    transform: translate(calc(-50% - 140px), calc(-50% - 50px)) rotate(-9deg) scale(1.12);
+  }
+}

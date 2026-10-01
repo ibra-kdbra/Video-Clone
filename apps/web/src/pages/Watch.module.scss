@@ -1,0 +1,156 @@
+.layout {
+  display: grid;
+  gap: 2rem;
+  padding-top: 1rem;
+
+  @include up(lg) {
+    grid-template-columns: minmax(0, 1fr) clamp(320px, 28vw, 420px);
+    align-items: start;
+  }
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.playerSkeleton {
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+}
+
+.title {
+  margin-top: 0.25rem;
+  font-size: var(--text-2xl);
+  letter-spacing: -0.025em;
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.channel {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.channelText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.channelName {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  @at-root a#{&} {
+    @include hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+}
+
+.subscribers {
+  color: var(--text-3);
+  font-size: var(--text-xs);
+}
+
+.subscribe {
+  flex: none;
+  margin-left: 0.5rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: var(--radius-pill);
+  background: var(--text);
+  color: var(--bg);
+  font-size: var(--text-sm);
+  font-weight: 700;
+
+  @include hover {
+    opacity: 0.88;
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+
+  // Phones: one row that scrolls sideways, instead of wrapping onto two lines.
+  @include down(sm) {
+    flex-wrap: nowrap;
+    width: calc(100% + 2 * var(--gutter));
+    margin: 0 calc(-1 * var(--gutter));
+    padding: 0 var(--gutter);
+    overflow-x: auto;
+    @include hide-scrollbar;
+
+    > * {
+      flex: none;
+    }
+  }
+}
+
+.stat,
+.action {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.45rem;
+  height: 40px;
+  padding: 0 1rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.action {
+  transition: background var(--fast) var(--ease);
+
+  @include hover {
+    background: var(--surface-3);
+  }
+}
+
+
+.aside {
+  min-width: 0;
+
+  @include up(lg) {
+    position: sticky;
+    top: calc(var(--topbar-h) + 1rem);
+    max-height: calc(100dvh - var(--topbar-h) - 2rem);
+    overflow-y: auto;
+    padding-right: 0.25rem;
+    scrollbar-width: thin;
+  }
+}
+
+.asideTitle {
+  margin-bottom: 1rem;
+  font-size: var(--text-lg);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.muted {
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}

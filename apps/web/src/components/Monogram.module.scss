@@ -1,0 +1,24 @@
+.monogram {
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--size);
+  height: var(--size);
+  overflow: hidden;
+  border-radius: calc(var(--size) * 0.24);
+  background:
+    radial-gradient(120% 90% at 20% 0%, var(--tone-sheen), transparent 55%),
+    linear-gradient(135deg, var(--tone-a), var(--tone-b));
+  box-shadow: inset 0 0 0 1px var(--tone-edge);
+  color: var(--on-tone);
+  font-size: calc(var(--size) * 0.38);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  user-select: none;
+}
+
+.round {
+  border-radius: 50%;
+}

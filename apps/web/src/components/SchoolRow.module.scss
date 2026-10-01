@@ -1,0 +1,181 @@
+.row {
+  position: relative;
+  z-index: 1;
+  margin-bottom: clamp(1.75rem, 3vw, 2.75rem);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.title {
+  font-size: var(--text-xl);
+  letter-spacing: -0.025em;
+}
+
+.more {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  transition:
+    color var(--fast) var(--ease),
+    gap var(--fast) var(--ease);
+
+  @include hover {
+    gap: 0.35rem;
+    color: var(--accent-text);
+  }
+}
+
+// Phones: a row that swipes, the next tile peeking in. Wider: a grid.
+.track {
+  display: grid;
+  grid-auto-columns: min(78%, 300px);
+  grid-auto-flow: column;
+  gap: 0.9rem;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 0.25rem var(--gutter) 0.5rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: var(--gutter);
+  scroll-snap-type: x mandatory;
+  list-style: none;
+  @include hide-scrollbar;
+
+  @include up(md) {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    grid-auto-flow: row;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+}
+
+.item {
+  min-width: 0;
+  scroll-snap-align: start;
+  animation: rise 420ms var(--ease) backwards;
+  animation-delay: calc(var(--i, 0) * 50ms);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+// A school's tile: its gradient with a soft light, its emblem, name and your role, over a shade.
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.25rem;
+  height: 100%;
+  min-height: 156px;
+  padding: 1.1rem;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(120% 100% at 100% 0%, var(--tone-sheen), transparent 55%),
+    linear-gradient(135deg, var(--tone-a), var(--tone-b));
+  box-shadow: inset 0 0 0 1px var(--tone-edge);
+  color: var(--on-tone);
+  isolation: isolate;
+  transition:
+    transform var(--medium) var(--ease),
+    box-shadow var(--medium) var(--ease);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 40% 0 0;
+    z-index: -1;
+    background: linear-gradient(0deg, var(--tone-shade), transparent);
+  }
+
+  @include hover {
+    transform: translateY(-4px);
+    box-shadow:
+      inset 0 0 0 1px var(--tone-edge),
+      var(--shadow-lg);
+  }
+}
+
+.mark {
+  box-shadow:
+    inset 0 0 0 1px var(--tone-edge),
+    0 8px 24px -8px var(--tone-shade);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.name {
+  max-width: 100%;
+  font-size: var(--text-lg);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  @include line-clamp(2);
+}
+
+.create {
+  border: 1.5px dashed var(--line-strong);
+  background: var(--surface);
+  box-shadow: none;
+  color: var(--text);
+
+  &::after {
+    display: none;
+  }
+
+  @include hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+.plus {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.hint {
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}
+
+.placeholder {
+  min-height: 156px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(90deg, var(--surface-2) 0%, var(--surface-3) 50%, var(--surface-2) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}

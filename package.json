@@ -1,24 +1,32 @@
 {
-  "name": "video-clone",
-  "version": "2.0.0",
+  "name": "grand-lms",
+  "version": "0.1.0",
   "private": true,
+  "description": "Grand LMS: a multi-school learning platform built around video, with a NestJS backend and real-time features.",
   "type": "module",
-  "dependencies": {
-    "@tanstack/react-query": "^5.59.0",
-    "axios": "^1.7.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-player": "^2.16.0",
-    "react-router-dom": "^7.0.0"
-  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "dev:web": "npm run dev -w @grand/web",
+    "dev:api": "npm run dev -w @grand/api",
+    "dev:worker": "npm run dev -w @grand/worker",
+    "db:migrate": "npm run db:migrate -w @grand/api",
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml down"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.0",
-    "sass": "^1.97.3",
-    "vite": "^5.4.0"
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "globals": "^16.5.0",
+    "typescript-eslint": "^8.71.0"
   }
 }

@@ -1,0 +1,123 @@
+import { z } from 'zod';
+
+const bool = z.enum(['true', 'false', '1', '0']).transform((value) => value === 'true' || value === '1');
+
+const origins = z
+  .string()
+  .transform((value) => value.split(',').map((origin) => origin.trim()).filter(Boolean))
+  .pipe(z.array(z.url({ protocol: /^https?$/ }).transform((url) => new URL(url).origin)).min(1));
+
+/**
+ * Fastify's `trustProxy`: "false", "true", a number of proxy hops, or a comma-separated list of
+ * addresses and CIDR ranges. It decides which client address rate limits and audit entries use.
+ */
+const trustProxy = z.string().transform((value): boolean | number | string[] => {
+  if (value === 'true' || value === 'false') return value === 'true';
+  if (/^\d+$/.test(value)) return Number(value);
+  return value.split(',').map((part) => part.trim()).filter(Boolean);
+});
+
+export const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  HOST: z.string().default('0.0.0.0'),
+  PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+
+  /** The API's own role (grand_app): row-level security applies to it. */
+  DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+  DATABASE_POOL_SIZE: z.coerce.number().int().min(1).max(100).default(10),
+  REDIS_URL: z.url({ protocol: /^rediss?$/ }),
+
+  /** Signs access tokens (HS256). At least 32 random bytes: `openssl rand -base64 48`. */
+  JWT_SECRET: z.string().min(43, 'JWT_SECRET must be at least 32 random bytes (43+ characters of base64)'),
+  ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(900),
+  REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
+  SESSION_MAX_DAYS: z.coerce.number().int().min(1).max(365).default(90),
+
+  /** The web app's origins. Browsers from anywhere else can't use the sign-in cookie or WebSockets. */
+  WEB_ORIGINS: origins.default(['http://localhost:5173']),
+  /** Where links in emails point, such as https://grand-lms.netlify.app */
+  PUBLIC_WEB_URL: z.url({ protocol: /^https?$/ }).default('http://localhost:5173'),
+  /** Mark the sign-in cookie Secure. On by default in production. */
+  COOKIE_SECURE: bool.optional(),
+  TRUST_PROXY: trustProxy.default(false),
+  /**
+   * A header a proxy in front sets to the visitor's address, such as x-nf-client-connection-ip
+   * from Netlify. Used for rate limits and audit entries only, never for access decisions, since a
+   * caller that bypasses the proxy could set it too.
+   */
+  CLIENT_IP_HEADER: z
+    .string()
+    .regex(/^[A-Za-z0-9-]+$/)
+    .transform((value) => value.toLowerCase())
+    .optional(),
+  RATE_LIMITS: bool.default(true),
+  /** Serve the OpenAPI document at /api/v1/openapi.json. */
+  OPENAPI: bool.optional(),
+  /** Schools one person may own, to keep a free deployment within its limits. */
+  MAX_SCHOOLS_PER_OWNER: z.coerce.number().int().min(1).max(1000).default(3),
+});
+
+export type Env = z.infer<typeof envSchema>;
+
+/** The API's settings, checked once at start-up so a bad value stops the process with a clear message. */
+export class AppConfig {
+  readonly env: Env['NODE_ENV'];
+  readonly host: string;
+  readonly port: number;
+  readonly logLevel: Env['LOG_LEVEL'];
+  readonly database: { url: string; poolSize: number };
+  readonly redisUrl: string;
+  readonly auth: {
+    jwtSecret: Uint8Array;
+    accessTokenTtl: number;
+    refreshTokenTtlMs: number;
+    sessionMaxMs: number;
+    cookieSecure: boolean;
+  };
+  readonly webOrigins: string[];
+  readonly publicWebUrl: string;
+  readonly trustProxy: boolean | number | string[];
+  readonly clientIpHeader: string | null;
+  readonly rateLimits: boolean;
+  readonly openApi: boolean;
+  readonly maxSchoolsPerOwner: number;
+
+  constructor(env: Env) {
+    const production = env.NODE_ENV === 'production';
+    this.env = env.NODE_ENV;
+    this.host = env.HOST;
+    this.port = env.PORT;
+    this.logLevel = env.LOG_LEVEL;
+    this.database = { url: env.DATABASE_URL, poolSize: env.DATABASE_POOL_SIZE };
+    this.redisUrl = env.REDIS_URL;
+    this.auth = {
+      jwtSecret: new TextEncoder().encode(env.JWT_SECRET),
+      accessTokenTtl: env.ACCESS_TOKEN_TTL_SECONDS,
+      refreshTokenTtlMs: env.REFRESH_TOKEN_TTL_DAYS * 86_400_000,
+      sessionMaxMs: env.SESSION_MAX_DAYS * 86_400_000,
+      cookieSecure: env.COOKIE_SECURE ?? production,
+    };
+    this.webOrigins = env.WEB_ORIGINS;
+    this.publicWebUrl = env.PUBLIC_WEB_URL.replace(/\/$/, '');
+    this.trustProxy = env.TRUST_PROXY;
+    this.clientIpHeader = env.CLIENT_IP_HEADER ?? null;
+    this.rateLimits = env.RATE_LIMITS;
+    this.openApi = env.OPENAPI ?? !production;
+    this.maxSchoolsPerOwner = env.MAX_SCHOOLS_PER_OWNER;
+  }
+
+  get production() {
+    return this.env === 'production';
+  }
+}
+
+/** Reads the settings from environment variables, listing every problem at once. */
+export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
+  const result = envSchema.safeParse(source);
+  if (!result.success) {
+    const problems = result.error.issues.map((issue) => `  ${issue.path.join('.')}: ${issue.message}`).join('\n');
+    throw new Error(`Invalid configuration:\n${problems}`);
+  }
+  return new AppConfig(result.data);
+}

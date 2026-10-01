@@ -1,0 +1,196 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.label {
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+// The box around the input (and its prefix and trailing button), so they read as one control.
+.control {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  transition:
+    border-color var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease);
+
+  &:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+}
+
+.invalid {
+  border-color: var(--danger);
+
+  &:focus-within {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px var(--danger-soft);
+  }
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 46px;
+  padding: 0 0.9rem;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  // 16px keeps iOS from zooming into the field.
+  font-size: var(--text-md);
+
+  &::placeholder {
+    color: var(--text-3);
+  }
+
+  // The box shows focus (above); the input itself doesn't need a second ring.
+  &:focus-visible {
+    outline: none;
+  }
+
+  .prefix + & {
+    padding-left: 0.1rem;
+  }
+}
+
+.prefix {
+  padding-left: 0.9rem;
+  color: var(--text-3);
+  font-size: var(--text-md);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.reveal {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-right: 0.25rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+
+  @include hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+}
+
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  color: var(--danger);
+  font-size: var(--text-sm);
+  font-weight: 500;
+
+  svg {
+    flex: none;
+    margin-top: 0.1rem;
+  }
+}
+
+.hint {
+  color: var(--text-3);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.selectWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.select {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 2.4rem 0 0.9rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-md);
+  appearance: none;
+  cursor: pointer;
+  transition:
+    border-color var(--fast) var(--ease),
+    background var(--fast) var(--ease);
+
+  @include hover {
+    border-color: var(--text-3);
+  }
+
+  &:focus-visible {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: progress;
+  }
+
+  &[aria-invalid='true'] {
+    border-color: var(--danger);
+  }
+}
+
+.sm .select {
+  min-height: 34px;
+  padding: 0 2rem 0 0.75rem;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.chevron {
+  position: absolute;
+  right: 0.8rem;
+  color: var(--text-2);
+  pointer-events: none;
+
+  .sm & {
+    right: 0.65rem;
+  }
+}
+
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-md);
+  background: var(--danger-soft);
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-weight: 500;
+
+  svg {
+    flex: none;
+    color: var(--danger);
+  }
+
+  // Empty until there's something to say, but still in the page (out of the layout, so the form's
+  // gaps don't count it), so screen readers hear the message appear.
+  &:empty {
+    position: absolute;
+    padding: 0;
+    border: 0;
+  }
+}

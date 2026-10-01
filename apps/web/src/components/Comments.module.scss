@@ -1,0 +1,72 @@
+.section {
+  margin-top: 2rem;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+  font-size: var(--text-lg);
+}
+
+.count {
+  padding: 0.05rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  list-style: none;
+}
+
+.comment {
+  display: flex;
+  gap: 0.85rem;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  color: var(--text-3);
+  font-size: var(--text-xs);
+}
+
+.author {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.text {
+  font-size: var(--text-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.likes {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-3);
+  font-size: var(--text-xs);
+}
+
+.muted {
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}

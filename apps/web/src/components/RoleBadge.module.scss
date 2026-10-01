@@ -1,0 +1,35 @@
+.badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  height: 24px;
+  padding: 0 0.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  color: var(--text-2);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+
+  &[data-role='owner'] {
+    background: var(--accent-soft);
+    color: var(--accent-text);
+  }
+
+  &[data-role='admin'] {
+    background: var(--info-soft);
+    color: var(--info-text);
+  }
+
+  &[data-role='instructor'] {
+    background: var(--teal-soft);
+    color: var(--teal-text);
+  }
+}
+
+// On a school's gradient every role gets the same glassy chip, which reads on any of the tones.
+.badge.glass {
+  background: var(--tone-shade);
+  color: var(--on-tone);
+}

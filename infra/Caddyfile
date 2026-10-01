@@ -1,0 +1,26 @@
+# HTTPS for the API with automatic Let's Encrypt certificates. Caddy passes the client's address
+# on in X-Forwarded-For, and WebSockets through as they are.
+{$API_DOMAIN} {
+	encode zstd gzip
+
+	# Only the API lives here.
+	@api path /api/v1/*
+	handle @api {
+		reverse_proxy api:3000 {
+			health_uri /api/v1/health/live
+			health_interval 30s
+		}
+	}
+	handle {
+		respond "Not found" 404
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+	log {
+		output stdout
+		format json
+	}
+}

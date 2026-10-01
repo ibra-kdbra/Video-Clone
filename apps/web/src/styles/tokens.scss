@@ -1,0 +1,165 @@
+@use "sass:list";
+
+// Design tokens. Dark is the default; light applies when the visitor picks it, or when their
+// system is light and they haven't picked (index.html sets data-theme before the first paint).
+// Text colors are checked for WCAG AA contrast on --bg and --surface in both themes.
+
+@mixin dark {
+  color-scheme: dark;
+
+  --bg: #09090b;
+  --bg-blur: rgb(9 9 11 / 0.78);
+  --surface: #131317;
+  --surface-2: #1b1b20;
+  --surface-3: #26262d;
+  --line: rgb(255 255 255 / 0.08);
+  --line-strong: rgb(255 255 255 / 0.16);
+
+  --text: #fafafa;
+  --text-2: #a1a1aa;
+  --text-3: #8d8d96;
+
+  --accent: #8b5cf6;
+  --accent-solid: #7c3aed; // Button fill: white text on it is 5.7:1.
+  --accent-solid-hover: #6d28d9;
+  --accent-text: #b8a4fc; // Accent-colored text on the background.
+  --accent-soft: rgb(139 92 246 / 0.16);
+  --on-accent: #ffffff;
+  --focus: #a78bfa;
+
+  --danger: #f87171;
+  --danger-soft: rgb(248 113 113 / 0.12);
+  --success: #4ade80; // "Online" dots and confirmations.
+  --success-soft: rgb(74 222 128 / 0.14);
+  --info-text: #93c5fd; // Role badges: admins (blue) and instructors (teal).
+  --info-soft: rgb(59 130 246 / 0.16);
+  --teal-text: #5eead4;
+  --teal-soft: rgb(20 184 166 / 0.14);
+
+  --overlay: rgb(0 0 0 / 0.72);
+  --scrim: 9 9 11; // Spotlight gradient, as RGB channels.
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 24px 60px -24px rgb(0 0 0 / 0.7);
+
+  --youtube: #ff3b30;
+  --dailymotion: #3b82f6;
+  --twitch: #a970ff;
+}
+
+:root {
+  @include dark;
+  // The page's own background, kept even inside .theme-dark (e.g. for fading into the page).
+  --page-bg: var(--bg);
+
+  // Type
+  --font: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: clamp(1.5rem, 1.2rem + 1vw, 1.875rem);
+  --text-3xl: clamp(1.75rem, 1.2rem + 2vw, 2.75rem);
+
+  // Space and shape
+  --gutter: clamp(1rem, 0.5rem + 2vw, 2.5rem);
+  --content-max: 1680px;
+  --topbar-h: 64px;
+  --bottomnav-h: 64px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  // Motion
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --fast: 150ms;
+  --medium: 250ms;
+}
+
+@mixin light {
+  color-scheme: light;
+
+  --bg: #fafafa;
+  --bg-blur: rgb(250 250 250 / 0.82);
+  --surface: #ffffff;
+  --surface-2: #f4f4f5;
+  --surface-3: #e4e4e7;
+  --line: rgb(9 9 11 / 0.08);
+  --line-strong: rgb(9 9 11 / 0.16);
+
+  --text: #09090b;
+  --text-2: #52525b;
+  --text-3: #6b6b74;
+
+  --accent: #7c3aed;
+  --accent-solid: #7c3aed;
+  --accent-solid-hover: #6d28d9;
+  --accent-text: #6d28d9;
+  --accent-soft: rgb(124 58 237 / 0.1);
+  --focus: #7c3aed;
+
+  --danger: #dc2626;
+  --danger-soft: rgb(220 38 38 / 0.08);
+  --success: #15803d;
+  --success-soft: rgb(21 128 61 / 0.1);
+  --info-text: #1d4ed8;
+  --info-soft: rgb(29 78 216 / 0.08);
+  --teal-text: #0f766e;
+  --teal-soft: rgb(15 118 110 / 0.09);
+
+  --scrim: 250 250 250;
+  --shadow-sm: 0 1px 2px rgb(9 9 11 / 0.08);
+  --shadow-lg: 0 24px 60px -28px rgb(9 9 11 / 0.35);
+
+  --youtube: #e11d1d;
+  --dailymotion: #1d64d8;
+  --twitch: #8b45f5;
+}
+
+:root[data-theme='light'] {
+  @include light;
+  --page-bg: var(--bg);
+}
+
+// Dark whatever the theme: for things drawn over video images (the home billboard, and the top
+// bar while it floats over it), the way streaming apps keep their hero cinematic in light mode.
+.theme-dark {
+  @include dark;
+  color: var(--text);
+}
+
+// Monograms and school banners: each school (and person) gets one of these gradients, picked from
+// its address or id, so it looks the same everywhere. They stay deep in both themes, like the
+// billboard, so the white initials on them keep AA contrast.
+$tones: (
+  1: (#5b21b6, #c026d3),
+  2: (#1e40af, #7c3aed),
+  3: (#0f766e, #1d4ed8),
+  4: (#9f1239, #7e22ce),
+  5: (#9a3412, #be123c),
+  6: (#065f46, #0e7490),
+);
+
+:root {
+  --on-tone: #ffffff;
+  --tone-sheen: rgb(255 255 255 / 0.26); // Soft light on a gradient's top-left.
+  --tone-edge: rgb(255 255 255 / 0.12);
+  --tone-shade: rgb(0 0 0 / 0.6); // Under text laid over a gradient.
+}
+
+@each $index, $pair in $tones {
+  [data-tone='#{$index}'] {
+    --tone-a: #{list.nth($pair, 1)};
+    --tone-b: #{list.nth($pair, 2)};
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --fast: 0ms;
+    --medium: 0ms;
+  }
+}

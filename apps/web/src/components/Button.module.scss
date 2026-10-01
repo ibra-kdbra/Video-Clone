@@ -1,0 +1,113 @@
+.button {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-weight: 650;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  transition:
+    background var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    color var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+  -webkit-tap-highlight-color: transparent;
+
+  &:active:not(:disabled, [aria-busy='true']) {
+    transform: scale(0.97);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.md {
+  min-height: 44px;
+  padding: 0.65rem 1.25rem;
+  font-size: var(--text-base);
+}
+
+.sm {
+  min-height: 34px;
+  padding: 0.4rem 0.85rem;
+  font-size: var(--text-sm);
+}
+
+.block {
+  width: 100%;
+}
+
+.primary {
+  background: var(--accent-solid);
+  color: var(--on-accent);
+  box-shadow: 0 10px 30px -14px var(--accent);
+
+  @include hover {
+    background: var(--accent-solid-hover);
+  }
+}
+
+.secondary {
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--text);
+
+  @include hover {
+    background: var(--surface-2);
+  }
+}
+
+.ghost {
+  color: var(--text-2);
+
+  @include hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+}
+
+.danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+
+  @include hover {
+    background: var(--danger);
+    color: var(--bg);
+  }
+}
+
+// Busy: the label stays (so the width doesn't jump) but fades behind a spinner.
+.busy {
+  cursor: progress;
+
+  .label,
+  svg {
+    opacity: 0.35;
+  }
+}
+
+.spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

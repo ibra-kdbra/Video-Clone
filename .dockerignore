@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/coverage
+.git
+.github
+.netlify
+.env
+.env.*
+!.env.example
+infra/.env.prod
+apps/web
+!apps/web/package.json
+docs
+*.md
