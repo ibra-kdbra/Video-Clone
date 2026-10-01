@@ -10,11 +10,14 @@
     "start": "node dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "lint": "eslint src test"
+    "lint": "eslint src test scripts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1144.0",
+    "@grand/contracts": "^0.1.0",
     "@nestjs/common": "^12.1.1",
     "@nestjs/core": "^12.1.1",
+    "@socket.io/redis-emitter": "^5.1.0",
     "bullmq": "^6.3.10",
     "ioredis": "^6.0.0",
     "nodemailer": "^10.0.13",

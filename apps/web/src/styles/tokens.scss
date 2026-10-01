@@ -35,6 +35,8 @@
   --info-soft: rgb(59 130 246 / 0.16);
   --teal-text: #5eead4;
   --teal-soft: rgb(20 184 166 / 0.14);
+  --warning-text: #fcd34d; // Draft badges and "needs attention" notes.
+  --warning-soft: rgb(245 158 11 / 0.16);
 
   --overlay: rgb(0 0 0 / 0.72);
   --scrim: 9 9 11; // Spotlight gradient, as RGB channels.
@@ -109,6 +111,8 @@
   --info-soft: rgb(29 78 216 / 0.08);
   --teal-text: #0f766e;
   --teal-soft: rgb(15 118 110 / 0.09);
+  --warning-text: #a16207;
+  --warning-soft: rgb(202 138 4 / 0.12);
 
   --scrim: 250 250 250;
   --shadow-sm: 0 1px 2px rgb(9 9 11 / 0.08);
@@ -148,6 +152,21 @@ $tones: (
   --tone-sheen: rgb(255 255 255 / 0.26); // Soft light on a gradient's top-left.
   --tone-edge: rgb(255 255 255 / 0.12);
   --tone-shade: rgb(0 0 0 / 0.6); // Under text laid over a gradient.
+}
+
+// The lesson player is a dark stage in both themes, like a cinema; its chrome is drawn over the
+// picture, so it keeps its own light-on-dark colors.
+:root {
+  --stage: #000000;
+  --stage-text: #ffffff;
+  --stage-text-2: rgb(255 255 255 / 0.74);
+  --stage-scrim: rgb(0 0 0 / 0.72);
+  --stage-glass: rgb(18 18 22 / 0.86);
+  --stage-line: rgb(255 255 255 / 0.16);
+  --stage-track: rgb(255 255 255 / 0.24);
+  --stage-buffered: rgb(255 255 255 / 0.42);
+  --stage-hover: rgb(255 255 255 / 0.14);
+  --stage-hover-strong: rgb(255 255 255 / 0.24);
 }
 
 @each $index, $pair in $tones {

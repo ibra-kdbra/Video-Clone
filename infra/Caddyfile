@@ -1,5 +1,5 @@
-# HTTPS for the API with automatic Let's Encrypt certificates. Caddy passes the client's address
-# on in X-Forwarded-For, and WebSockets through as they are.
+# HTTPS for the API and the video store, with automatic Let's Encrypt certificates. Caddy passes
+# the client's address on in X-Forwarded-For, and WebSockets through as they are.
 {$API_DOMAIN} {
 	encode zstd gzip
 
@@ -17,6 +17,23 @@
 
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+	log {
+		output stdout
+		format json
+	}
+}
+
+# Garage's S3 API, where browsers upload videos and fetch segments, posters and storyboards. The
+# bucket is private: every request carries a signature made for this host name, which Caddy
+# passes on unchanged. Garage itself answers CORS (npm run storage:setup).
+{$MEDIA_DOMAIN} {
+	reverse_proxy garage:3900
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
 		-Server
 	}
 	log {

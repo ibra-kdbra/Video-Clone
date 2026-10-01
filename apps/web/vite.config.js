@@ -100,7 +100,7 @@ export default defineConfig(({ command, mode }) => {
     },
     preview: {
       // The production headers, minus the HTTPS-only parts, since the preview runs on plain http.
-      headers: securityHeaders({ realtimeOrigin, https: false }),
+      headers: securityHeaders({ realtimeOrigin, mediaOrigin: env.MEDIA_ORIGIN || undefined, https: false }),
       proxy: apiProxy,
     },
     build: {

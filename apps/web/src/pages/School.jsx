@@ -6,10 +6,12 @@ import { schoolSlug } from '@grand/contracts';
 
 import Button from '../components/Button.jsx';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
+import CourseCatalog from '../components/CourseCatalog.jsx';
 import Icon from '../components/Icon.jsx';
 import InvitationsPanel from '../components/InvitationsPanel.jsx';
 import MembersPanel from '../components/MembersPanel.jsx';
 import Monogram from '../components/Monogram.jsx';
+import NewCourseDialog from '../components/NewCourseDialog.jsx';
 import RoleBadge from '../components/RoleBadge.jsx';
 import SchoolLanding from '../components/SchoolLanding.jsx';
 import { Block } from '../components/Skeleton.jsx';
@@ -17,7 +19,7 @@ import { ErrorState } from '../components/States.jsx';
 import { formatDate } from '../lib/format.js';
 import { errorMessage } from '../lib/forms.js';
 import { getSchool, removeMember } from '../lib/lms.js';
-import { canLeave, isManager, withArticle } from '../lib/roles.js';
+import { canCreateCourses, canLeave, isManager, withArticle } from '../lib/roles.js';
 import { toast } from '../lib/toast.js';
 import { toneFor } from '../lib/tone.js';
 import { useDocumentTitle } from '../lib/useDocumentTitle.js';
@@ -27,7 +29,7 @@ import NotFound from './NotFound.jsx';
 import styles from './School.module.scss';
 
 const TABS = [
-  { key: 'overview', label: 'Overview', icon: 'home' },
+  { key: 'overview', label: 'Courses', icon: 'layers' },
   { key: 'members', label: 'Members', icon: 'users', managers: true },
   { key: 'invitations', label: 'Invitations', icon: 'mail', managers: true },
 ];
@@ -43,69 +45,6 @@ function Presence({ online }) {
   );
 }
 
-/** Courses arrive in the next phase: said plainly, with a glimpse of where they'll appear. */
-function Overview({ school, manager }) {
-  const base = `/s/${school.slug}`;
-  return (
-    <section aria-labelledby="overview-title" className={styles.overview}>
-      <h2 id="overview-title" className="visually-hidden">
-        Overview
-      </h2>
-      <div className={styles.soon}>
-        <div className={styles.soonShelf} aria-hidden="true">
-          {[0, 1, 2].map((i) => (
-            <span key={i} className={styles.soonTile} style={{ '--i': i }}>
-              <Icon name="play" size={20} />
-            </span>
-          ))}
-        </div>
-        <div className={styles.soonText}>
-          <p className={styles.soonEyebrow}>Coming in the next update</p>
-          <h3 className={styles.soonTitle}>Courses and video lessons</h3>
-          <p>
-            This is where {school.name}'s courses will live. They aren't here yet: this first version of Grand LMS sets up the school itself, its people and
-            their roles.
-          </p>
-        </div>
-      </div>
-
-      <ul className={styles.shortcuts}>
-        {manager && (
-          <>
-            <li>
-              <Link to={`${base}?tab=invitations`} className={styles.shortcut}>
-                <Icon name="send" size={22} />
-                <span>
-                  <strong>Invite people</strong>
-                  <span>Instructors and students join by email.</span>
-                </span>
-              </Link>
-            </li>
-            <li>
-              <Link to={`${base}?tab=members`} className={styles.shortcut}>
-                <Icon name="users" size={22} />
-                <span>
-                  <strong>Manage members</strong>
-                  <span>Change roles, or remove people.</span>
-                </span>
-              </Link>
-            </li>
-          </>
-        )}
-        <li>
-          <Link to="/browse/trending" className={styles.shortcut}>
-            <Icon name="compass" size={22} />
-            <span>
-              <strong>Explore videos</strong>
-              <span>Trending picks from YouTube, Dailymotion and Twitch.</span>
-            </span>
-          </Link>
-        </li>
-      </ul>
-    </section>
-  );
-}
-
 /**
  * The school as its members see it: header with live presence, then tabs. `onGone` is called when
  * the live connection says this person was removed, `onLeft` when they leave.
@@ -116,11 +55,13 @@ function MemberSchool({ school, onGone, onLeft }) {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [creating, setCreating] = useState(false);
   // Whom this person just changed, so the live echo of their own action isn't announced twice.
   const acted = useRef(new Set());
 
   const slug = school.slug;
   const manager = isManager(school.role);
+  const creator = canCreateCourses(school.role);
   const tabs = TABS.filter((tab) => !tab.managers || manager);
   const tab = tabs.find((item) => item.key === params.get('tab')) ?? tabs[0];
   useDocumentTitle(tab.key === 'overview' ? school.name : `${tab.label} · ${school.name}`);
@@ -195,8 +136,13 @@ function MemberSchool({ school, onGone, onLeft }) {
             </p>
           </div>
           <div className={styles.actions}>
+            {creator && tab.key === 'overview' && (
+              <Button variant="primary" icon="plus" onClick={() => setCreating(true)}>
+                New course
+              </Button>
+            )}
             {manager && tab.key !== 'invitations' && (
-              <Button variant="primary" icon="plus" to={`${base}?tab=invitations`}>
+              <Button variant={creator && tab.key === 'overview' ? 'secondary' : 'primary'} icon="send" to={`${base}?tab=invitations`}>
                 Invite people
               </Button>
             )}
@@ -235,9 +181,11 @@ function MemberSchool({ school, onGone, onLeft }) {
         ) : tab.key === 'invitations' ? (
           <InvitationsPanel school={school} onLostAccess={recheck} />
         ) : (
-          <Overview school={school} manager={manager} />
+          <CourseCatalog school={school} onNewCourse={() => setCreating(true)} />
         )}
       </div>
+
+      {creator && <NewCourseDialog open={creating} school={school} onClose={() => setCreating(false)} />}
 
       <ConfirmDialog
         open={confirmLeave}

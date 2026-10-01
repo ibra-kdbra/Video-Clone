@@ -1,0 +1,137 @@
+// The <dialog> fills the screen (so a press outside the panel lands on it) and places the panel.
+.dialog {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: var(--gutter);
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  overscroll-behavior: contain;
+
+  &[open] {
+    display: grid;
+    place-items: center;
+  }
+
+  &::backdrop {
+    background: var(--overlay, rgb(0 0 0 / 0.7));
+    backdrop-filter: blur(6px);
+  }
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 460px);
+  max-height: calc(100dvh - 2 * var(--gutter));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+// The drawer: a tall panel against the right edge; on phones, the whole screen.
+.drawer {
+  padding: 0;
+
+  &[open] {
+    place-items: stretch end;
+  }
+
+  .panel {
+    width: min(100vw, 600px);
+    height: 100dvh;
+    max-height: none;
+    border-width: 0 0 0 1px;
+    border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+
+    @include down(sm) {
+      border: 0;
+      border-radius: 0;
+    }
+  }
+
+  .body {
+    padding-bottom: 2rem;
+  }
+}
+
+.head {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.4rem 1.25rem 0.75rem 1.6rem;
+
+  @include down(sm) {
+    padding: 1rem 0.75rem 0.5rem var(--gutter);
+  }
+}
+
+.titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-size: var(--text-xl);
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.description {
+  margin-top: 0.3rem;
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}
+
+.close {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-top: -0.3rem;
+  border-radius: 50%;
+  color: var(--text-2);
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+
+  @include hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  padding: 0.5rem 1.6rem 1.5rem;
+  overflow-y: auto;
+
+  @include down(sm) {
+    padding: 0.5rem var(--gutter) 1.25rem;
+  }
+}
+
+.foot {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 1rem 1.6rem 1.4rem;
+  border-top: 1px solid var(--line);
+
+  @include down(sm) {
+    padding: 0.85rem var(--gutter) calc(0.85rem + env(safe-area-inset-bottom));
+  }
+}

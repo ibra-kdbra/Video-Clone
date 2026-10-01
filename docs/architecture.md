@@ -1,33 +1,40 @@
 # Architecture
 
 Grand LMS is a learning platform for many schools at once, built around video. This page describes
-Phase 0: the foundation every later feature stands on. It covers accounts, schools and their
-members, invitations, real-time updates, background jobs and the security model. The decisions
-behind it are recorded in [docs/adr](adr).
+what is built so far:
+- **Phase 0**, the foundation every later feature stands on: accounts, schools and their members,
+  invitations, real-time updates, background jobs and the security model.
+- **Phase 1**, courses and video lessons: course outlines, drafts and publishing, enrollments,
+  uploads straight to storage, transcoding to adaptive HLS, and signed playback.
+
+The decisions behind it are recorded in [docs/adr](adr).
 
 ## The pieces
 
 ```text
-                    ┌──────────────────────────── Netlify (free) ────────────────────────────┐
-browser ──https──►  │ apps/web: React app (static)                                           │
-                    │ /api/*      → video proxy function (YouTube, Dailymotion, Twitch)      │
+                    ┌───────────────────────────── Netlify (free) ──────────────────────────────┐
+browser ──https──►  │ apps/web: React app (static)                                              │
+                    │ /api/*      → video proxy function (YouTube, Dailymotion, Twitch)         │
                     │ /api/v1/*   → proxied to the API server (same origin: first-party cookie) │
-                    └─────────────────────────────────────┬─────────────────────────────────┘
-                                                          │ https
-browser ──wss (Socket.IO, ticket sign-in)──────────┐      ▼
-                    ┌──────────── one small server (Oracle Cloud Always Free) ───────────────┐
-                    │ Caddy (HTTPS, Let's Encrypt)                                           │
-                    │   └► apps/api: NestJS 12 on Fastify, REST /api/v1 + Socket.IO /api/v1/ws │
-                    │ apps/worker: NestJS (no HTTP): outbox relay, BullMQ jobs, email, clean-up │
-                    │ PostgreSQL 17 (row-level security)       Redis 8 (queues, limits, pub/sub) │
-                    └────────────────────────────────────────────────────────────────────────┘
+                    └──────────────────────────────────────┬────────────────────────────────────┘
+                                                           │ https
+browser ──wss (Socket.IO, ticket sign-in)───────────┐      │
+browser ──https (signed URLs: uploads, video)───┐   │      │
+                                                ▼   ▼      ▼
+                    ┌─────────── one small server (Oracle Cloud Always Free) ───────────────────┐
+                    │ Caddy (HTTPS, Let's Encrypt)                                              │
+                    │   ├► apps/api: NestJS 12 on Fastify, REST /api/v1 + Socket.IO /api/v1/ws  │
+                    │   └► Garage (S3 API) at MEDIA_DOMAIN: uploads, segments, posters          │
+                    │ apps/worker: outbox relay, BullMQ jobs, email, ffmpeg transcoding         │
+                    │ PostgreSQL 17 (row-level security)     Redis 8 (queues, limits, pub/sub)  │
+                    └───────────────────────────────────────────────────────────────────────────┘
 ```
 
 | Package | What it is |
 | --- | --- |
 | `apps/web` | The React app (Vite, React Router, TanStack Query, Motion, Sass modules). Also the Netlify function that proxies the video platforms. |
 | `apps/api` | The HTTP and WebSocket API. |
-| `apps/worker` | Background work: moves outbox events into BullMQ, sends email, cleans up expired rows. |
+| `apps/worker` | Background work: moves outbox events into BullMQ, sends email, transcodes videos with ffmpeg, cleans up expired rows and abandoned uploads. |
 | `packages/contracts` | The API contract shared by all three: zod schemas for every request body, response types, real-time event types. |
 
 ## A request, end to end
@@ -70,6 +77,9 @@ browser ──wss (Socket.IO, ticket sign-in)──────────┐  
 | `memberships` | read, create, update, delete | Only the acting school's rows, plus read access to your own memberships in every school (your school list). |
 | `invitations` | read, create, update | Only the acting school's rows. Someone holding a link finds it through `app.invitation_by_token(hash)`, a `SECURITY DEFINER` function that returns exactly one row. |
 | `audit_log` | read, add | Append-only (no update or delete grants). Entries for another school are refused. |
+| `courses`, `course_modules`, `lessons`, `media_assets` | read, create, update, delete | Only the acting school's rows. Who may see or edit which course is decided in the API (below), on top of this. |
+| `enrollments` | read, create, delete | Only the acting school's rows, plus read access to your own enrollments. |
+| `school_storage` | read, update | Only the acting school's row. A trigger creates it with every school. |
 | `users`, `sessions`, `refresh_tokens`, `outbox` | as granted | Not school-scoped. They're reached only through the services, by id or by token hash. |
 
 There are more guarantees:
@@ -77,6 +87,9 @@ There are more guarantees:
 - An open invitation per address and school is another.
 - Addresses are stored lower-cased, and a `CHECK` constraint enforces it.
 - Transactions time out: a statement after 10 s, an idle transaction after 15 s.
+- Course tables reference each other through composite keys that include the school:
+  `(course_id, school_id)` and `(module_id, course_id)`. A lesson can't point at another school's
+  course, or at a module of another course, even if a bug in the API tried.
 
 `apps/api/test/rls.test.ts` checks all of this straight against Postgres as `grand_app`:
 - queries with no school filter at all
@@ -121,6 +134,8 @@ See [ADR 5](adr/0005-realtime.md).
 - **Rooms**:
   - `user:{id}` and `session:{id}` are joined automatically.
   - `school:{id}` is joined after a membership check.
+  - `school:{id}:staff` is joined too by instructors and above, and follows role changes. Video
+    progress goes only there.
   - The Redis adapter shares the rooms across API instances.
 - **Events**:
   - Members joining, changing role or leaving.
@@ -147,6 +162,84 @@ See [ADR 4](adr/0004-outbox.md).
 7. Secrets in a payload (the invitation link) are deleted once handled.
 8. A BullMQ job scheduler runs the nightly clean-up. Only one worker runs it, however many are up.
 
+## Courses and lessons
+
+- **Shape**: a school has courses, and each course has modules holding lessons. A lesson has notes
+  in Markdown and, optionally, one video: an upload, or a YouTube, Dailymotion or Twitch embed.
+- **Addresses**: a course's slug is made from its title and is unique within the school. A clash
+  gets `-2`, `-3` and so on.
+- **Who may do what** (`apps/api/src/courses/course-access.ts`):
+
+| Role | Courses |
+| --- | --- |
+| Owner, admin | Create, edit and delete every course. |
+| Instructor | Create courses; edit and delete the ones they created. |
+| Student (and anyone else) | See published courses. Enroll in them, then watch their published lessons. Lessons marked as a free preview play without enrolling. |
+
+- **Drafts and publishing**: courses and lessons start as drafts.
+  - Only a course's editors see drafts. Anyone else gets "not found", so a draft's address gives
+    nothing away.
+  - Publishing a course records when, and adds a `course.published` event to the outbox for
+    Phase 2's notifications. Archiving hides a course from the catalog but keeps it for its
+    editors.
+- **Outline**: `PUT .../outline` reorders modules and lessons and moves lessons between modules,
+  all in one request.
+  - The request must list every module and lesson exactly once, otherwise the answer is a 409.
+  - Positions are unique per course and per module. The unique constraints are checked when the
+    transaction commits, so any reshuffle works in one statement batch.
+  - A course always keeps at least one module.
+- **Deleting**: removing a course, module or lesson deletes its rows, then queues its uploaded
+  videos for deletion. The worker removes their files and frees their storage.
+
+## Video
+
+See [ADR 7](adr/0007-video-pipeline.md).
+
+```text
+browser                API                       storage (Garage)          worker
+  │ start upload ───────►│ reserve quota            │                         │
+  │◄─ signed part URLs ──│ create multipart ───────►│                         │
+  │ PUT parts (16 MiB) ────────────────────────────►│                         │
+  │ complete ───────────►│ check size, outbox ──────┼── media.uploaded ──────►│ download original
+  │                      │                          │◄─ HLS ladder, poster ───│ ffmpeg
+  │◄──────────── media:updated (progress, ready) over Socket.IO ──────────────│
+  │ playback ───────────►│ enrolled? token          │                         │
+  │ master.m3u8?t=… ────►│ rewritten playlists      │                         │
+  │ segments (signed) ─────────────────────────────►│                         │
+```
+
+- **Quota**: each school has a quota (2 GiB by default) in `school_storage`.
+  - Starting an upload reserves the declared size, with the row locked, so parallel uploads can't
+    overrun the quota.
+  - Completing it turns the reservation into used space. The worker then corrects that to the
+    size of the transcoded files.
+  - Deleting a video frees its space.
+- **Upload checks**:
+  - Only video types (MP4, QuickTime, WebM, Matroska) up to `MEDIA_MAX_UPLOAD_BYTES` are accepted.
+  - Part URLs last an hour. A slow upload asks for fresh ones.
+  - Completion fails, and frees everything, if the stored size differs from the declared one.
+- **Transcoding** (`apps/worker/src/media`):
+  - ffprobe reads the file first: duration, size, rotation and audio. A file it can't read, or one
+    longer than `MEDIA_MAX_DURATION_SECONDS`, fails with a reason the instructor sees.
+  - One ffmpeg run splits the video into the qualities at or below the source's (1080p, 720p,
+    480p, 360p) as fragmented-MP4 HLS. Keyframes come every 2 seconds, in 6-second segments.
+  - Two more runs make the poster and the storyboard sprites.
+  - Progress goes into `media_assets.progress`, and out to the school's staff room as
+    `media:updated`, at most every 2 seconds. Students' pages check back every 15 seconds instead.
+  - A job is retried once. If the video was deleted or replaced while it was transcoding, the
+    result is thrown away.
+- **Playback**:
+  - `GET .../lessons/:id/playback` checks that the viewer may watch the lesson. It returns the
+    embed, a "still processing" state, or an HLS address with a signed poster and storyboard.
+  - The HLS address is `/api/v1/media/{school}/{video}/master.m3u8?t={token}`. The token is
+    `expiry.HMAC-SHA256(school/video/expiry)`, under a key derived from `JWT_SECRET` for this use
+    only.
+  - The API rewrites the master playlist to pass the token on to each quality. It rewrites the
+    quality playlists so every init and media segment is a presigned GET on storage. These are
+    cached per hour-long signing window.
+  - The web app plays the stream with hls.js. Workers are off, because the page's CSP has
+    `worker-src 'none'`. The CSP allows `MEDIA_ORIGIN` for images, media and fetches.
+
 ## Operations
 
 - **Health**:
@@ -170,8 +263,13 @@ See [ADR 4](adr/0004-outbox.md).
 | --- | --- | --- |
 | `apps/api/test/*.test.ts` | Real Postgres and Redis (`grand_test`, Redis db 15) | Row-level security, sign-up and login, refresh rotation and reuse, devices, schools, members and roles, invitations, rate limits, WebSockets, headers and errors. |
 | `apps/api/src/**/*.spec.ts` | Nothing external | Configuration, cursors, address masking. |
-| `apps/worker/test` | Real Postgres and Redis | Relay deduplication, email and scrubbing, idempotent retries, clean-up. |
+| `apps/api/test/courses.test.ts`, `media.test.ts` | Real Postgres, Redis and Garage | Courses, drafts and permissions, outlines, enrollments, uploads and quotas, playback tokens and rewritten playlists. |
+| `apps/worker/test` | Real Postgres, Redis and Garage, and ffmpeg | Relay deduplication, email and scrubbing, idempotent retries, clean-up. Transcoding landscape, portrait and silent video, refusing files that aren't video or are too long, deletion, abandoned uploads. |
+| `apps/worker/scripts/check-ffmpeg.mjs` | The worker image's ffmpeg (in CI) | The pipeline's ffmpeg commands work with the ffmpeg the image ships. |
 | `apps/web/tests` | Mocks | The video proxy, client logic, security rules for the page. |
 
 Set `TEST_DATABASE_ADMIN_URL` (a superuser connection string) and `TEST_REDIS_URL`. With
-`npm run infra:up`, the defaults already point at the right place.
+`npm run infra:up`, the defaults already point at the right place. The video tests also need
+`TEST_S3_ENDPOINT`, `TEST_S3_BUCKET`, `TEST_S3_ACCESS_KEY_ID` and `TEST_S3_SECRET_ACCESS_KEY`
+(Garage from `infra:up`, after `npm run storage:setup`), and ffmpeg for the worker. Without them
+those tests are skipped.

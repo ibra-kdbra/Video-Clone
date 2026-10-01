@@ -1,0 +1,217 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 1280px;
+  padding-top: 1rem;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.25rem 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.titles {
+  display: flex;
+  flex: 1 1 26rem;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--accent-text);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.title {
+  font-size: var(--text-3xl);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}
+
+.facts {
+  color: var(--text-3);
+  font-size: var(--text-sm);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+// Sections, as a segmented control whose highlight slides (as on the school page).
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.25rem;
+  overflow-x: auto;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  @include hide-scrollbar;
+}
+
+.tab {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-pill);
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  font-weight: 650;
+  transition: color var(--fast) var(--ease);
+
+  > svg,
+  > span:not(.tabPill) {
+    position: relative;
+    z-index: 1;
+  }
+
+  > svg {
+    @include down(sm) {
+      display: none;
+    }
+  }
+
+  @include hover {
+    color: var(--text);
+  }
+
+  &[aria-current='page'] {
+    color: var(--text);
+  }
+
+  &:focus-visible {
+    outline-offset: -2px;
+  }
+}
+
+.tabPill {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+// The work on the left; storage, tips or the danger zone beside it on wide screens.
+.split {
+  display: grid;
+  gap: 2rem;
+  align-items: start;
+
+  @include up(lg) {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+    gap: 2.5rem;
+  }
+}
+
+.aside {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  @include up(lg) {
+    position: sticky;
+    top: calc(var(--topbar-h) + 1.25rem);
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1.15rem 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+
+  > * {
+    width: 100%;
+  }
+
+  > button,
+  > a {
+    width: auto;
+  }
+}
+
+.cardTitle {
+  font-size: var(--text-md);
+  letter-spacing: -0.015em;
+}
+
+.danger {
+  border-color: var(--danger-soft);
+}
+
+.tips {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-left: 1.1rem;
+  color: var(--text-2);
+  font-size: var(--text-sm);
+
+  li::marker {
+    color: var(--accent-text);
+  }
+}
+
+.muted {
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: var(--text-xl);
+  letter-spacing: -0.025em;
+}
+
+.count {
+  padding: 0.1rem 0.55rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0;
+}

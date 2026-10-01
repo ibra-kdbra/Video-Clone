@@ -56,6 +56,26 @@ export const envSchema = z.object({
   OPENAPI: bool.optional(),
   /** Schools one person may own, to keep a free deployment within its limits. */
   MAX_SCHOOLS_PER_OWNER: z.coerce.number().int().min(1).max(1000).default(3),
+
+  /**
+   * S3-compatible storage for videos (Garage, MinIO, Cloudflare R2, Backblaze B2…). Without a
+   * bucket the API runs with uploads switched off.
+   */
+  S3_ENDPOINT: z.url({ protocol: /^https?$/ }).optional(),
+  /** The address browsers use, when it differs from the API's (signed URLs name this host). */
+  S3_PUBLIC_ENDPOINT: z.url({ protocol: /^https?$/ }).optional(),
+  S3_REGION: z.string().min(1).default('auto'),
+  S3_BUCKET: z.string().regex(/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/).optional(),
+  S3_ACCESS_KEY_ID: z.string().min(1).optional(),
+  S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  S3_FORCE_PATH_STYLE: bool.default(true),
+  /** The largest video one upload may be. */
+  MEDIA_MAX_UPLOAD_BYTES: z.coerce.number().int().min(1_048_576).max(50 * 1024 ** 3).default(2 * 1024 ** 3),
+  /** How long playback and image addresses stay valid. */
+  MEDIA_URL_TTL_SECONDS: z.coerce.number().int().min(60).max(86_400).default(4 * 3600),
+}).refine((env) => !env.S3_BUCKET || (env.S3_ENDPOINT && env.S3_ACCESS_KEY_ID && env.S3_SECRET_ACCESS_KEY), {
+  message: 'S3_BUCKET needs S3_ENDPOINT, S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY',
+  path: ['S3_BUCKET'],
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -82,6 +102,16 @@ export class AppConfig {
   readonly rateLimits: boolean;
   readonly openApi: boolean;
   readonly maxSchoolsPerOwner: number;
+  readonly storage: {
+    endpoint: string;
+    publicEndpoint: string;
+    region: string;
+    bucket: string;
+    accessKeyId: string;
+    secretAccessKey: string;
+    forcePathStyle: boolean;
+  } | null;
+  readonly media: { maxUploadBytes: number; urlTtlSeconds: number };
 
   constructor(env: Env) {
     const production = env.NODE_ENV === 'production';
@@ -105,6 +135,19 @@ export class AppConfig {
     this.rateLimits = env.RATE_LIMITS;
     this.openApi = env.OPENAPI ?? !production;
     this.maxSchoolsPerOwner = env.MAX_SCHOOLS_PER_OWNER;
+    this.storage =
+      env.S3_BUCKET && env.S3_ENDPOINT && env.S3_ACCESS_KEY_ID && env.S3_SECRET_ACCESS_KEY
+        ? {
+            endpoint: env.S3_ENDPOINT,
+            publicEndpoint: env.S3_PUBLIC_ENDPOINT ?? env.S3_ENDPOINT,
+            region: env.S3_REGION,
+            bucket: env.S3_BUCKET,
+            accessKeyId: env.S3_ACCESS_KEY_ID,
+            secretAccessKey: env.S3_SECRET_ACCESS_KEY,
+            forcePathStyle: env.S3_FORCE_PATH_STYLE,
+          }
+        : null;
+    this.media = { maxUploadBytes: env.MEDIA_MAX_UPLOAD_BYTES, urlTtlSeconds: env.MEDIA_URL_TTL_SECONDS };
   }
 
   get production() {

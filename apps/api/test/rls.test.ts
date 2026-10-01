@@ -137,4 +137,58 @@ describe('row-level security', () => {
     );
     for (const [row] of settings) expect(row).toEqual({ school: null, person: null });
   });
+
+  describe('courses and videos', () => {
+    const course = { a: randomUUID(), b: randomUUID() };
+    const modules = { a: randomUUID(), b: randomUUID() };
+
+    beforeAll(async () => {
+      await owner`insert into courses (id, school_id, slug, title) values
+        (${course.a}, ${ids.schoolA}, ${`rls-${course.a.slice(0, 8)}`}, 'Course A'),
+        (${course.b}, ${ids.schoolB}, ${`rls-${course.b.slice(0, 8)}`}, 'Course B')`;
+      await owner`insert into course_modules (id, school_id, course_id, title, position) values
+        (${modules.a}, ${ids.schoolA}, ${course.a}, 'M', 0), (${modules.b}, ${ids.schoolB}, ${course.b}, 'M', 0)`;
+    });
+
+    it("keeps each school's courses, outlines, videos and quota to itself", async () => {
+      const seen = await actingAs({ userId: ids.alice, schoolId: ids.schoolA }, async (sql) => ({
+        courses: (await sql`select id from courses where id in (${course.a}, ${course.b})`).map((row) => row.id),
+        modules: (await sql`select id from course_modules where id in (${modules.a}, ${modules.b})`).map((row) => row.id),
+        storage: (await sql`select school_id from school_storage where school_id in (${ids.schoolA}, ${ids.schoolB})`).map((row) => row.school_id),
+      }));
+      expect(seen).toEqual({ courses: [course.a], modules: [modules.a], storage: [ids.schoolA] });
+    });
+
+    it("can't attach a lesson to another school's course, even with its own school id", async () => {
+      // Acting for school A, with school A's id on the row, but B's course: the composite key refuses it.
+      await expect(
+        actingAs({ userId: ids.alice, schoolId: ids.schoolA }, (sql) =>
+          sql`insert into lessons (school_id, course_id, module_id, title, position) values (${ids.schoolA}, ${course.b}, ${modules.b}, 'Sneaky', 0)`,
+        ),
+      ).rejects.toThrow(/foreign key/);
+      // A module of course A can't hold a lesson of another course.
+      await expect(
+        owner`insert into lessons (school_id, course_id, module_id, title, position) values (${ids.schoolB}, ${course.b}, ${modules.a}, 'Mixed', 0)`,
+      ).rejects.toThrow(/foreign key/);
+    });
+
+    it("can't raise its own quota", async () => {
+      const raised = await actingAs({ userId: ids.alice, schoolId: ids.schoolB }, (sql) =>
+        sql`update school_storage set quota_bytes = 1e15 where school_id = ${ids.schoolA}`,
+      );
+      expect(raised.count).toBe(0);
+      await expect(actingAs({ schoolId: ids.schoolA }, (sql) => sql`delete from school_storage`)).rejects.toThrow(/permission denied/);
+    });
+
+    it('lists abandoned uploads across schools by id only', async () => {
+      const [stale] = await owner<{ id: string }[]>`
+        insert into media_assets (school_id, status, file_name, content_type, declared_bytes, created_at)
+        values (${ids.schoolB}, 'uploading', 'old.mp4', 'video/mp4', 10, now() - interval '2 days') returning id`;
+      const rows = await actingAs({}, (sql) => sql`select * from app.stale_uploads(interval '1 day')`);
+      expect(rows).toContainEqual({ id: stale!.id, school_id: ids.schoolB });
+      expect(Object.keys(rows[0]!)).toEqual(['id', 'school_id']);
+      // Without acting for school B, the row itself stays out of reach.
+      expect(await actingAs({}, (sql) => sql`select 1 from media_assets where id = ${stale!.id}`)).toHaveLength(0);
+    });
+  });
 });

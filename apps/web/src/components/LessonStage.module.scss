@@ -1,0 +1,181 @@
+// Every state of the lesson's screen keeps the same 16:9 frame, so nothing below jumps.
+.screen {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(80% 90% at 50% 0%, var(--stage-hover), transparent 70%),
+    var(--stage);
+  color: var(--stage-text);
+
+  @include down(sm) {
+    margin: 0 calc(var(--gutter) * -1);
+    border-radius: 0;
+  }
+}
+
+.cinema {
+  position: relative;
+  isolation: isolate;
+
+  // Phones: the picture runs edge to edge.
+  @include down(sm) {
+    margin: 0 calc(var(--gutter) * -1);
+  }
+}
+
+// The poster's colors, blurred, glowing around the player.
+.ambient {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.55;
+  filter: blur(70px) saturate(1.6);
+  transform: scale(1.1);
+  pointer-events: none;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  @include down(sm) {
+    display: none;
+  }
+}
+
+.embed {
+  // The platform player brings its own phone margins; it sits on the same dark stage.
+  min-width: 0;
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 30rem;
+  padding: 1.25rem;
+  text-align: center;
+
+  @include down(sm) {
+    gap: 0.35rem;
+    padding: 0.75rem 1rem;
+  }
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 0.25rem;
+  border-radius: 50%;
+  background: var(--stage-hover);
+
+  @include down(sm) {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+.danger {
+  color: var(--danger);
+}
+
+.heading {
+  font-size: clamp(1rem, 0.9rem + 0.6vw, 1.35rem);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.text {
+  color: var(--stage-text-2);
+  font-size: var(--text-sm);
+
+  strong {
+    color: var(--stage-text);
+  }
+
+  @include down(sm) {
+    font-size: var(--text-xs);
+  }
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+
+  &:empty {
+    display: none;
+  }
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  margin-top: 0.5rem;
+  padding: 0 1.2rem;
+  border-radius: var(--radius-md);
+  background: var(--stage-hover);
+  color: var(--stage-text);
+  font-size: var(--text-sm);
+  font-weight: 700;
+
+  @include hover {
+    background: var(--stage-hover-strong);
+  }
+}
+
+.progress {
+  position: relative;
+  display: grid;
+  place-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.ring {
+  transform: rotate(-90deg);
+}
+
+.ringTrack {
+  fill: none;
+  stroke: var(--stage-track);
+  stroke-width: 5;
+}
+
+.ringFill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-linecap: round;
+  stroke-width: 5;
+  transition: stroke-dashoffset var(--medium) var(--ease);
+}
+
+.percent {
+  position: absolute;
+  font-size: var(--text-sm);
+  font-weight: 800;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--stage-track);
+  border-top-color: var(--stage-text);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -7,6 +7,7 @@ declare module 'vitest' {
     appDatabaseUrl: string;
     ownerDatabaseUrl: string;
     redisUrl: string;
+    s3: { endpoint: string; bucket: string; accessKeyId: string; secretAccessKey: string; region: string } | null;
   }
 }
 
@@ -37,4 +38,9 @@ export default async function setup(project: TestProject) {
   project.provide('ownerDatabaseUrl', owner.toString());
   project.provide('appDatabaseUrl', app.toString());
   project.provide('redisUrl', process.env.TEST_REDIS_URL ?? 'redis://localhost:6379/14');
+  const { TEST_S3_ENDPOINT: endpoint, TEST_S3_BUCKET: bucket, TEST_S3_ACCESS_KEY_ID: accessKeyId, TEST_S3_SECRET_ACCESS_KEY: secretAccessKey } = process.env;
+  project.provide(
+    's3',
+    endpoint && bucket && accessKeyId && secretAccessKey ? { endpoint, bucket, accessKeyId, secretAccessKey, region: process.env.TEST_S3_REGION ?? 'garage' } : null,
+  );
 }

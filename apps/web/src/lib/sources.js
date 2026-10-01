@@ -35,3 +35,6 @@ export function embedUrl(provider, id, hostname = window.location.hostname) {
   if (provider === 'dailymotion') return `https://www.dailymotion.com/embed/video/${safeId}?autoplay=1`;
   return `https://clips.twitch.tv/embed?clip=${safeId}&parent=${encodeURIComponent(hostname)}&autoplay=true`;
 }
+
+/** A video's preview image when it needs no lookup (YouTube's), or null. */
+export const directThumbnail = (provider, id) => (provider === 'youtube' ? `https://i.ytimg.com/vi/${encodeURIComponent(id)}/hqdefault.jpg` : null);

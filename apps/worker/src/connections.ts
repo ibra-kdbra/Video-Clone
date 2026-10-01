@@ -21,6 +21,14 @@ export class Connections implements OnApplicationShutdown {
     this.redis.on('error', (error) => this.logger.warn(`Redis: ${error.message}`));
   }
 
+  /** A transaction acting for one school, so row-level security applies as it does in the API. */
+  withSchool<T>(schoolId: string, work: (tx: postgres.TransactionSql) => Promise<T>): Promise<T> {
+    return this.sql.begin(async (tx) => {
+      await tx`select set_config('app.school_id', ${schoolId}, true)`;
+      return work(tx);
+    }) as Promise<T>;
+  }
+
   async onApplicationShutdown() {
     await this.sql.end({ timeout: 5 });
     await this.redis.quit().catch(() => this.redis.disconnect());

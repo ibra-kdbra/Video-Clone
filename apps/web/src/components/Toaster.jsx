@@ -9,11 +9,13 @@ const ICONS = { success: 'check', info: 'info', error: 'alert' };
 /**
  * The toast on screen. A new one waits for the old one to leave ("wait"): Motion's "popLayout"
  * would add a <style> element for the leaving one, which the CSP (style-src 'self') refuses.
+ * `inDialog` is the copy a modal dialog carries: while one is open, the page behind it is inert
+ * (unseen, and silent to screen readers), so the dialog shows and announces toasts itself.
  */
-export default function Toaster() {
+export default function Toaster({ inDialog = false, drawer = false }) {
   const current = useToast();
   return (
-    <div className={styles.region} role="status" aria-live="polite">
+    <div className={`${styles.region} ${inDialog ? styles.inDialog : styles.page} ${drawer ? styles.inDrawer : ''}`} role="status" aria-live="polite">
       <AnimatePresence mode="wait">
         {current && (
           <m.div

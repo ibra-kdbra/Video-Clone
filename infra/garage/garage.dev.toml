@@ -1,0 +1,20 @@
+# Garage for local development: one node, one copy of every object. Production uses
+# infra/garage/garage.toml with secrets from the environment.
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "sqlite"
+replication_factor = 1
+compression_level = "none"
+
+rpc_bind_addr = "0.0.0.0:3901"
+rpc_public_addr = "127.0.0.1:3901"
+rpc_secret = "0000000000000000000000000000000000000000000000000000000000000000"
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "0.0.0.0:3900"
+root_domain = ".s3.localhost"
+
+[admin]
+api_bind_addr = "0.0.0.0:3903"
+admin_token = "grand-dev-admin-token"

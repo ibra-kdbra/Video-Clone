@@ -24,6 +24,9 @@ export const assignableRoles = (actor) => (isManager(actor) ? ASSIGNABLE.filter(
  */
 export const canManage = (actor, target, isSelf = false) => !isSelf && isManager(actor) && outranks(actor, target);
 
+/** Instructors, admins and the owner create courses (and edit their own; admins edit them all). */
+export const canCreateCourses = (role) => (ROLE_RANK[role] ?? -1) >= ROLE_RANK.instructor;
+
 /** Anyone can leave a school except its owner. */
 export const canLeave = (role) => Boolean(role) && role !== 'owner';
 

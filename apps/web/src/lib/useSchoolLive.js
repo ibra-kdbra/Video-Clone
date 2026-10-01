@@ -43,16 +43,22 @@ function unsubscribeLater(socket, slug, entry) {
 /**
  * Follows one school over the real-time connection: who's online (`online`, member ids, or null
  * while not connected), and member changes, passed to `onEvent(type, event)` with type 'joined',
- * 'updated' or 'removed'. It subscribes again after every reconnection, since the server forgets
- * a connection's subscriptions when it drops.
+ * 'updated' or 'removed'. `onMedia(update)` hears how uploaded videos are getting on (transcoding
+ * progress, ready, failed; sent to instructors and above only), and `onResync()` is called after a reconnection, since updates sent
+ * while the connection was down are lost. It subscribes again after every reconnection, since the
+ * server forgets a connection's subscriptions when it drops.
  */
-export function useSchoolLive({ slug, schoolId, enabled = true, onEvent }) {
+export function useSchoolLive({ slug, schoolId, enabled = true, onEvent, onMedia, onResync }) {
   const socket = useLiveSocket();
   const [online, setOnline] = useState(null);
   const handler = useRef(onEvent);
+  const mediaHandler = useRef(onMedia);
+  const resyncHandler = useRef(onResync);
 
   useEffect(() => {
     handler.current = onEvent;
+    mediaHandler.current = onMedia;
+    resyncHandler.current = onResync;
   });
 
   useEffect(() => {
@@ -61,6 +67,7 @@ export function useSchoolLive({ slug, schoolId, enabled = true, onEvent }) {
     entry.holders += 1;
     clearTimeout(entry.timer);
     let active = true;
+    let subscribedBefore = false;
 
     const ours = (event) => event?.schoolId === schoolId;
     const subscribe = () =>
@@ -68,17 +75,22 @@ export function useSchoolLive({ slug, schoolId, enabled = true, onEvent }) {
         // Emitting while disconnected would queue a second subscription for the next "connect".
         if (!active || !socket.connected) return;
         socket.emit('school:subscribe', { slug }, (ack) => {
-          if (active && ack?.ok && ack.data?.schoolId === schoolId) setOnline(ack.data.online);
+          if (!active || !ack?.ok || ack.data?.schoolId !== schoolId) return;
+          setOnline(ack.data.online);
+          if (subscribedBefore) resyncHandler.current?.();
+          subscribedBefore = true;
         });
       });
     const onPresence = (event) => ours(event) && setOnline(event.online);
     const onDisconnect = () => setOnline(null);
+    const onMediaUpdate = (event) => ours(event) && mediaHandler.current?.(event);
     const relays = EVENTS.map((name) => [name, (event) => ours(event) && handler.current?.(name.slice('school:member-'.length), event)]);
 
     subscribe();
     socket.on('connect', subscribe);
     socket.on('disconnect', onDisconnect);
     socket.on('school:presence', onPresence);
+    socket.on('media:updated', onMediaUpdate);
     for (const [name, relay] of relays) socket.on(name, relay);
 
     return () => {
@@ -86,6 +98,7 @@ export function useSchoolLive({ slug, schoolId, enabled = true, onEvent }) {
       socket.off('connect', subscribe);
       socket.off('disconnect', onDisconnect);
       socket.off('school:presence', onPresence);
+      socket.off('media:updated', onMediaUpdate);
       for (const [name, relay] of relays) socket.off(name, relay);
       entry.holders -= 1;
       if (entry.holders === 0) unsubscribeLater(socket, slug, entry);

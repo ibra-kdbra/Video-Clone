@@ -1,6 +1,8 @@
+import { randomUUID } from 'node:crypto';
 import type { Socket } from 'socket.io-client';
 import { afterAll, afterEach, beforeAll, describe, expect, inject, it } from 'vitest';
 import postgres from 'postgres';
+import { RealtimeService } from '../src/realtime/realtime.service.js';
 import { connected, nextEvent, TestApi, uniqueEmail } from './helpers.js';
 
 let api: TestApi;
@@ -141,5 +143,46 @@ describe('ordering', () => {
     const removed = nextEvent<{ userId: string }>(socket, 'school:member-removed');
     await api.request('DELETE', `/schools/${school.slug}/members/${member.user.id}`, { token: head.token });
     expect(await removed).toEqual({ schoolId: school.id, userId: member.user.id });
+  });
+
+  it('sends video progress to staff only, following role changes', async () => {
+    const head = await api.signup();
+    const school = await api.createSchool(head.token);
+    const member = await api.signup();
+    await api.request('POST', `/schools/${school.slug}/invitations`, { token: head.token, body: { email: member.email, role: 'student' } });
+    const [event] = await owner<{ payload: { url: string } }[]>`
+      select payload from outbox where type = 'invitation.created' and payload->>'email' = ${member.email}`;
+    await api.request('POST', '/invitations/accept', { token: member.token, body: { token: event!.payload.url.split('#')[1] } });
+
+    const staff = track(await api.socket(head.token));
+    const student = track(await api.socket(member.token));
+    await Promise.all([connected(staff), connected(student)]);
+    await staff.emitWithAck('school:subscribe', { slug: school.slug });
+    await student.emitWithAck('school:subscribe', { slug: school.slug });
+    const heard: number[] = [];
+    student.on('media:updated', (update: { progress: number }) => heard.push(update.progress));
+
+    const realtime = api.app.get(RealtimeService);
+    const send = (progress: number) =>
+      realtime.emitToSchoolStaff(school.id, 'media:updated', {
+        schoolId: school.id, assetId: randomUUID(), lessonId: null, status: 'processing', progress, error: null, durationSeconds: null,
+      });
+    const role = (value: string) => api.request('PATCH', `/schools/${school.slug}/members/${member.user.id}`, { token: head.token, body: { role: value } });
+
+    let next = nextEvent<{ progress: number }>(staff, 'media:updated');
+    send(10);
+    expect(await next).toMatchObject({ progress: 10 });
+
+    await role('instructor');
+    next = nextEvent<{ progress: number }>(student, 'media:updated');
+    send(20);
+    expect(await next).toMatchObject({ progress: 20 });
+
+    await role('student');
+    next = nextEvent<{ progress: number }>(staff, 'media:updated');
+    send(30);
+    await next;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(heard).toEqual([20]);
   });
 });

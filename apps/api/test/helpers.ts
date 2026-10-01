@@ -24,7 +24,15 @@ export class TestApi {
   ) {}
 
   static async start(env: Record<string, string> = {}): Promise<TestApi> {
+    const s3 = inject('s3');
     const config = loadConfig({
+      ...(s3 && {
+        S3_ENDPOINT: s3.endpoint,
+        S3_BUCKET: s3.bucket,
+        S3_ACCESS_KEY_ID: s3.accessKeyId,
+        S3_SECRET_ACCESS_KEY: s3.secretAccessKey,
+        S3_REGION: s3.region,
+      }),
       NODE_ENV: 'test',
       LOG_LEVEL: 'silent',
       DATABASE_URL: inject('appDatabaseUrl'),

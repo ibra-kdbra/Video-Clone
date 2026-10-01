@@ -4,15 +4,14 @@ A learning platform for many schools at once, built around video. Schools invite
 instructors and students, and everything they do stays inside the school. The platform runs on a
 NestJS backend with real-time updates, and deploys on free tiers only.
 
-This is **Phase 0: the foundation**. It covers:
-- accounts and devices
-- schools and roles
-- email invitations
-- live presence
-- background jobs
-- the security model
+This is **Phase 1: courses and video lessons**, on top of Phase 0's foundation:
+- courses, modules and lessons, with drafts, publishing and enrollments
+- video uploads straight to storage, transcoded to adaptive HLS by a worker
+- a lesson player with quality, speed and scrubbing previews
+- accounts and devices, schools and roles, email invitations, live presence
+- background jobs and the security model
 
-Courses and video lessons come next; see the [roadmap](docs/roadmap.md). The video Explore pages
+Learning progress, quizzes and assignments come next; see the [roadmap](docs/roadmap.md). The video Explore pages
 from the earlier FundaStream app are still here: trending, browse, search and watch across
 YouTube, Dailymotion and Twitch.
 
@@ -33,6 +32,22 @@ YouTube, Dailymotion and Twitch.
   - Inviting the same address again replaces the old link.
 - **Live**: members see who's online in their school, and new members appear instantly. A device
   signed out elsewhere is disconnected at once.
+- **Courses**:
+  - Each school's page lists its courses: Continue learning, every published course, and for
+    editors their drafts.
+  - A course has modules of lessons. Lessons have Markdown notes and a video, and can be free
+    previews.
+  - Members enroll to watch. Owners and admins edit every course; instructors edit their own.
+- **Course editor**: publish and archive; build the outline by drag and drop, across modules;
+  edit each lesson in a drawer. A storage meter shows the school's quota.
+- **Video**:
+  - Uploads go from the browser straight to S3-compatible storage (Garage, self-hosted), in
+    parallel parts with retries. They keep going while you move around the app.
+  - The worker transcodes with ffmpeg to HLS from 1080p down to 360p, with a poster and a
+    storyboard. Progress shows live.
+  - Playback is adaptive, through signed links that expire. The player has quality, speed,
+    picture in picture, keyboard shortcuts and thumbnails over the seek bar.
+  - A lesson can use a YouTube, Dailymotion or Twitch video instead.
 - **Explore**: the streaming-style video pages. A billboard, rows, search and in-app players for
   YouTube, Dailymotion and Twitch, through a server-side proxy that keeps the keys off the page.
 
@@ -44,18 +59,19 @@ browser ──► Netlify: apps/web (React)          /api/*    → video proxy f
         ──► wss ──┐
                   ▼
         one server: Caddy ► apps/api (NestJS 12, Fastify, Socket.IO) ─┬─► PostgreSQL 17 (row-level security)
-                            apps/worker (NestJS, BullMQ, email)       ─┴─► Redis 8 (queues, limits, pub/sub)
+                            apps/worker (NestJS, BullMQ, ffmpeg) ─────┼─► Redis 8 (queues, limits, pub/sub)
+        ──► signed URLs ──► Caddy ► Garage (S3 video store) ◄─────────┘
 ```
 
 | Package | What it is |
 | --- | --- |
 | [`apps/web`](apps/web) | React 19, React Router 7, TanStack Query, Motion, Sass modules on design tokens. Vite 8. |
 | [`apps/api`](apps/api) | NestJS 12 on Fastify: REST under `/api/v1`, Socket.IO at `/api/v1/ws`. Drizzle ORM on postgres.js. |
-| [`apps/worker`](apps/worker) | Moves outbox events into BullMQ, sends email over SMTP, cleans up nightly. |
+| [`apps/worker`](apps/worker) | Moves outbox events into BullMQ, sends email over SMTP, transcodes videos to HLS with ffmpeg, cleans up nightly. |
 | [`packages/contracts`](packages/contracts) | Zod schemas for every request and the types of every response and real-time event, shared by all three. |
 
 [docs/architecture.md](docs/architecture.md) walks through a request end to end. It also covers
-the tenancy model, sign-in, real-time and background jobs. The decisions are recorded in
+the tenancy model, sign-in, real-time, background jobs, courses and the video pipeline. The decisions are recorded in
 [docs/adr](docs/adr).
 
 ## Security
@@ -82,11 +98,13 @@ the tenancy model, sign-in, real-time and background jobs. The decisions are rec
 - **WebSockets**:
   - Single-use 30-second tickets (never tokens in URLs) and an origin allowlist.
   - Message size caps and per-connection budgets.
+- **Video**: the bucket is private. Uploads, segments and images use presigned URLs that expire,
+  and playlists need a token signed for that one video, given out after the enrollment check.
 - **Audit log**: append-only at the database level. Invitation links are removed from stored
   events once they're emailed.
 - **Web app**:
   - A strict Content-Security-Policy: own scripts only, Trusted Types, and connections only to
-    its own origin and the API's WebSocket host.
+    its own origin, the API's WebSocket host and the video store.
   - HSTS and friends, for the page and the API.
 
 ## What it costs: $0
@@ -94,9 +112,10 @@ the tenancy model, sign-in, real-time and background jobs. The decisions are rec
 | Service | Free tier | Used for |
 | --- | --- | --- |
 | Netlify | Free plan, hard cap (the site pauses, nothing is billed) | The web app, the `/api/v1` proxy, the video proxy function |
-| Oracle Cloud Always Free | Ampere server, up to 4 cores and 24 GB | The API, the worker, Postgres, Redis, Caddy (Docker Compose) |
-| DuckDNS | Free subdomains | The API's address |
-| Let's Encrypt (through Caddy) | Free certificates | HTTPS for the API |
+| Oracle Cloud Always Free | Ampere server, up to 4 cores, 24 GB and 200 GB of disk | The API, the worker, Postgres, Redis, Garage (videos), Caddy (Docker Compose) |
+| DuckDNS | Free subdomains | The API's and the video store's addresses |
+| Let's Encrypt (through Caddy) | Free certificates | HTTPS for the API and the video store |
+| Garage (self-hosted) | Open source, on the server's free disk | Video storage, S3-compatible |
 | Brevo or Resend | 300 or 100 emails a day | Invitation emails |
 | YouTube Data API, Dailymotion, Twitch | Free quotas | The Explore pages |
 
@@ -104,13 +123,14 @@ The step-by-step setup is in [docs/deploy.md](docs/deploy.md).
 
 ## Getting started
 
-You need Node 22 and Docker.
+You need Node 22, Docker, and ffmpeg for the worker (`sudo apt install ffmpeg`, `brew install ffmpeg`).
 
 ```bash
 npm install
 cp .env.example .env         # works as is for local development
-npm run infra:up             # Postgres, Redis and Mailpit in Docker
+npm run infra:up             # Postgres, Redis, Mailpit and Garage in Docker
 npm run db:migrate           # creates the tables, policies and grants
+npm run storage:setup        # creates the video bucket and its key in Garage
 
 npm run dev:api              # http://localhost:3000/api/v1 (OpenAPI at /api/v1/openapi.json)
 npm run dev:worker           # relays events and sends email to Mailpit: http://localhost:8025
@@ -130,6 +150,7 @@ The Explore pages need no keys in mock mode: `npm run dev:mock -w @grand/web`. W
 | `npm run lint` | ESLint everywhere |
 | `npm test` | Every test suite. The API and worker suites need Postgres and Redis (see below). |
 | `npm run db:migrate` | Applies pending SQL migrations, as the database owner |
+| `npm run storage:setup` | Gets the video bucket ready: in Garage, the node's role, the bucket and the key; on any store, CORS for `WEB_ORIGINS` and a rule that drops unfinished uploads. Safe to run again. |
 | `npm run infra:up` / `infra:down` | Starts or stops the local services |
 
 ### Tests
@@ -139,6 +160,10 @@ The Explore pages need no keys in mock mode: `npm run dev:mock -w @grand/web`. W
   own databases (`grand_test`, `grand_worker_test`) and use Redis database 15.
   - With `npm run infra:up`, the defaults work.
   - Otherwise, set `TEST_DATABASE_ADMIN_URL` (a superuser connection string) and `TEST_REDIS_URL`.
+  - The video tests also need a bucket and, for the worker, ffmpeg. After `npm run storage:setup`,
+    set `TEST_S3_ENDPOINT=http://localhost:3900`, `TEST_S3_BUCKET=grand-media` and the
+    `TEST_S3_ACCESS_KEY_ID` and `TEST_S3_SECRET_ACCESS_KEY` from `.env`. Without them those tests
+    are skipped.
 
 The suites cover:
 - row-level security, straight against the database
@@ -148,10 +173,15 @@ The suites cover:
 - invitations, from creation to acceptance
 - rate limits
 - WebSocket tickets, rooms, presence and instant sign-out
+- courses, drafts, outlines and enrollments, and who may do what
+- uploads, quotas, playback tokens and the rewritten playlists
+- transcoding real clips (landscape, portrait, silent), refusing broken or too-long files, deleting
+  videos and clearing abandoned uploads
 - the worker's relay, email and clean-up
 - the page's security rules
 
-CI runs everything on every push and pull request, and builds the Docker images
+CI runs everything on every push and pull request, with Garage and ffmpeg. It also builds the
+Docker images and transcodes test clips inside the worker image
 ([.github/workflows/ci.yml](.github/workflows/ci.yml)).
 
 ## Project layout
@@ -159,10 +189,10 @@ CI runs everything on every push and pull request, and builds the Docker images
 ```text
 apps/
   web/        React app, the Netlify video proxy (server/, netlify/), security headers (config/)
-  api/        NestJS API: src/{auth,schools,realtime,database,rate-limit,events,health}, migrations/, test/
-  worker/     NestJS worker: src/{jobs,mail}, test/
+  api/        NestJS API: src/{auth,schools,courses,storage,realtime,database,rate-limit,events,health}, migrations/, test/
+  worker/     NestJS worker: src/{jobs,mail,media}, scripts/, test/
 packages/
   contracts/  shared zod schemas and types
-infra/        docker-compose (local and production), Caddyfile, Postgres init
+infra/        docker-compose (local and production), Caddyfile, Postgres init, Garage config
 docs/         architecture, decision records, deployment, roadmap
 ```

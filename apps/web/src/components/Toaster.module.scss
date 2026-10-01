@@ -46,3 +46,19 @@
     color: var(--bg);
   }
 }
+
+// While a modal dialog is open, its own copy takes over.
+:global(body:has(dialog:modal)) .page {
+  visibility: hidden;
+}
+
+.inDialog {
+  z-index: 1;
+}
+
+// Over a drawer: centred in it, just above its footer.
+.inDrawer {
+  bottom: calc(5.5rem + env(safe-area-inset-bottom));
+  left: auto;
+  width: min(100vw, 600px);
+}

@@ -1,0 +1,108 @@
+// A tall hit area around a thin track that thickens while in use.
+.bar {
+  position: relative;
+  height: 22px;
+  margin: 0 0.25rem;
+  cursor: pointer;
+  touch-action: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--stage-text);
+    outline-offset: 4px;
+    border-radius: 4px;
+  }
+
+  &[aria-disabled='true'] {
+    cursor: default;
+  }
+}
+
+.track {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--stage-track);
+  transform: translateY(-50%);
+  transition: height var(--fast) var(--ease);
+
+  .bar[data-active] &,
+  .bar:focus-visible & {
+    height: 7px;
+  }
+}
+
+.buffered {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--stage-buffered);
+}
+
+.hovered,
+.played {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+}
+
+.hovered {
+  background: var(--stage-buffered);
+}
+
+.played {
+  background: var(--accent);
+}
+
+.thumb {
+  position: absolute;
+  top: 50%;
+  width: 15px;
+  height: 15px;
+  margin-left: -7.5px;
+  border-radius: 50%;
+  background: var(--stage-text);
+  box-shadow: 0 1px 6px var(--stage-scrim);
+  transform: translateY(-50%) scale(0);
+  transition: transform var(--fast) var(--ease);
+  pointer-events: none;
+
+  .bar[data-active] &,
+  .bar:focus-visible & {
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+// The preview above the bar: the storyboard frame and the time under the pointer.
+.preview {
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.frame {
+  display: block;
+  overflow: hidden;
+  border: 2px solid var(--stage-text);
+  border-radius: var(--radius-sm);
+  background-color: var(--stage);
+  background-repeat: no-repeat;
+  box-shadow: 0 10px 30px -8px var(--stage);
+}
+
+.previewTime {
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--stage-scrim);
+  color: var(--stage-text);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}

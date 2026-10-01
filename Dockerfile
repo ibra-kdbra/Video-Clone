@@ -39,6 +39,15 @@ EXPOSE 3000
 CMD ["node", "--enable-source-maps", "dist/main.js"]
 
 FROM runtime AS worker
+# ffmpeg and ffprobe for the video pipeline, and /work, where videos are transcoded (a volume in
+# production, so large files don't sit in memory).
+USER root
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ffmpeg \
+ && rm -rf /var/lib/apt/lists/* \
+ && mkdir /work && chown node:node /work
+USER node
+ENV MEDIA_WORK_DIR=/work
 COPY --from=build /repo/apps/worker/dist apps/worker/dist
 WORKDIR /repo/apps/worker
 CMD ["node", "--enable-source-maps", "dist/main.js"]

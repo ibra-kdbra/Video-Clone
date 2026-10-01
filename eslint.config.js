@@ -20,11 +20,11 @@ export default tseslint.config(
     },
   },
   {
-    files: ['**/test/**/*.ts', '**/*.spec.ts', 'apps/api/src/database/migrate.ts', 'apps/api/src/database/migrator.ts'],
+    files: ['**/test/**/*.ts', '**/*.spec.ts', 'apps/api/src/database/migrate.ts', 'apps/api/src/database/migrator.ts', 'apps/api/src/storage/setup.ts'],
     rules: { '@typescript-eslint/no-explicit-any': 'off', 'no-console': 'off', '@typescript-eslint/no-non-null-assertion': 'off' },
   },
   {
-    files: ['scripts/**/*.mjs'],
+    files: ['scripts/**/*.mjs', 'apps/worker/scripts/**/*.mjs'],
     extends: [js.configs.recommended],
     languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: globals.node },
   },

@@ -1,0 +1,112 @@
+.dock {
+  position: fixed;
+  right: var(--gutter);
+  bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: min(360px, calc(100vw - 2 * var(--gutter)));
+
+  @include down(md) {
+    bottom: calc(var(--bottomnav-h) + 0.75rem + env(safe-area-inset-bottom));
+  }
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 0.6rem 0.7rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+
+  &[data-failed] .icon {
+    background: var(--danger-soft);
+    color: var(--danger);
+  }
+}
+
+.icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.name {
+  overflow: hidden;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status {
+  color: var(--text-2);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.bar {
+  display: block;
+  height: 3px;
+  margin-top: 0.2rem;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--surface-3);
+
+  span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    transform-origin: left center;
+    transition: transform var(--medium) var(--ease);
+  }
+}
+
+.action {
+  flex: none;
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--radius-pill);
+  color: var(--accent-text);
+  font-size: var(--text-sm);
+  font-weight: 700;
+
+  @include hover {
+    background: var(--accent-soft);
+  }
+}
+
+.close {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--text-2);
+
+  @include hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+}
+
+.dock[hidden] {
+  display: none;
+}
