@@ -1,0 +1,20 @@
+# Garage on the server (infra/docker-compose.prod.yml): one node keeping one copy of every object.
+# The secrets come from the environment, GARAGE_RPC_SECRET and GARAGE_ADMIN_TOKEN, set in
+# infra/.env.prod. Only Caddy (the S3 API, as MEDIA_DOMAIN) and the setup job reach it.
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+# Slower than LMDB, but survives a power cut.
+db_engine = "sqlite"
+replication_factor = 1
+# Video is compressed already.
+compression_level = "none"
+
+rpc_bind_addr = "0.0.0.0:3901"
+rpc_public_addr = "127.0.0.1:3901"
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "0.0.0.0:3900"
+
+[admin]
+api_bind_addr = "0.0.0.0:3903"

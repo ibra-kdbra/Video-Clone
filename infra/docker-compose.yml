@@ -1,5 +1,5 @@
-# Local development services: `npm run infra:up`. The API and worker run on your machine
-# (npm run dev:api / dev:worker) against these.
+# Local development services: `npm run infra:up`, then `npm run storage:setup` once to create the
+# video bucket. The API and worker run on your machine (npm run dev:api / dev:worker) against these.
 name: grand-lms-dev
 
 services:
@@ -34,6 +34,18 @@ services:
     image: axllent/mailpit:latest
     ports: ["127.0.0.1:1025:1025", "127.0.0.1:8025:8025"]
 
+  # S3-compatible storage for videos (http://localhost:3900) and its admin API (3903), which
+  # `npm run storage:setup` uses.
+  garage:
+    image: dxflrs/garage:v2.1.0
+    ports: ["127.0.0.1:3900:3900", "127.0.0.1:3903:3903"]
+    volumes:
+      - ./garage/garage.dev.toml:/etc/garage.toml:ro
+      - garage_meta:/var/lib/garage/meta
+      - garage_data:/var/lib/garage/data
+
 volumes:
   postgres:
   redis:
+  garage_meta:
+  garage_data:
