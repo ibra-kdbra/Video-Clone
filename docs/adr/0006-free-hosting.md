@@ -16,10 +16,12 @@ long-running process for WebSockets, plus Postgres and Redis.
   - the worker
   - PostgreSQL 17
   - Redis 8
+  - Garage, for video storage (from Phase 1, [ADR 7](0007-video-pipeline.md))
 - **Domain**: a free DuckDNS name points at the server.
 - **Email**: any SMTP provider's free tier (Brevo: 300 a day; Resend: 100 a day).
 - **Later**: video files will go to Cloudflare R2's free tier (10 GB, no egress fees), with a
-  storage quota per school.
+  storage quota per school. *Replaced by [ADR 7](0007-video-pipeline.md): R2 needs a payment
+  method attached, so videos are stored in Garage on the same server.*
 
 ## Consequences
 - One server is a single point of failure. docs/deploy.md covers nightly database backups and how

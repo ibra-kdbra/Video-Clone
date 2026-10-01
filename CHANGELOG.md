@@ -2,6 +2,73 @@
 
 All notable changes to this project will be documented in this file.
 
+## [7.0.0] - 2026-10-01
+
+**Grand LMS, Phase 1: courses and video lessons.** Schools build courses from modules and
+lessons, upload lesson videos straight to storage, and stream them back adaptively.
+
+### Added
+- **Courses**:
+  - Courses with modules and lessons, as drafts until published. Owners and admins edit every
+    course, instructors the ones they created, and members see what is published.
+  - A catalog on each school's page: Continue learning, every course, and for editors their
+    drafts and archived courses. Covers come from the first video, or are drawn from the title.
+  - A course page with an outline, a Markdown description, and Enroll, Start or Continue.
+  - Enrollments, and free preview lessons that play without one.
+- **Course editor** at `/s/{school}/c/{course}/edit`:
+  - Publish, unpublish, archive and restore.
+  - An outline builder: add, rename and delete modules and lessons, and reorder them by drag
+    and drop (pointer, touch or keyboard) or with move buttons, across modules too. One request
+    saves the whole order.
+  - A lesson drawer for the title, summary, Markdown notes, the Published and Free preview
+    switches, and the video.
+  - The school's video storage: used, reserved and the quota.
+- **Video uploads**:
+  - Straight from the browser to S3-compatible storage, in 16 MiB parts, three at a time, with
+    retries. Speed and time left are shown, and uploads keep going while you move around the app.
+  - Each school has a storage quota (2 GiB by default). An upload reserves its size when it
+    starts.
+  - The worker transcodes with ffmpeg to HLS in every quality up to the source's (1080p to
+    360p), and makes a poster and a storyboard for scrubbing previews. Progress shows live.
+  - A file that isn't a video, or is too long, fails with a reason, and its space is freed.
+- **Lessons can embed** a YouTube, Dailymotion or Twitch video instead.
+- **Lesson page**:
+  - A player built on hls.js: quality (Auto or a fixed rendition), speed, picture in picture,
+    full screen, keyboard shortcuts, and thumbnails over the seek bar.
+  - The course outline beside the video, with notes, previous and next, and an Up next
+    countdown.
+  - Expired video links are renewed without losing your place.
+- **Storage**: Garage, a small self-hosted S3-compatible store, locally and on the server.
+  `npm run storage:setup` gets a bucket ready.
+- **Tests**:
+  - API: 86 tests, including courses, permissions, outlines, uploads, quotas and signed
+    playback.
+  - Worker: 12 tests, transcoding real clips with ffmpeg.
+  - Web: 256 tests.
+  - CI runs Garage and ffmpeg, and transcodes test clips inside the worker image.
+- **Docs**: [ADR 7](docs/adr/0007-video-pipeline.md) on storage, transcoding and playback, plus the
+  courses and video sections of the architecture page.
+
+### Security
+- **Private bucket**: every upload part, segment, poster and sprite is a presigned URL that
+  expires.
+- **Playlist tokens**: playlists need an HMAC token, signed for one video under a key of its own,
+  and issued only after the enrollment check.
+- **Database**: new tables are separated by row-level security. Composite keys stop a lesson
+  pointing at another school's course, or at another course's module.
+- **Real-time**: video progress goes to a school's staff room (instructors and above) only, and
+  follows role changes.
+- **Course text**: Markdown is rendered with raw HTML dropped. Images become links, and external
+  links open in a new tab with `noopener`.
+
+### Changed
+- **Production settings** (breaking): the server now also runs Garage and serves it at
+  `MEDIA_DOMAIN`. `infra/.env.prod` needs `MEDIA_DOMAIN`, `GARAGE_RPC_SECRET`,
+  `GARAGE_ADMIN_TOKEN`, `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY`, and Netlify needs
+  `MEDIA_ORIGIN` (see docs/deploy.md).
+- **Worker image**: it ships ffmpeg and transcodes on a volume.
+- **School page**: the Overview tab is now Courses.
+
 ## [6.0.0] - 2026-09-30
 
 **Grand LMS, Phase 0.** The video app becomes the foundation of a learning platform for many

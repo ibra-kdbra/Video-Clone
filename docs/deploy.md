@@ -1,23 +1,29 @@
 # Deploying Grand LMS for free
 
-The web app runs on Netlify. The API, the worker, Postgres and Redis run on one Oracle Cloud
-Always Free server, behind Caddy for HTTPS. The API gets a free DuckDNS name. Nothing here
+The web app runs on Netlify. The API, the worker, Postgres, Redis and Garage (the video store) run
+on one Oracle Cloud Always Free server, behind Caddy for HTTPS. The API and the video store get
+free DuckDNS names. Nothing here
 charges money: Netlify's free plan pauses at its limit instead of billing, and Always Free
 resources stay free unless you upgrade the Oracle account to Pay As You Go. Oracle asks for a card
 to verify your identity when you sign up; it isn't charged for Always Free resources.
 
 ```text
 visitors ──► https://your-site.netlify.app ──(/api/v1/* proxied)──► https://grand-lms.duckdns.org
-         └──────────────── WebSocket (wss) ───────────────────────►  Caddy ► API ► Postgres, Redis
-                                                                               worker ► email (SMTP)
+         ├──────────────── WebSocket (wss) ───────────────────────►  Caddy ► API ► Postgres, Redis
+         └── uploads, video (signed URLs) ──► https://media.grand-lms.duckdns.org ► Garage
+                                                                     worker ► email (SMTP), ffmpeg
 ```
 
 ## 1. The server
 
 1. Create an [Oracle Cloud](https://www.oracle.com/cloud/free/) account and a compute instance:
    - **Image**: Ubuntu 24.04.
-   - **Shape**: VM.Standard.A1.Flex (Ampere, Always Free eligible), 2 OCPUs and 12 GB of memory
-     (plenty; the free allowance is larger).
+   - **Shape**: VM.Standard.A1.Flex (Ampere, Always Free eligible). 4 OCPUs and 24 GB of memory
+     is the whole free allowance and leaves room for transcoding video; 2 OCPUs and 12 GB is
+     enough without many uploads.
+   - **Boot volume**: videos are stored on the server's disk. Choose a custom boot volume size,
+     such as 150 GB. Always Free covers 200 GB of block storage in total, and the default is
+     about 47 GB.
    - **Networking**: assign a public IPv4 address. Reserve it, so it survives a restart.
    - **SSH**: add your SSH key.
 2. Let web traffic in, in two places:
@@ -36,11 +42,13 @@ visitors ──► https://your-site.netlify.app ──(/api/v1/* proxied)──
    sudo usermod -aG docker $USER   # log out and back in
    ```
 
-## 2. A name for the API
+## 2. Names for the API and the video store
 
 At [duckdns.org](https://www.duckdns.org), sign in and create a subdomain, such as `grand-lms`.
-Point it at the server's public IP. The API will be `https://grand-lms.duckdns.org`. Any domain
-you own works the same way, with an `A` record.
+Point it at the server's public IP. The API will be `https://grand-lms.duckdns.org`, and the video
+store `https://media.grand-lms.duckdns.org`: DuckDNS sends every name under yours to the same
+address, so there is nothing more to set up. Any domain you own works the same way, with an `A`
+record for each name.
 
 ## 3. Email
 
@@ -58,13 +66,20 @@ nano infra/.env.prod
 ```
 
 Fill in every value:
-- `API_DOMAIN`: the DuckDNS name.
+- `API_DOMAIN`: the DuckDNS name. `MEDIA_DOMAIN`: the video store's name, `media.` and the same.
 - `WEB_ORIGINS` and `PUBLIC_WEB_URL`: the Netlify site's address.
 - `SMTP_URL` and `MAIL_FROM`: from step 3.
 - The four secrets: `POSTGRES_PASSWORD`, `APP_DB_PASSWORD`, `REDIS_PASSWORD` and `JWT_SECRET`.
   Generate each with:
   ```bash
   openssl rand -base64 48 | tr -d '/+=' | cut -c1-40
+  ```
+- Garage's secrets and the key the API and worker use to reach it. Garage expects hex:
+  ```bash
+  echo "GARAGE_RPC_SECRET=$(openssl rand -hex 32)"
+  echo "GARAGE_ADMIN_TOKEN=$(openssl rand -hex 32)"
+  echo "S3_ACCESS_KEY_ID=GK$(openssl rand -hex 12)"
+  echo "S3_SECRET_ACCESS_KEY=$(openssl rand -hex 32)"
   ```
 
 Then start everything:
@@ -73,9 +88,14 @@ Then start everything:
 docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --build
 ```
 
-Compose builds the images and starts Postgres and Redis. Next it runs the migrations, as the
-database owner, in a one-off `migrate` container. Then it starts the API and the worker, and Caddy,
-which fetches a Let's Encrypt certificate for `API_DOMAIN`.
+Compose builds the images and starts Postgres, Redis and Garage. Next come two one-off containers:
+- `migrate` runs the migrations, as the database owner.
+- `storage-setup` gives Garage its storage role, creates the `grand-media` bucket and the access
+  key, and lets the web app's origins upload to it (CORS).
+
+Then Compose starts the API, the worker, and Caddy, which fetches Let's Encrypt certificates for
+`API_DOMAIN` and `MEDIA_DOMAIN`. Every `up` runs both one-off containers again; they only change
+what needs changing.
 
 Check it:
 
@@ -93,12 +113,14 @@ docker compose -f infra/docker-compose.prod.yml logs -f api worker
 | Variable | Value |
 | --- | --- |
 | `API_ORIGIN` | `https://grand-lms.duckdns.org` (no trailing slash) |
+| `MEDIA_ORIGIN` | `https://media.grand-lms.duckdns.org`: the page may load video and images from here |
 | `YOUTUBE_API_KEY`, `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET` | Optional, for the Explore pages (see the README) |
 
 3. Deploy. The build writes `dist/_redirects`, which proxies `/api/v1/*` to the API, and
-   `dist/_headers`, whose Content-Security-Policy allows WebSockets to the API's host.
+   `dist/_headers`, whose Content-Security-Policy allows WebSockets to the API's host and video
+   from the video store.
 4. Put the site's address in `WEB_ORIGINS` and `PUBLIC_WEB_URL` on the server. If you changed
-   them, restart the API and worker:
+   them, restart the API and worker, which also updates the video store's CORS:
    ```bash
    docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d
    ```
@@ -118,7 +140,12 @@ crontab -e
 15 2 * * * cd ~/grand-lms && docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod exec -T postgres pg_dump -U grand -Fc grand > ~/backups/grand-$(date +\%F).dump && find ~/backups -name 'grand-*.dump' -mtime +14 -delete
 ```
 
-Copy the dumps off the server too. [rclone](https://rclone.org) to Cloudflare R2's free tier works.
+Copy the dumps off the server too, for example with [rclone](https://rclone.org) to a cloud drive.
+
+The videos are not in the dump; they live in Garage's volumes on the boot volume. Back that up from
+the Oracle console (**Compute → Boot volumes → your volume → Boot volume backups**). Always Free
+includes five volume backups. A lost video can also be uploaded again: its lesson keeps everything
+else.
 
 To restore into an empty database:
 
@@ -146,3 +173,6 @@ taken before the update and deploy the previous version (`git checkout <tag>`).
 | Sign-in works but the session is lost on reload | `WEB_ORIGINS` must exactly match the site's origin. The refresh call is refused from any other origin. |
 | No live updates | The browser console shows the WebSocket error. Check that `API_ORIGIN` was set when the site was built, since the CSP names the API's host. |
 | Invitations aren't emailed | `logs worker`. Failed sends retry with backoff, and the error is saved in `outbox.last_error`. |
+| Uploads fail at once, with a CORS error in the console | The site's origin must be in `WEB_ORIGINS`; run `up -d` again so `storage-setup` updates the bucket. See `logs storage-setup`. |
+| Videos stay at "Processing" | `logs worker`: ffmpeg's error is there, and in the lesson's error message once it gives up. |
+| Videos don't play | `MEDIA_ORIGIN` must be set on Netlify (the CSP names it), and `https://MEDIA_DOMAIN` must have a certificate (`logs caddy`). |
