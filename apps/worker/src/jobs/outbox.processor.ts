@@ -3,6 +3,8 @@ import { type Job, Worker } from 'bullmq';
 import { WORKER_CONFIG, type WorkerConfig } from '../config.js';
 import { Connections } from '../connections.js';
 import { MailerService } from '../mail/mailer.service.js';
+import { MediaQueue } from '../media/media.queue.js';
+import { MediaService } from '../media/media.service.js';
 import { type InvitationEmail, invitationEmail } from '../mail/templates.js';
 import { OUTBOX_QUEUE, type OutboxJob, QUEUE_PREFIX } from './queues.js';
 
@@ -26,6 +28,8 @@ export class OutboxProcessor implements OnApplicationBootstrap, OnApplicationShu
   constructor(
     private readonly connections: Connections,
     mailer: MailerService,
+    mediaQueue: MediaQueue,
+    media: MediaService,
     @Inject(WORKER_CONFIG) private readonly config: WorkerConfig,
   ) {
     this.handlers = {
@@ -33,9 +37,16 @@ export class OutboxProcessor implements OnApplicationBootstrap, OnApplicationShu
         run: (payload) => mailer.send(invitationEmail(payload as unknown as InvitationEmail)),
         scrub: ['url'],
       },
+      'media.uploaded': {
+        run: (payload) => mediaQueue.enqueue({ assetId: String(payload.assetId), schoolId: String(payload.schoolId), lessonId: (payload.lessonId as string) ?? null }),
+      },
+      'media.deleted': {
+        run: (payload) => media.remove({ assetId: String(payload.assetId), schoolId: String(payload.schoolId), keepRecord: payload.keepRecord === true }),
+      },
       // Recorded for later features (notifications, analytics); nothing to do yet.
       'school.created': { run: async () => {} },
       'member.joined': { run: async () => {} },
+      'course.published': { run: async () => {} },
     };
   }
 
