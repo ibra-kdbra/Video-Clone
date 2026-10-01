@@ -5,6 +5,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { MediaStatus } from '@grand/contracts';
 import { WORKER_CONFIG, type WorkerConfig } from '../config.js';
 import { Connections } from '../connections.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { RealtimeEmitter } from '../realtime.js';
 import { mediaKeys, WorkerStorage } from '../storage.js';
 import {
@@ -26,6 +27,7 @@ const GENERIC_FAILURE = "This video couldn't be processed. Try exporting it as a
 interface AssetRow {
   id: string;
   status: MediaStatus;
+  uploaded_by: string | null;
   upload_id: string | null;
   declared_bytes: string;
   original_bytes: string | null;
@@ -45,6 +47,7 @@ export class MediaService {
     private readonly connections: Connections,
     private readonly storage: WorkerStorage,
     private readonly realtime: RealtimeEmitter,
+    private readonly notifications: NotificationsService,
     @Inject(WORKER_CONFIG) private readonly config: WorkerConfig,
   ) {}
 
@@ -122,6 +125,9 @@ export class MediaService {
         durationSeconds: Math.round(probe.durationSeconds),
       });
       this.logger.log(`Video ${assetId} ready: ${renditions.map((rung) => rung.name).join(', ')}, ${Math.round(probe.durationSeconds)} s`);
+      await this.notifications
+        .videoProcessed({ schoolId, assetId, lessonId: finished.lessonId, uploadedBy: asset.uploaded_by, ready: true })
+        .catch((error: Error) => this.logger.warn(`Notifying about video ${assetId} failed: ${error.message}`));
       return 'ready';
     } catch (error) {
       const unusable = error instanceof UnusableVideoError;
@@ -137,12 +143,15 @@ export class MediaService {
   async fail(job: TranscodeJob, message: string) {
     const failed = await this.connections.withSchool(job.schoolId, async (tx) => {
       const [current] = await tx<AssetRow[]>`select * from media_assets where id = ${job.assetId} for update`;
-      if (!current || current.status !== 'processing') return false;
+      if (!current || current.status !== 'processing') return null;
       await tx`update media_assets set status = 'failed', error = ${message}, progress = 0, stored_bytes = 0 where id = ${job.assetId}`;
       await tx`update school_storage set used_bytes = greatest(used_bytes - ${Number(current.stored_bytes)}, 0) where school_id = ${job.schoolId}`;
-      return true;
+      return current;
     });
     if (!failed) return;
+    await this.notifications
+      .videoProcessed({ schoolId: job.schoolId, assetId: job.assetId, lessonId: job.lessonId, uploadedBy: failed.uploaded_by, ready: false, error: message })
+      .catch((error: Error) => this.logger.warn(`Notifying about video ${job.assetId} failed: ${error.message}`));
     await this.storage.deletePrefix(mediaKeys(job.schoolId, job.assetId).root).catch(() => {});
     this.realtime.media({ schoolId: job.schoolId, assetId: job.assetId, lessonId: job.lessonId, status: 'failed', progress: 0, error: message, durationSeconds: null });
   }

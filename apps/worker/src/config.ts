@@ -12,6 +12,11 @@ export const envSchema = z
     MAIL_FROM: z.string().min(3).default('Grand LMS <no-reply@localhost>'),
     /** Emails sent per second at most, to stay within the mail provider's limits. */
     MAIL_RATE_PER_SECOND: z.coerce.number().int().min(1).max(100).default(5),
+    /** The web app's address, for links in notification emails. */
+    PUBLIC_WEB_URL: z
+      .url({ protocol: /^https?$/ })
+      .default('http://localhost:5173')
+      .transform((url) => url.replace(/\/$/, '')),
 
     /** The same S3-compatible video store as the API (its internal address). */
     S3_ENDPOINT: z.url({ protocol: /^https?$/ }).optional(),
