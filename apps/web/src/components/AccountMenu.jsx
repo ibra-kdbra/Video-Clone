@@ -1,8 +1,13 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { AnimatePresence, m } from 'motion/react';
-import { Link, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
+import { DEMO, loadedDemo } from '../lib/demo.js';
+import { errorMessage } from '../lib/forms.js';
+import { PRIVATE_QUERIES } from '../lib/lms.js';
 import { ROLE_LABELS } from '../lib/roles.js';
+import { toast } from '../lib/toast.js';
 import { useSession } from '../lib/useSession.js';
 import Icon from './Icon.jsx';
 import Monogram from './Monogram.jsx';
@@ -18,11 +23,14 @@ function focusAt(menu, index) {
 
 /**
  * The profile button in the top bar and its menu: the account, a quick switch between schools,
- * "Create a school" and "Sign out". It follows the menu-button pattern: arrow keys, Home and End
- * move between items, Escape closes and returns focus to the button, Tab closes and moves on.
+ * "Create a school" and "Sign out" (in the demo, also a switch to another of the demo's people).
+ * It follows the menu-button pattern: arrow keys, Home and End move between items, Escape closes
+ * and returns focus to the button, Tab closes and moves on.
  */
 export default function AccountMenu() {
-  const { user, schools, signOut } = useSession();
+  const { user, schools, signIn, signOut } = useSession();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const root = useRef(null);
   const button = useRef(null);
@@ -69,6 +77,25 @@ export default function AccountMenu() {
   const onSignOut = () => {
     setOpen(false);
     signOut();
+    // In the demo, signing out goes back to the start, to pick someone else.
+    if (DEMO) navigate('/');
+  };
+
+  // The demo's other people, to become in one click (the mock API is loaded by now).
+  const demo = DEMO ? loadedDemo() : null;
+  const others = demo ? demo.personas().filter((persona) => persona.email !== user?.email) : [];
+  const switchTo = async (persona) => {
+    setOpen(false);
+    await signOut();
+    queryClient.removeQueries({ predicate: (query) => PRIVATE_QUERIES.has(query.queryKey[0]) });
+    try {
+      const next = await signIn({ email: persona.email, password: demo.DEMO_PASSWORD });
+      navigate(demo.startPage(next.id));
+      toast(`You're now ${next.name} (${persona.label.toLowerCase()})`);
+    } catch (error) {
+      navigate('/signin');
+      toast(errorMessage(error), { tone: 'error' });
+    }
   };
 
   if (!user) return null;
@@ -148,6 +175,24 @@ export default function AccountMenu() {
                   Create a school
                 </Link>
               </li>
+              {others.length > 0 && (
+                <li role="none">
+                  <p className={styles.groupLabel} id={`${menuId}-personas`}>
+                    Switch demo person
+                  </p>
+                  <ul role="group" aria-labelledby={`${menuId}-personas`} className={styles.group}>
+                    {others.map((persona) => (
+                      <li key={persona.key} role="none">
+                        <button role="menuitem" tabIndex={-1} type="button" className={styles.item} onClick={() => switchTo(persona)}>
+                          <Monogram name={persona.name} seed={persona.id} size={26} letters={1} round />
+                          <span className={styles.schoolName}>{persona.name}</span>
+                          <span className={styles.role}>{persona.label}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              )}
               <li role="separator" className={styles.separator} />
               <li role="none">
                 <button role="menuitem" tabIndex={-1} type="button" className={styles.item} onClick={onSignOut}>

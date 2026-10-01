@@ -38,8 +38,8 @@ const queryClient = new QueryClient({
   },
 });
 
-// On the home page, ask for the trending feed right away, in parallel with rendering.
-if (window.location.pathname === '/' && !window.location.search.includes('c=')) {
+// On the Explore page, ask for the trending feed right away, in parallel with rendering.
+if (window.location.pathname === '/explore') {
   const sources = getSources();
   queryClient.prefetchQuery({ queryKey: ['feed', TRENDING.slug, sources], queryFn: () => categoryVideos(TRENDING, sources) });
 }

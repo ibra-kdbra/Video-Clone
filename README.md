@@ -14,9 +14,12 @@ foundation of Phase 0:
 - video uploads straight to storage, transcoded to adaptive HLS by a worker
 - accounts and devices, schools and roles, email invitations, live presence
 
-Live classes and discussions come next; see the [roadmap](docs/roadmap.md). The video Explore pages
-from the earlier FundaStream app are still here: trending, browse, search and watch across
-YouTube, Dailymotion and Twitch.
+**Try it:** the public site runs a demo school, Grand Academy, entirely in the browser (see
+[Demo mode](#demo-mode)): sign in as its student, instructor or owner with one click.
+
+Live classes and discussions come next; see the [roadmap](docs/roadmap.md). The video pages from
+the earlier FundaStream app are still here, under Explore videos: trending, browse, search and
+watch across YouTube, Dailymotion and Twitch.
 
 ## What's in it
 
@@ -167,6 +170,30 @@ npm run dev:web              # http://localhost:5173, proxying /api/v1 to the AP
 
 The Explore pages need no keys in mock mode: `npm run dev:mock -w @grand/web`. With real keys in
 `.env`, they use the platforms' APIs; `.env.example` explains where to get each key.
+
+### Demo mode
+
+`VITE_DEMO=true` builds the web app to run the whole LMS in the browser, with no API server: every
+`/api/v1` call goes to a mock of the API in the page ([apps/web/src/demo](apps/web/src/demo)), with
+the API's rules, and a demo school (Grand Academy) seeded from `src/demo/content.js`. Sign in as its
+student, instructor or owner with one click; changes stay in that browser until "Reset demo". The
+public Netlify site is built this way (`netlify.toml`). Without the flag, none of it is in the build.
+
+- **The school**: eight courses in mathematics, computing, science and history, with quizzes and
+  assignments, about forty classmates whose progress, attempts and handed-in work fill the
+  instructors' queues and insights, and notifications that arrive live (hand in an assignment and
+  it's graded a few seconds later).
+- **The videos**: most lessons embed lectures from 3Blue1Brown, CrashCourse and freeCodeCamp,
+  credited in each lesson's notes. *The Physics of Sound* uses the school's own videos, played by
+  the app's own player, so progress, resume and the retention chart work as they do with uploads.
+  They're animated waveforms over synthesized tones, made from scratch by
+  [apps/web/scripts/demo-media](apps/web/scripts/demo-media) (`render.py` draws them, `package.mjs`
+  packages them as HLS like the worker does) and served from `public/demo/media`.
+
+```bash
+VITE_DEMO=true npm run dev -w @grand/web            # add `-- --mode mock` for the Explore pages without keys
+VITE_DEMO=true npm run build -w @grand/web
+```
 
 ## Scripts
 

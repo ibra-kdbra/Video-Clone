@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { m } from 'motion/react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 
+import { isExplorePath, mainLinks } from '../lib/home.js';
 import { authPath } from '../lib/paths.js';
 import { useScrolled } from '../lib/useScrolled.js';
 import { useSession } from '../lib/useSession.js';
@@ -14,12 +15,6 @@ import styles from './TopBar.module.scss';
 
 // Only people signed in have notifications, so the bell (and its live updates) is its own chunk.
 const NotificationBell = lazy(() => import('./NotificationBell.jsx'));
-
-const LINKS = [
-  { to: '/', label: 'Home', end: true },
-  { to: '/browse/trending', label: 'Browse', match: '/browse' },
-  { to: '/library', label: 'Library' },
-];
 
 /** Signed in: the notifications bell and the profile menu. Signed out: "Sign in", which comes back to this page after. */
 function SessionControl() {
@@ -44,13 +39,16 @@ function SessionControl() {
 }
 
 /**
- * The top bar. On the home page it floats, see-through, over the billboard until the page
- * scrolls, then settles into a solid, blurred bar.
+ * The top bar: the LMS's sections, the notifications bell and the account. The video search box
+ * and the platform picker show on the Explore pages only. On the Explore home it floats,
+ * see-through, over the billboard until the page scrolls, then settles into a solid, blurred bar.
  */
 export default function TopBar() {
   const { pathname } = useLocation();
+  const { schools } = useSession();
   const scrolled = useScrolled(24);
-  const floating = pathname === '/' && !scrolled;
+  const floating = pathname === '/explore' && !scrolled;
+  const exploring = isExplorePath(pathname);
 
   return (
     <header className={`${styles.bar} ${floating ? `${styles.floating} theme-dark` : ''}`}>
@@ -61,23 +59,22 @@ export default function TopBar() {
         </Link>
 
         <nav className={styles.nav} aria-label="Main">
-          {LINKS.map((link) => {
-            const active = link.match ? pathname.startsWith(link.match) : link.end ? pathname === link.to : pathname.startsWith(link.to);
-            return (
-              <NavLink key={link.to} to={link.to} end={link.end} className={styles.navLink} aria-current={active ? 'page' : undefined}>
-                {active && <m.span layoutId="nav-pill" className={styles.pill} aria-hidden="true" />}
-                <span className={styles.navLabel}>{link.label}</span>
-              </NavLink>
-            );
-          })}
+          {mainLinks(schools, pathname).map((link) => (
+            <NavLink key={link.label} to={link.to} end className={styles.navLink} aria-current={link.active ? 'page' : undefined}>
+              {link.active && <m.span layoutId="nav-pill" className={styles.pill} aria-hidden="true" />}
+              <span className={styles.navLabel}>{link.label}</span>
+            </NavLink>
+          ))}
         </nav>
 
-        <div className={styles.search}>
-          <SearchBox />
-        </div>
+        {exploring && (
+          <div className={styles.search}>
+            <SearchBox />
+          </div>
+        )}
 
         <div className={styles.actions}>
-          <SourcePicker compact />
+          {exploring && <SourcePicker compact />}
           <ThemeToggle />
           <SessionControl />
         </div>

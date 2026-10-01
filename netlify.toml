@@ -6,6 +6,9 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  # The public site has no API server: it runs the LMS against a mock API in the browser, with a
+  # demo school (apps/web/src/demo). Leave this out once API_ORIGIN points at a real API.
+  VITE_DEMO = "true"
 
 # The video proxy (apps/web/netlify/functions/api.mjs) serves /api/* except /api/v1/*, which is the
 # Grand LMS API. The security headers and redirects are written into dist/ by the build

@@ -5,6 +5,7 @@ import { signupInput } from '@grand/contracts';
 import AuthShell from '../components/AuthShell.jsx';
 import Button from '../components/Button.jsx';
 import { FormAlert, PasswordField, TextField } from '../components/Field.jsx';
+import { DEMO } from '../lib/demo.js';
 import { firstName } from '../lib/forms.js';
 import { authPath, safeNext } from '../lib/paths.js';
 import { toast } from '../lib/toast.js';
@@ -44,7 +45,13 @@ export default function SignUp() {
   return (
     <AuthShell
       title="Create your account"
-      lede={invited ? 'Use the email address your invitation was sent to, then accept it.' : 'One account for every school you join or create.'}
+      lede={
+        invited
+          ? 'Use the email address your invitation was sent to, then accept it.'
+          : DEMO
+            ? 'You’ll join the demo school as a new student. The account is kept in this browser only.'
+            : 'One account for every school you join or create.'
+      }
       footer={
         <>
           Already have an account? <Link to={authPath('signin', next)}>Sign in</Link>

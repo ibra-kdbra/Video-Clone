@@ -1,4 +1,5 @@
 import { keys, withLessonProgress } from './courses.js';
+import { DEMO } from './demo.js';
 import { apiFetch, apiFetchKeepalive } from './session.js';
 
 /**
@@ -78,6 +79,8 @@ const getDownload = (slug, courseSlug, lessonId, submissionId, fileId) =>
  */
 export async function downloadSubmissionFile(slug, courseSlug, lessonId, submissionId, fileId) {
   const { url } = await getDownload(slug, courseSlug, lessonId, submissionId, fileId);
+  // The demo keeps files in this tab's memory: they're saved from there, under their own name.
+  if (DEMO) return (await import('../demo/server.js')).saveFile(url);
   window.location.assign(url);
 }
 
