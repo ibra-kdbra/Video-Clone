@@ -46,6 +46,8 @@ export type ApiErrorCode =
   | 'invitation_email_mismatch'
   | 'already_member'
   | 'limit_reached'
+  | 'quota_exceeded'
+  | 'enrollment_required'
   | 'payload_too_large'
   | 'rate_limited'
   | 'service_unavailable'

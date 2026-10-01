@@ -10,9 +10,12 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src test",
     "test": "vitest run",
-    "db:migrate": "tsc -p tsconfig.build.json && node --env-file-if-exists=../../.env dist/database/migrate.js"
+    "db:migrate": "tsc -p tsconfig.build.json && node --env-file-if-exists=../../.env dist/database/migrate.js",
+    "storage:setup": "tsc -p tsconfig.build.json && node --env-file-if-exists=../../.env dist/storage/setup.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1144.0",
+    "@aws-sdk/s3-request-presigner": "^3.1144.0",
     "@fastify/cookie": "^11.1.2",
     "@fastify/helmet": "^13.1.1",
     "@grand/contracts": "0.1.0",

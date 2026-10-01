@@ -1,6 +1,7 @@
 import type { TestProject } from 'vitest/node';
 import postgres from 'postgres';
 import { Redis } from 'ioredis';
+import { PutBucketCorsCommand, S3Client } from '@aws-sdk/client-s3';
 import { migrate } from '../src/database/migrator.js';
 
 declare module 'vitest' {
@@ -10,6 +11,8 @@ declare module 'vitest' {
     /** The owner's connection string, for arranging data the API couldn't. */
     ownerDatabaseUrl: string;
     redisUrl: string;
+    /** S3-compatible storage for the video tests (Garage locally and in CI), or null to skip them. */
+    s3: { endpoint: string; bucket: string; accessKeyId: string; secretAccessKey: string; region: string } | null;
   }
 }
 
@@ -50,6 +53,25 @@ export default async function setup(project: TestProject) {
   project.provide('appDatabaseUrl', appUrl.toString());
   project.provide('ownerDatabaseUrl', ownerUrl);
   project.provide('redisUrl', redisUrl);
+  project.provide('s3', await storageForTests());
+}
+
+/** TEST_S3_* point at a bucket the tests may write to; its CORS is set for the test web origin. */
+async function storageForTests() {
+  const { TEST_S3_ENDPOINT: endpoint, TEST_S3_BUCKET: bucket, TEST_S3_ACCESS_KEY_ID: accessKeyId, TEST_S3_SECRET_ACCESS_KEY: secretAccessKey } = process.env;
+  if (!endpoint || !bucket || !accessKeyId || !secretAccessKey) return null;
+  const region = process.env.TEST_S3_REGION ?? 'garage';
+  const client = new S3Client({ endpoint, region, forcePathStyle: true, credentials: { accessKeyId, secretAccessKey } });
+  await client.send(
+    new PutBucketCorsCommand({
+      Bucket: bucket,
+      CORSConfiguration: {
+        CORSRules: [{ AllowedOrigins: ['http://localhost:5173'], AllowedMethods: ['GET', 'PUT', 'HEAD'], AllowedHeaders: ['*'], ExposeHeaders: ['ETag'], MaxAgeSeconds: 600 }],
+      },
+    }),
+  );
+  client.destroy();
+  return { endpoint, bucket, accessKeyId, secretAccessKey, region };
 }
 
 function withDatabase(url: string, database: string) {

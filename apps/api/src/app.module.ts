@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 import { AuthGuard } from './auth/auth.guard.js';
 import { AuthModule } from './auth/auth.module.js';
+import { CoursesModule } from './courses/courses.module.js';
 import type { AppConfig } from './config/app-config.js';
 import { ConfigModule } from './config/config.module.js';
 import { DatabaseModule } from './database/database.module.js';
@@ -14,6 +15,7 @@ import { RealtimeCoreModule } from './realtime/realtime-core.module.js';
 import { RealtimeModule } from './realtime/realtime.module.js';
 import { RedisModule } from './redis/redis.module.js';
 import { SchoolsModule } from './schools/schools.module.js';
+import { StorageModule } from './storage/storage.module.js';
 
 @Module({})
 export class AppModule {
@@ -50,8 +52,10 @@ export class AppModule {
         RateLimitModule,
         EventsModule,
         RealtimeCoreModule,
+        StorageModule,
         AuthModule,
         SchoolsModule,
+        CoursesModule,
         RealtimeModule,
         HealthModule,
       ],
