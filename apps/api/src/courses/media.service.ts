@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import type { CompleteUploadInput, LessonSummary, StartUploadInput, StorageUsage, UploadTicket } from '@grand/contracts';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { ApiException, notFound } from '../common/api-exception.js';
 import type { SchoolContext } from '../common/request-context.js';
 import { AppConfig } from '../config/app-config.js';
@@ -10,6 +10,7 @@ import { lessons, mediaAssets, schoolStorage } from '../database/schema.js';
 import { AuditService } from '../events/audit.service.js';
 import { OutboxService } from '../events/outbox.service.js';
 import { RealtimeService } from '../realtime/realtime.service.js';
+import { addUsedQuota, formatSize, releaseQuota, reserveQuota } from '../storage/quota.js';
 import { mediaKeys, StorageService } from '../storage/storage.service.js';
 import { CoursesService, toLessonSummary } from './courses.service.js';
 import { LessonsService } from './lessons.service.js';
@@ -22,7 +23,6 @@ const PART_URL_TTL_SECONDS = 3600;
 export const partSizeFor = (bytes: number) => Math.max(16 * MIB, Math.ceil(bytes / 10_000 / MIB) * MIB);
 export const partCountFor = (bytes: number) => Math.ceil(bytes / partSizeFor(bytes));
 
-const formatGb = (bytes: number) => `${(bytes / 1024 ** 3).toFixed(bytes < 10 * 1024 ** 3 ? 1 : 0)} GB`;
 
 /**
  * Video uploads go from the browser straight to storage, in parts, through signed URLs: the API
@@ -61,7 +61,7 @@ export class MediaService {
       throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, 'service_unavailable', "Video uploads aren't set up on this server yet.");
     }
     if (input.size > this.config.media.maxUploadBytes) {
-      throw new ApiException(HttpStatus.PAYLOAD_TOO_LARGE, 'payload_too_large', `Videos can be up to ${formatGb(this.config.media.maxUploadBytes)}.`);
+      throw new ApiException(HttpStatus.PAYLOAD_TOO_LARGE, 'payload_too_large', `Videos can be up to ${formatSize(this.config.media.maxUploadBytes)}.`);
     }
     const assetId = randomUUID();
     const key = mediaKeys(school.id, assetId).original;
@@ -70,7 +70,7 @@ export class MediaService {
       await this.db.transaction({ userId, schoolId: school.id }, async (tx) => {
         const course = await this.courses.findEditable(tx, school, userId, courseSlug);
         const { lesson } = await this.lessonsService.find(tx, school, userId, course, lessonId, { forUpdate: true });
-        await this.reserve(tx, school.id, input.size);
+        await reserveQuota(tx, school.id, input.size);
         await tx.insert(mediaAssets).values({
           id: assetId,
           schoolId: school.id,
@@ -142,13 +142,13 @@ export class MediaService {
     const summary = await this.db.transaction({ userId, schoolId: school.id }, async (tx) => {
       const [current] = await tx.select().from(mediaAssets).where(and(eq(mediaAssets.id, assetId), eq(mediaAssets.status, 'uploading'))).for('update');
       if (!current) throw new ApiException(HttpStatus.CONFLICT, 'conflict', 'This upload was already finished or cancelled.');
-      await this.release(tx, school.id, current.declaredBytes);
+      await releaseQuota(tx, school.id, current.declaredBytes);
       if (size !== current.declaredBytes) {
         await tx.update(mediaAssets).set({ status: 'failed', error: "The uploaded file wasn't the size it was declared to be.", uploadId: null }).where(eq(mediaAssets.id, assetId));
         await this.outbox.add(tx, 'media.deleted', { assetId, schoolId: school.id, keepRecord: true }, school.id);
         return null;
       }
-      await tx.update(schoolStorage).set({ usedBytes: sql`${schoolStorage.usedBytes} + ${size}` }).where(eq(schoolStorage.schoolId, school.id));
+      await addUsedQuota(tx, school.id, size);
       const [processing] = await tx
         .update(mediaAssets)
         .set({ status: 'processing', originalBytes: size, storedBytes: size, uploadId: null, progress: 0 })
@@ -178,7 +178,7 @@ export class MediaService {
   async abort(school: SchoolContext, userId: string, courseSlug: string, lessonId: string, assetId: string): Promise<void> {
     const asset = await this.db.transaction({ userId, schoolId: school.id }, async (tx) => {
       const upload = await this.findUpload(tx, school, userId, courseSlug, lessonId, assetId);
-      await this.release(tx, school.id, upload.declaredBytes);
+      await releaseQuota(tx, school.id, upload.declaredBytes);
       await tx
         .update(lessons)
         .set({ videoProvider: null, mediaId: null, videoRef: null, durationSeconds: null })
@@ -198,27 +198,5 @@ export class MediaService {
       throw new ApiException(HttpStatus.CONFLICT, 'conflict', 'This upload was already finished or cancelled.');
     }
     return asset;
-  }
-
-  /** Holds `bytes` of the quota for an upload in progress; refuses when it doesn't fit. */
-  private async reserve(tx: Tx, schoolId: string, bytes: number) {
-    const [storage] = await tx.select().from(schoolStorage).where(eq(schoolStorage.schoolId, schoolId)).for('update');
-    if (!storage) throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, 'service_unavailable', 'Storage for this school is not set up.');
-    const free = storage.quotaBytes - storage.usedBytes - storage.reservedBytes;
-    if (bytes > free) {
-      throw new ApiException(
-        HttpStatus.FORBIDDEN,
-        'quota_exceeded',
-        `This school has ${formatGb(Math.max(0, free))} of video storage left, and this file needs ${formatGb(bytes)}.`,
-      );
-    }
-    await tx.update(schoolStorage).set({ reservedBytes: sql`${schoolStorage.reservedBytes} + ${bytes}` }).where(eq(schoolStorage.schoolId, schoolId));
-  }
-
-  private async release(tx: Tx, schoolId: string, bytes: number) {
-    await tx
-      .update(schoolStorage)
-      .set({ reservedBytes: sql`greatest(${schoolStorage.reservedBytes} - ${bytes}, 0)` })
-      .where(eq(schoolStorage.schoolId, schoolId));
   }
 }

@@ -12,5 +12,6 @@ import { SchoolsModule } from '../schools/schools.module.js';
   imports: [SchoolsModule],
   controllers: [CoursesController, LessonsController, MediaController],
   providers: [CoursesService, LessonsService, MediaService, PlaybackService],
+  exports: [CoursesService, LessonsService],
 })
 export class CoursesModule {}

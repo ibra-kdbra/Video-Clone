@@ -16,11 +16,12 @@ import { badCursor, decodeCursor, encodeCursor } from '../common/cursor.js';
 import type { SchoolContext } from '../common/request-context.js';
 import { DatabaseService, type Tx } from '../database/database.service.js';
 import { isUniqueViolation } from '../database/errors.js';
-import { memberships, schools, users } from '../database/schema.js';
+import { assignmentSubmissions, memberships, schools, users } from '../database/schema.js';
 import { AuditService } from '../events/audit.service.js';
 import { OutboxService } from '../events/outbox.service.js';
 import { AppConfig } from '../config/app-config.js';
 import { RealtimeService } from '../realtime/realtime.service.js';
+import { scheduleSubmissionFileDeletion } from '../storage/submission-files.js';
 
 type SchoolRow = typeof schools.$inferSelect;
 
@@ -172,7 +173,7 @@ export class SchoolsService {
       return { userId: targetId, name: current.name, email: current.email, role, joinedAt: updated!.createdAt.toISOString() };
     });
     this.realtime.emitToSchool(school.id, 'school:member-updated', { schoolId: school.id, userId: targetId, role });
-    await this.realtime.changeRole(targetId, school.id, role).catch(() => {});
+    this.realtime.changeRole(targetId, school.id, role);
     return member;
   }
 
@@ -185,6 +186,8 @@ export class SchoolsService {
       if (!leaving && (ROLE_RANK[school.role] < ROLE_RANK.admin || !outranks(school.role, current.role))) {
         throw forbidden("You can't remove this member.");
       }
+      // Their submissions go with the membership; their files are cleared away too.
+      await scheduleSubmissionFileDeletion(tx, this.outbox, school.id, and(eq(assignmentSubmissions.schoolId, school.id), eq(assignmentSubmissions.userId, targetId)));
       await tx.delete(memberships).where(and(eq(memberships.schoolId, school.id), eq(memberships.userId, targetId)));
       await this.audit.record(tx, {
         action: leaving ? 'member.left' : 'member.removed',

@@ -1,11 +1,13 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import type { CreateLessonInput, Enrollment, Lesson, LessonSummary, UpdateLessonInput } from '@grand/contracts';
-import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, max, sql } from 'drizzle-orm';
 import { ApiException, notFound } from '../common/api-exception.js';
 import type { SchoolContext } from '../common/request-context.js';
 import { DatabaseService, type Tx } from '../database/database.service.js';
-import { courseModules, enrollments, lessons, mediaAssets, users } from '../database/schema.js';
+import { assignments, assignmentSubmissions, courseModules, enrollments, lessonProgress, lessons, mediaAssets, quizzes, users } from '../database/schema.js';
 import { AuditService } from '../events/audit.service.js';
+import { OutboxService } from '../events/outbox.service.js';
+import { lessonProgressDetail, progressSummary } from '../learning/progress.js';
 import { canEditCourse, canWatchLesson } from './course-access.js';
 import { type CourseRecord, CoursesService, toLessonSummary } from './courses.service.js';
 
@@ -20,6 +22,7 @@ export class LessonsService {
     private readonly db: DatabaseService,
     private readonly courses: CoursesService,
     private readonly audit: AuditService,
+    private readonly outbox: OutboxService,
   ) {}
 
   /** The lesson, if it belongs to the course and the viewer may see it in the outline. */
@@ -53,9 +56,20 @@ export class LessonsService {
       const [last] = await tx.select({ position: lessons.position }).from(lessons).where(eq(lessons.moduleId, module.id)).orderBy(desc(lessons.position)).limit(1);
       const [lesson] = await tx
         .insert(lessons)
-        .values({ schoolId: school.id, courseId: course.id, moduleId: module.id, title: input.title, position: (last?.position ?? -1) + 1, createdBy: userId })
+        .values({
+          schoolId: school.id,
+          courseId: course.id,
+          moduleId: module.id,
+          kind: input.kind,
+          title: input.title,
+          position: (last?.position ?? -1) + 1,
+          createdBy: userId,
+        })
         .returning();
-      await this.audit.record(tx, { action: 'lesson.created', actorId: userId, schoolId: school.id, targetType: 'lesson', targetId: lesson!.id, ip });
+      // A quiz or an assignment starts with its default settings.
+      if (input.kind === 'quiz') await tx.insert(quizzes).values({ lessonId: lesson!.id, schoolId: school.id, courseId: course.id });
+      if (input.kind === 'assignment') await tx.insert(assignments).values({ lessonId: lesson!.id, schoolId: school.id, courseId: course.id });
+      await this.audit.record(tx, { action: 'lesson.created', actorId: userId, schoolId: school.id, targetType: 'lesson', targetId: lesson!.id, ip, data: { kind: input.kind } });
       return toLessonSummary(lesson!, null, false);
     });
   }
@@ -76,8 +90,18 @@ export class LessonsService {
       const course = await this.courses.findEditable(tx, school, userId, courseSlug);
       const { lesson } = await this.find(tx, school, userId, course, lessonId, { forUpdate: true });
       const { video, ...fields } = input;
+      if (video !== undefined && lesson.kind !== 'lesson') {
+        throw new ApiException(HttpStatus.CONFLICT, 'conflict', "Quizzes and assignments don't have a video. Put the instructions in the notes.");
+      }
       const changes: Partial<LessonRecord> = { ...fields };
-      if (input.status === 'published' && lesson.status !== 'published' && !lesson.publishedAt) changes.publishedAt = new Date();
+      if (input.status === 'published' && lesson.status !== 'published' && !lesson.publishedAt) {
+        changes.publishedAt = new Date();
+        // Students already in the course hear about new lessons; publishing the course itself
+        // announces the lessons it starts with.
+        if (course.status === 'published') {
+          await this.outbox.add(tx, 'lesson.published', { lessonId: lesson.id, courseId: course.id, actorId: userId }, school.id);
+        }
+      }
 
       if (video !== undefined) {
         // Replacing or removing an uploaded video deletes its files once nothing points at them.
@@ -110,6 +134,7 @@ export class LessonsService {
     await this.db.transaction({ userId, schoolId: school.id }, async (tx) => {
       const course = await this.courses.findEditable(tx, school, userId, courseSlug);
       const { lesson } = await this.find(tx, school, userId, course, lessonId, { forUpdate: true });
+      await this.courses.scheduleSubmissionFileDeletion(tx, school.id, eq(assignmentSubmissions.lessonId, lesson.id));
       await tx.delete(lessons).where(eq(lessons.id, lesson.id));
       if (lesson.mediaId) await this.courses.scheduleMediaDeletion(tx, school.id, [lesson.mediaId]);
       await this.audit.record(tx, { action: 'lesson.deleted', actorId: userId, schoolId: school.id, targetType: 'lesson', targetId: lesson.id, ip, data: { title: lesson.title } });
@@ -132,18 +157,50 @@ export class LessonsService {
     });
   }
 
-  /** Who is enrolled, newest first (the course's editors only). */
+  /** Who is enrolled and how far each has got, newest first (the course's editors only). */
   async enrollments(school: SchoolContext, userId: string, courseSlug: string): Promise<Enrollment[]> {
     return this.db.transaction({ userId, schoolId: school.id }, async (tx) => {
       const course = await this.courses.findEditable(tx, school, userId, courseSlug);
+      const [{ total } = { total: 0 }] = await tx
+        .select({ total: count() })
+        .from(lessons)
+        .where(and(eq(lessons.courseId, course.id), eq(lessons.status, 'published')));
+      const done = tx
+        .select({
+          userId: lessonProgress.userId,
+          completed: sql<number>`count(*) filter (where ${lessonProgress.completedAt} is not null)::int`.as('completed'),
+          lastActivityAt: max(lessonProgress.updatedAt).as('last_activity_at'),
+        })
+        .from(lessonProgress)
+        .innerJoin(lessons, and(eq(lessons.id, lessonProgress.lessonId), eq(lessons.status, 'published')))
+        .where(eq(lessonProgress.courseId, course.id))
+        .groupBy(lessonProgress.userId)
+        .as('done');
       const rows = await tx
-        .select({ userId: enrollments.userId, name: users.name, email: users.email, enrolledAt: enrollments.createdAt })
+        .select({
+          userId: enrollments.userId,
+          name: users.name,
+          email: users.email,
+          enrolledAt: enrollments.createdAt,
+          completed: done.completed,
+          lastActivityAt: done.lastActivityAt,
+        })
         .from(enrollments)
         .innerJoin(users, eq(users.id, enrollments.userId))
+        .leftJoin(done, eq(done.userId, enrollments.userId))
         .where(eq(enrollments.courseId, course.id))
         .orderBy(desc(enrollments.createdAt))
         .limit(1000);
-      return rows.map((row) => ({ ...row, enrolledAt: row.enrolledAt.toISOString() }));
+      return rows.map(({ completed, lastActivityAt, ...row }) => ({
+        ...row,
+        enrolledAt: row.enrolledAt.toISOString(),
+        progress: {
+          completedLessons: completed ?? 0,
+          totalLessons: total,
+          percent: total ? Math.round(((completed ?? 0) / total) * 100) : 0,
+          lastActivityAt: lastActivityAt ? new Date(lastActivityAt).toISOString() : null,
+        },
+      }));
     });
   }
 
@@ -165,10 +222,14 @@ export class LessonsService {
       .where(and(eq(lessons.courseId, course.id), editor ? undefined : eq(lessons.status, 'published')))
       .orderBy(asc(courseModules.position), asc(lessons.position), sql`${lessons.id}`);
     const index = order.findIndex((row) => row.id === lesson.id);
+    const [progress] = enrolled
+      ? await tx.select().from(lessonProgress).where(and(eq(lessonProgress.lessonId, lesson.id), eq(lessonProgress.userId, userId)))
+      : [];
     return {
-      ...toLessonSummary(lesson, media, !canWatchLesson(school, userId, course, lesson, enrolled || editor)),
+      ...toLessonSummary(lesson, media, !canWatchLesson(school, userId, course, lesson, enrolled || editor), enrolled ? progressSummary(lesson, progress) : null),
       courseId: course.id,
       notes: lesson.notes,
+      progressDetail: enrolled ? lessonProgressDetail(lesson, progress) : null,
       previous: index > 0 ? order[index - 1]! : null,
       next: index >= 0 && index < order.length - 1 ? order[index + 1]! : null,
     };

@@ -191,4 +191,55 @@ describe('row-level security', () => {
       expect(await actingAs({}, (sql) => sql`select 1 from media_assets where id = ${stale!.id}`)).toHaveLength(0);
     });
   });
+  describe('learning and notifications', () => {
+    it("keeps each school's progress, attempts and submissions to itself, and attempts unchangeable", async () => {
+      const [course] = await owner<{ id: string }[]>`insert into courses (school_id, slug, title) values (${ids.schoolB}, ${`rls-learn-${randomUUID().slice(0, 8)}`}, 'Course B2') returning id`;
+      const [module] = await owner<{ id: string }[]>`insert into course_modules (school_id, course_id, title, position) values (${ids.schoolB}, ${course!.id}, 'M', 0) returning id`;
+      const [lesson] = await owner<{ id: string }[]>`
+        insert into lessons (school_id, course_id, module_id, kind, title, position) values (${ids.schoolB}, ${course!.id}, ${module!.id}, 'quiz', 'Q', 0) returning id`;
+      await owner`insert into lesson_progress (school_id, course_id, lesson_id, user_id) values (${ids.schoolB}, ${course!.id}, ${lesson!.id}, ${ids.alice})`;
+      const [attempt] = await owner<{ id: string }[]>`
+        insert into quiz_attempts (school_id, course_id, lesson_id, user_id, answers, results, score, max_score, percent, passed)
+        values (${ids.schoolB}, ${course!.id}, ${lesson!.id}, ${ids.alice}, '{}', '[]', 0, 1, 0, false) returning id`;
+
+      const fromA = await actingAs({ userId: ids.alice, schoolId: ids.schoolA }, async (sql) => ({
+        progress: await sql`select 1 from lesson_progress where lesson_id = ${lesson!.id}`,
+        attempts: await sql`select 1 from quiz_attempts where lesson_id = ${lesson!.id}`,
+      }));
+      expect(fromA).toEqual({ progress: [], attempts: [] });
+      await expect(
+        actingAs({ userId: ids.alice, schoolId: ids.schoolB }, (sql) => sql`update quiz_attempts set passed = true where id = ${attempt!.id}`),
+      ).rejects.toThrow(/permission denied/);
+      // Progress can't name a lesson of another course.
+      const [other] = await owner<{ id: string }[]>`insert into courses (school_id, slug, title) values (${ids.schoolB}, ${`rls-other-${randomUUID().slice(0, 8)}`}, 'Other') returning id`;
+      await expect(
+        owner`insert into lesson_progress (school_id, course_id, lesson_id, user_id) values (${ids.schoolB}, ${other!.id}, ${lesson!.id}, ${ids.bob})`,
+      ).rejects.toThrow(/foreign key/);
+    });
+
+    it('writes notifications only for members of the school acting for, and shows each person only their own', async () => {
+      const dedupe = `rls-${randomUUID()}`;
+      const added = await actingAs({ schoolId: ids.schoolB }, (sql) =>
+        sql`select * from app.add_notifications(${[ids.alice, ids.bob, ids.alice]}::uuid[], 'course.published', ${sql.json({ title: 'Hi', body: '', path: '/', schoolName: 'B' })}, ${dedupe})`,
+      );
+      expect(added.map((row) => row.user_id).sort()).toEqual([ids.alice, ids.bob].sort());
+      // The same event again notifies nobody twice.
+      expect(await actingAs({ schoolId: ids.schoolB }, (sql) => sql`select * from app.add_notifications(${[ids.alice]}::uuid[], 'course.published', '{}', ${dedupe})`)).toHaveLength(0);
+      // Bob isn't a member of school A, and nothing is written without a school.
+      await expect(
+        actingAs({ schoolId: ids.schoolA }, (sql) => sql`select * from app.add_notifications(${[ids.bob]}::uuid[], 'course.published', '{}', ${`${dedupe}-a`})`),
+      ).rejects.toThrow(/foreign key/);
+      expect(await actingAs({}, (sql) => sql`select * from app.add_notifications(${[ids.alice]}::uuid[], 'course.published', '{}', ${`${dedupe}-none`})`)).toHaveLength(0);
+
+      const visible = await actingAs({ userId: ids.alice }, (sql) => sql`select user_id from notifications where dedupe_key = ${dedupe}`);
+      expect(visible.map((row) => row.user_id)).toEqual([ids.alice]);
+      const marked = await actingAs({ userId: ids.alice }, (sql) => sql`update notifications set read_at = now() where dedupe_key = ${dedupe}`);
+      expect(marked.count).toBe(1);
+      await expect(
+        actingAs({ userId: ids.alice, schoolId: ids.schoolB }, (sql) =>
+          sql`insert into notifications (user_id, school_id, type) values (${ids.bob}, ${ids.schoolB}, 'course.published')`,
+        ),
+      ).rejects.toThrow(/permission denied/);
+    });
+  });
 });

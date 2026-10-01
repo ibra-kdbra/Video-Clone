@@ -40,6 +40,11 @@ export class RealtimeService {
     this.server?.to(rooms.school(schoolId)).emit(event, ...args);
   }
 
+  /** To every open device of one person. */
+  emitToUser<E extends keyof ServerToClientEvents>(userId: string, event: E, ...args: Parameters<ServerToClientEvents[E]>) {
+    this.server?.to(rooms.user(userId)).emit(event, ...args);
+  }
+
   /** As emitToSchool, but only to the school's staff (instructors and above). */
   emitToSchoolStaff<E extends keyof ServerToClientEvents>(schoolId: string, event: E, ...args: Parameters<ServerToClientEvents[E]>) {
     this.server?.to(rooms.schoolStaff(schoolId)).emit(event, ...args);
@@ -58,17 +63,15 @@ export class RealtimeService {
   }
 
   /**
-   * After a role change, moves the person's sockets that follow the school into or out of its
-   * staff room, on whichever API instance they're connected to.
+   * After a role change, puts the person's devices in the school's staff room, or takes them out.
+   * A broadcast, like leaveSchool: it doesn't wait on every API instance to answer, so an instance
+   * that's restarting can't make it fail. (Devices not following the school join too; they belong
+   * to staff all the same, and the app ignores schools it isn't showing.)
    */
-  async changeRole(userId: string, schoolId: string, role: Role) {
+  changeRole(userId: string, schoolId: string, role: Role) {
     if (!this.server) return;
-    if (!isStaff(role)) {
-      this.server.in(rooms.user(userId)).socketsLeave(rooms.schoolStaff(schoolId));
-      return;
-    }
-    for (const socket of await this.server.in(rooms.user(userId)).fetchSockets()) {
-      if (socket.rooms.has(rooms.school(schoolId))) socket.join(rooms.schoolStaff(schoolId));
-    }
+    const people = this.server.in(rooms.user(userId));
+    if (isStaff(role)) people.socketsJoin(rooms.schoolStaff(schoolId));
+    else people.socketsLeave(rooms.schoolStaff(schoolId));
   }
 }

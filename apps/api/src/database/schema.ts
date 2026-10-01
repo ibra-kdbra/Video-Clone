@@ -16,7 +16,16 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { COURSE_STATUSES, LESSON_STATUSES, MEDIA_STATUSES, ROLES } from '@grand/contracts';
+import {
+  COURSE_STATUSES,
+  LESSON_KINDS,
+  LESSON_STATUSES,
+  MEDIA_STATUSES,
+  type NotificationData,
+  type QuestionKind,
+  ROLES,
+  SUBMISSION_STATUSES,
+} from '@grand/contracts';
 
 /**
  * The tables as the API sees them. migrations/*.sql is the source of truth (it also holds the
@@ -31,6 +40,8 @@ export const courseStatus = pgEnum('course_status', COURSE_STATUSES);
 export const lessonStatus = pgEnum('lesson_status', LESSON_STATUSES);
 export const mediaStatus = pgEnum('media_status', MEDIA_STATUSES);
 export const videoProvider = pgEnum('video_provider', ['upload', 'youtube', 'dailymotion', 'twitch']);
+export const lessonKind = pgEnum('lesson_kind', LESSON_KINDS);
+export const submissionStatus = pgEnum('submission_status', SUBMISSION_STATUSES);
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -38,6 +49,7 @@ export const users = pgTable('users', {
   name: text('name').notNull(),
   passwordHash: text('password_hash').notNull(),
   emailVerifiedAt: timestamptz('email_verified_at'),
+  notificationSettings: jsonb('notification_settings').$type<Record<string, unknown>>().notNull().default({}),
   createdAt: timestamptz('created_at').notNull().defaultNow(),
   updatedAt: timestamptz('updated_at').notNull().defaultNow(),
 }, (t) => [uniqueIndex('users_email_key').on(t.email)]);
@@ -184,6 +196,7 @@ export const lessons = pgTable('lessons', {
   schoolId: uuid('school_id').notNull(),
   courseId: uuid('course_id').notNull(),
   moduleId: uuid('module_id').notNull(),
+  kind: lessonKind('kind').notNull().default('lesson'),
   title: text('title').notNull(),
   summary: text('summary').notNull().default(''),
   notes: text('notes').notNull().default(''),
@@ -207,6 +220,114 @@ export const enrollments = pgTable('enrollments', {
   createdAt: timestamptz('created_at').notNull().defaultNow(),
 }, (t) => [primaryKey({ columns: [t.courseId, t.userId] })]);
 
+export const lessonProgress = pgTable('lesson_progress', {
+  schoolId: uuid('school_id').notNull(),
+  courseId: uuid('course_id').notNull(),
+  lessonId: uuid('lesson_id').notNull(),
+  userId: uuid('user_id').notNull(),
+  watched: bytea('watched').notNull(),
+  watchedSeconds: integer('watched_seconds').notNull().default(0),
+  positionSeconds: integer('position_seconds').notNull().default(0),
+  completedAt: timestamptz('completed_at'),
+  createdAt: timestamptz('created_at').notNull().defaultNow(),
+  updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+}, (t) => [primaryKey({ columns: [t.lessonId, t.userId] })]);
+
+/** A quiz question as stored: the editors' version, with the right answers. */
+export interface StoredQuestion {
+  id: string;
+  kind: QuestionKind;
+  prompt: string;
+  explanation: string;
+  points: number;
+  options: { id: string; label: string; correct: boolean }[];
+  answers: string[];
+}
+
+export interface StoredResult {
+  questionId: string;
+  correct: boolean;
+  points: number;
+  maxPoints: number;
+}
+
+export const quizzes = pgTable('quizzes', {
+  lessonId: uuid('lesson_id').primaryKey(),
+  schoolId: uuid('school_id').notNull(),
+  courseId: uuid('course_id').notNull(),
+  passPercent: integer('pass_percent').notNull().default(70),
+  maxAttempts: integer('max_attempts'),
+  questions: jsonb('questions').$type<StoredQuestion[]>().notNull().default([]),
+  createdAt: timestamptz('created_at').notNull().defaultNow(),
+  updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+});
+
+export const quizAttempts = pgTable('quiz_attempts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  schoolId: uuid('school_id').notNull(),
+  courseId: uuid('course_id').notNull(),
+  lessonId: uuid('lesson_id').notNull(),
+  userId: uuid('user_id').notNull(),
+  answers: jsonb('answers').$type<Record<string, string | string[]>>().notNull(),
+  results: jsonb('results').$type<StoredResult[]>().notNull(),
+  score: numeric('score', { precision: 8, scale: 2, mode: 'number' }).notNull(),
+  maxScore: numeric('max_score', { precision: 8, scale: 2, mode: 'number' }).notNull(),
+  percent: integer('percent').notNull(),
+  passed: boolean('passed').notNull(),
+  createdAt: timestamptz('created_at').notNull().defaultNow(),
+});
+
+export const assignments = pgTable('assignments', {
+  lessonId: uuid('lesson_id').primaryKey(),
+  schoolId: uuid('school_id').notNull(),
+  courseId: uuid('course_id').notNull(),
+  maxPoints: integer('max_points').notNull().default(100),
+  allowText: boolean('allow_text').notNull().default(true),
+  allowFiles: boolean('allow_files').notNull().default(true),
+  dueAt: timestamptz('due_at'),
+  createdAt: timestamptz('created_at').notNull().defaultNow(),
+  updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+});
+
+export const assignmentSubmissions = pgTable('assignment_submissions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  schoolId: uuid('school_id').notNull(),
+  courseId: uuid('course_id').notNull(),
+  lessonId: uuid('lesson_id').notNull(),
+  userId: uuid('user_id').notNull(),
+  status: submissionStatus('status').notNull().default('draft'),
+  body: text('body').notNull().default(''),
+  grade: numeric('grade', { precision: 7, scale: 2, mode: 'number' }),
+  feedback: text('feedback').notNull().default(''),
+  gradedBy: uuid('graded_by'),
+  submittedAt: timestamptz('submitted_at'),
+  gradedAt: timestamptz('graded_at'),
+  createdAt: timestamptz('created_at').notNull().defaultNow(),
+  updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+});
+
+export const submissionFiles = pgTable('submission_files', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  schoolId: uuid('school_id').notNull(),
+  submissionId: uuid('submission_id').notNull(),
+  fileName: text('file_name').notNull(),
+  contentType: text('content_type').notNull(),
+  sizeBytes: bigint('size_bytes', { mode: 'number' }).notNull(),
+  uploaded: boolean('uploaded').notNull().default(false),
+  createdAt: timestamptz('created_at').notNull().defaultNow(),
+});
+
+export const notifications = pgTable('notifications', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  schoolId: uuid('school_id').notNull(),
+  type: text('type').notNull(),
+  data: jsonb('data').$type<NotificationData>().notNull(),
+  dedupeKey: text('dedupe_key'),
+  createdAt: timestamptz('created_at').notNull().defaultNow(),
+  readAt: timestamptz('read_at'),
+});
+
 export const schema = {
   users,
   schools,
@@ -227,4 +348,13 @@ export const schema = {
   courseModules,
   lessons,
   enrollments,
+  lessonKind,
+  submissionStatus,
+  lessonProgress,
+  quizzes,
+  quizAttempts,
+  assignments,
+  assignmentSubmissions,
+  submissionFiles,
+  notifications,
 };
