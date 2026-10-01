@@ -162,7 +162,7 @@ export class MediaService {
     if (!summary) {
       throw new ApiException(HttpStatus.BAD_REQUEST, 'bad_request', "The video didn't upload completely. Try again.");
     }
-    this.realtime.emitToSchool(school.id, 'media:updated', {
+    this.realtime.emitToSchoolStaff(school.id, 'media:updated', {
       schoolId: school.id,
       assetId,
       lessonId,

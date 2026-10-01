@@ -15,7 +15,8 @@ export class RealtimeEmitter {
     this.emitter = new Emitter(connections.redis, { key: 'grand:io' });
   }
 
+  /** To the school's staff room: students never hear about drafts or uploads in progress. */
   media(update: MediaUpdate) {
-    this.emitter.to(`school:${update.schoolId}`).emit('media:updated', update);
+    this.emitter.to(`school:${update.schoolId}:staff`).emit('media:updated', update);
   }
 }

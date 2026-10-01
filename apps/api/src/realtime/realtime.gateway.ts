@@ -12,7 +12,7 @@ import {
 import { type Ack, type PresenceUpdate, subscribeSchoolInput } from '@grand/contracts';
 import type { Socket } from 'socket.io';
 import { SchoolsService } from '../schools/schools.service.js';
-import { type RealtimeServer, RealtimeService, rooms, type SocketData } from './realtime.service.js';
+import { isStaff, type RealtimeServer, RealtimeService, rooms, type SocketData } from './realtime.service.js';
 import { TicketService } from './ticket.service.js';
 import { TokenBucket } from './token-bucket.js';
 
@@ -93,7 +93,7 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
       if (!input.success) return refuse('validation_failed', 'Unknown school.');
       const school = await this.schools.access(socket.data.userId, input.data.slug);
       if (!school?.role) return refuse('forbidden', "You're not a member of this school.");
-      await socket.join(rooms.school(school.id));
+      await socket.join(isStaff(school.role) ? [rooms.school(school.id), rooms.schoolStaff(school.id)] : rooms.school(school.id));
       socket.data.schools.add(school.id);
       return { ok: true, data: await this.broadcastPresence(school.id) };
     });
@@ -107,6 +107,7 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
       const school = await this.schools.access(socket.data.userId, input.data.slug);
       if (school && socket.data.schools.delete(school.id)) {
         await socket.leave(rooms.school(school.id));
+        await socket.leave(rooms.schoolStaff(school.id));
         await this.broadcastPresence(school.id);
       }
       return { ok: true, data: undefined };

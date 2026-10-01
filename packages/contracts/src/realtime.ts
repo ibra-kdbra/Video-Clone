@@ -34,7 +34,7 @@ export interface ServerToClientEvents {
   'school:member-updated': (event: { schoolId: string; userId: string; role: Role }) => void;
   'school:member-removed': (event: { schoolId: string; userId: string }) => void;
   'school:presence': (event: PresenceUpdate) => void;
-  /** An uploaded video moved on: transcoding progress, ready, or failed. Sent to the school's room. */
+  /** An uploaded video moved on: transcoding progress, ready, or failed. Sent to the school's staff (instructors and above). */
   'media:updated': (event: MediaUpdate) => void;
   /** This device was signed out (signed out elsewhere, or its session was revoked). */
   'session:revoked': (event: { reason: 'logout' | 'revoked' | 'reuse_detected' }) => void;

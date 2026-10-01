@@ -8,7 +8,7 @@ const plainText = (max: number) =>
     .trim()
     .max(max, `Use at most ${max} characters`)
     // Line breaks and tabs are fine; other control characters aren't.
-    .refine((value) => !/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(value), 'Remove the control characters');
+    .refine((value) => !/(?![\t\n\r])\p{Cc}/u.test(value), 'Remove the control characters');
 
 /** A course's address inside its school, as in /s/{school}/c/{course}. */
 export const courseSlug = z
@@ -48,7 +48,7 @@ export const VIDEO_CONTENT_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'
 /** Each platform's id format, so a lesson can only point at a well-formed video. */
 export const EMBED_REF_FORMAT: Record<EmbedProvider, RegExp> = {
   youtube: /^[A-Za-z0-9_-]{11}$/,
-  dailymotion: /^x[0-9a-z]{4,12}$/,
+  dailymotion: /^x[A-Za-z0-9]{2,15}$/,
   twitch: /^[A-Za-z0-9_-]{3,100}$/,
 };
 

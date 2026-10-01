@@ -172,6 +172,7 @@ export class SchoolsService {
       return { userId: targetId, name: current.name, email: current.email, role, joinedAt: updated!.createdAt.toISOString() };
     });
     this.realtime.emitToSchool(school.id, 'school:member-updated', { schoolId: school.id, userId: targetId, role });
+    await this.realtime.changeRole(targetId, school.id, role).catch(() => {});
     return member;
   }
 
