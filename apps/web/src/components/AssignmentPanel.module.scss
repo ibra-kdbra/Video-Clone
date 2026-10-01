@@ -1,0 +1,388 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.muted {
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}
+
+.plain {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+// Points, due date, what to hand in.
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.75rem;
+
+  > div {
+    padding: 0.8rem 0.95rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+  }
+
+  dt {
+    color: var(--text-3);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  dd {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.5rem;
+    margin-top: 0.2rem;
+    font-weight: 650;
+  }
+}
+
+.due {
+  font-weight: 700;
+}
+
+// Editors: what's waiting.
+.toGrade {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+  padding: 1rem 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--accent-soft);
+}
+
+.toGradeText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.toGradeCount {
+  font-size: var(--text-xl);
+  letter-spacing: -0.025em;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  padding: clamp(1.1rem, 2.5vw, 1.6rem);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.cardHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.title {
+  font-size: var(--text-xl);
+  letter-spacing: -0.025em;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.subTitle {
+  font-size: var(--text-md);
+  letter-spacing: -0.015em;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.handedIn {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-md);
+  background: var(--info-soft);
+  font-size: var(--text-sm);
+  font-weight: 550;
+
+  svg {
+    flex: none;
+    margin-top: 0.05rem;
+    color: var(--info-text);
+  }
+}
+
+// The grade and feedback.
+.feedback {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+  border-radius: var(--radius-md);
+  background: var(--success-soft);
+
+  &[data-status='returned'] {
+    background: var(--warning-soft);
+  }
+}
+
+.grade {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+}
+
+.gradeLabel {
+  color: var(--text-2);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.gradeValue {
+  color: var(--success);
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.returnedNote {
+  color: var(--warning-text);
+  font-weight: 650;
+}
+
+.feedbackText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.feedbackLabel,
+.fieldLabel {
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-weight: 650;
+}
+
+.readOnly {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+
+  .plain {
+    padding: 0.75rem 0.9rem;
+    border-radius: var(--radius-md);
+    background: var(--surface-2);
+  }
+}
+
+// "Saved", "Saving…", "Couldn't save".
+.saveState {
+  color: var(--text-3);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+
+  &[data-state='error'] {
+    color: var(--danger);
+    white-space: normal;
+  }
+}
+
+.retry {
+  color: inherit;
+  font-size: inherit;
+  font-weight: 700;
+  text-align: right;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+// Files.
+.files {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.filesHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.fileList {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  list-style: none;
+}
+
+.fileRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem 0.65rem 0.9rem;
+
+  & + & {
+    border-top: 1px solid var(--line);
+  }
+}
+
+.fileIcon {
+  flex: none;
+  color: var(--text-2);
+
+  [data-uploading] > & {
+    color: var(--accent-text);
+  }
+}
+
+.fileText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.fileName {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileMeta {
+  color: var(--text-3);
+  font-size: var(--text-xs);
+}
+
+.fileActions {
+  display: flex;
+  flex: none;
+  gap: 0.25rem;
+}
+
+// Phones: the file actions are icons only (their names still say what they do).
+.wideOnly {
+  @include down(sm) {
+    @include visually-hidden;
+  }
+}
+
+.drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 1.25rem 1rem;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--radius-md);
+  text-align: center;
+  transition:
+    border-color var(--fast) var(--ease),
+    background var(--fast) var(--ease);
+
+  &[data-over] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+}
+
+.dropIcon {
+  color: var(--accent-text);
+}
+
+.dropText {
+  font-weight: 600;
+}
+
+// The real file input is hidden; its label is the link-like button, and shows the input's focus.
+.choose {
+  color: var(--accent-text);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  border-radius: 4px;
+
+  .file:focus-visible + & {
+    @include focus-ring;
+  }
+}
+
+.dropHint {
+  color: var(--text-3);
+  font-size: var(--text-sm);
+}
+
+.problems {
+  ul {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    list-style: none;
+  }
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4rem;
+    color: var(--danger);
+    font-size: var(--text-sm);
+    overflow-wrap: anywhere;
+
+    svg {
+      flex: none;
+      margin-top: 0.15rem;
+    }
+  }
+
+  // Empty until there's something to say, but still in the page (out of the flow, so the gaps
+  // don't count it), so screen readers hear the problems appear.
+  &:empty {
+    position: absolute;
+  }
+}
+
+.handIn {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  padding-top: 0.25rem;
+}
+
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  font-size: var(--text-sm);
+
+  svg {
+    flex: none;
+    margin-top: 0.1rem;
+    color: var(--accent-text);
+  }
+}

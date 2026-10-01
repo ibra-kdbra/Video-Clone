@@ -1,0 +1,342 @@
+.insights {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  min-width: 0;
+}
+
+.muted {
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}
+
+.summary {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+// The headline numbers.
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: 0.85rem;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.tileLabel {
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.tileValue {
+  font-size: var(--text-3xl);
+  font-weight: 750;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.tileDetail {
+  color: var(--text-3);
+  font-size: var(--text-sm);
+}
+
+.lessons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.lessonsHead {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.sectionTitle {
+  font-size: var(--text-lg);
+  letter-spacing: -0.02em;
+}
+
+// The lessons, as a table on wide screens; each lesson a card of its own on narrow ones.
+.table {
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--text-sm);
+
+  th,
+  td {
+    padding: 0.7rem 0.85rem;
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  thead th {
+    border-bottom: 1px solid var(--line);
+    color: var(--text-3);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  tbody tr + tr > * {
+    border-top: 1px solid var(--line);
+  }
+
+  tbody tr[data-selected] > * {
+    background: var(--accent-soft);
+  }
+
+  .number {
+    text-align: right;
+  }
+
+  @include down(lg) {
+    display: block;
+    border: 0;
+    background: none;
+
+    thead {
+      @include visually-hidden;
+    }
+
+    tbody {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    tbody tr {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5rem 1rem;
+      padding: 0.85rem 1rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--surface);
+
+      &[data-selected] {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+
+        > * {
+          background: none;
+        }
+      }
+    }
+
+    tbody tr + tr > * {
+      border-top: 0;
+    }
+
+    th,
+    td {
+      padding: 0;
+    }
+
+    td[data-label]::before {
+      content: attr(data-label);
+      display: block;
+      margin-bottom: 0.1rem;
+      color: var(--text-3);
+      font-size: var(--text-xs);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .title,
+    .module,
+    .rate,
+    .details {
+      grid-column: 1 / -1;
+    }
+
+    .module {
+      order: -1;
+    }
+
+    .number {
+      text-align: left;
+    }
+  }
+}
+
+
+.module {
+  color: var(--text-2);
+  max-width: 12rem;
+  overflow-wrap: anywhere;
+}
+
+.title {
+  font-weight: 650;
+}
+
+.titleInner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.kindIcon {
+  flex: none;
+  margin-top: 0.1rem;
+  color: var(--text-3);
+}
+
+.pick {
+  color: var(--accent-text);
+  font-weight: 650;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  border-radius: 4px;
+
+  &[aria-pressed='true'] {
+    text-decoration-thickness: 2px;
+  }
+}
+
+.rate {
+  min-width: 9rem;
+}
+
+.rateInner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+
+  > :first-child {
+    flex: 1;
+    min-width: 4rem;
+  }
+}
+
+.details {
+  color: var(--text-2);
+}
+
+.pickHint {
+  color: var(--text-3);
+  font-size: var(--text-sm);
+}
+
+// The chosen lesson.
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.detailTitle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: var(--text-lg);
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+
+  svg {
+    flex: none;
+    margin-top: 0.2rem;
+    color: var(--accent-text);
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+// A quiz's questions, each with its correct rate.
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.barList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  list-style: none;
+}
+
+.barItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.barPrompt {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.barNumber {
+  flex: none;
+  color: var(--text-3);
+  font-size: var(--text-sm);
+}
+
+.barRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+}
+
+.barTrack {
+  position: relative;
+  flex: 1 1 10rem;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--surface-2);
+}
+
+.barFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--value) * 100%);
+  border-radius: 0 4px 4px 0;
+  background: var(--accent);
+}
+
+.barValue {
+  font-size: var(--text-sm);
+  font-weight: 650;
+}
+
+.barCount {
+  color: var(--text-3);
+  font-weight: 500;
+}

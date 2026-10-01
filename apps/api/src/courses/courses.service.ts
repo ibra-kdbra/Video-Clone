@@ -4,22 +4,34 @@ import {
   type CourseModule,
   type CourseSummary,
   type CreateCourseInput,
+  type LessonProgressSummary,
   type LessonSummary,
   type ModuleInput,
   type OutlineInput,
   ROLE_RANK,
   type UpdateCourseInput,
 } from '@grand/contracts';
-import { and, asc, count, desc, eq, isNotNull, or, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, isNotNull, or, type SQL, sql } from 'drizzle-orm';
 import { ApiException, forbidden, notFound } from '../common/api-exception.js';
 import type { SchoolContext } from '../common/request-context.js';
 import { DatabaseService, type Tx } from '../database/database.service.js';
 import { isUniqueViolation } from '../database/errors.js';
-import { courseModules, courses, enrollments, lessons, mediaAssets, users } from '../database/schema.js';
+import {
+  assignmentSubmissions,
+  courseModules,
+  courses,
+  enrollments,
+  lessonProgress,
+  lessons,
+  mediaAssets,
+  users,
+} from '../database/schema.js';
 import { AuditService } from '../events/audit.service.js';
 import { OutboxService } from '../events/outbox.service.js';
 import { AppConfig } from '../config/app-config.js';
+import { courseProgress, progressSummary } from '../learning/progress.js';
 import { mediaKeys, StorageService } from '../storage/storage.service.js';
+import { scheduleSubmissionFileDeletion } from '../storage/submission-files.js';
 import { canCreateCourses, canEditCourse, canSeeCourse, canWatchLesson } from './course-access.js';
 import { slugify } from './slugify.js';
 
@@ -32,8 +44,11 @@ const slugTaken = () =>
     { path: 'slug', message: 'This address is taken' },
   ]);
 
-/** A lesson as the outline shows it, with its upload's progress when it has one. */
-export function toLessonSummary(lesson: LessonRecord, media: MediaRecord | null, locked: boolean): LessonSummary {
+/**
+ * A lesson as the outline shows it, with its upload's progress when it has one, and the viewer's
+ * own progress when they're enrolled.
+ */
+export function toLessonSummary(lesson: LessonRecord, media: MediaRecord | null, locked: boolean, progress: LessonProgressSummary | null = null): LessonSummary {
   let video: LessonSummary['video'] = null;
   if (lesson.videoProvider === 'upload' && media) {
     video = { provider: 'upload', assetId: media.id, status: media.status, progress: media.progress, error: media.error };
@@ -43,6 +58,7 @@ export function toLessonSummary(lesson: LessonRecord, media: MediaRecord | null,
   return {
     id: lesson.id,
     moduleId: lesson.moduleId,
+    kind: lesson.kind,
     title: lesson.title,
     summary: lesson.summary,
     status: lesson.status,
@@ -50,6 +66,7 @@ export function toLessonSummary(lesson: LessonRecord, media: MediaRecord | null,
     durationSeconds: lesson.durationSeconds,
     video,
     locked,
+    progress,
   };
 }
 
@@ -97,6 +114,24 @@ export class CoursesService {
         .groupBy(lessons.courseId)
         .as('stats');
 
+      // The viewer's own progress, per course: completed published lessons and the latest one.
+      const mine = tx
+        .select({
+          courseId: lessonProgress.courseId,
+          completed: sql<number>`count(*) filter (where ${lessonProgress.completedAt} is not null and ${lessons.status} = 'published')::int`.as('completed'),
+          lastActivityAt: sql<Date | null>`max(${lessonProgress.updatedAt}) filter (where ${lessons.status} = 'published')`
+            .mapWith(lessonProgress.updatedAt)
+            .as('last_activity_at'),
+          lastLessonId: sql<string | null>`(array_agg(${lessonProgress.lessonId} order by ${lessonProgress.updatedAt} desc) filter (where ${lessons.status} = 'published'))[1]`.as(
+            'last_lesson_id',
+          ),
+        })
+        .from(lessonProgress)
+        .innerJoin(lessons, eq(lessons.id, lessonProgress.lessonId))
+        .where(eq(lessonProgress.userId, userId))
+        .groupBy(lessonProgress.courseId)
+        .as('mine');
+
       const visibility =
         ROLE_RANK[school.role] >= ROLE_RANK.admin
           ? undefined
@@ -112,9 +147,13 @@ export class CoursesService {
           publishedSeconds: stats.publishedSeconds,
           totalSeconds: stats.totalSeconds,
           enrolledAt: enrollments.createdAt,
+          completed: mine.completed,
+          lastActivityAt: mine.lastActivityAt,
+          lastLessonId: mine.lastLessonId,
         })
         .from(courses)
         .leftJoin(stats, eq(stats.courseId, courses.id))
+        .leftJoin(mine, eq(mine.courseId, courses.id))
         .leftJoin(enrollments, and(eq(enrollments.courseId, courses.id), eq(enrollments.userId, userId)))
         .where(
           and(
@@ -129,13 +168,24 @@ export class CoursesService {
     });
 
     return Promise.all(
-      rows.map(async ({ course, published, total, publishedSeconds, totalSeconds, enrolledAt }) => {
+      rows.map(async ({ course, published, total, publishedSeconds, totalSeconds, enrolledAt, completed, lastActivityAt, lastLessonId }) => {
         const editor = canEditCourse(school, userId, course);
+        const totalLessons = published ?? 0;
         return {
           ...(await this.summaryFields(course)),
           lessonCount: (editor ? total : published) ?? 0,
           durationSeconds: (editor ? totalSeconds : publishedSeconds) ?? 0,
           enrolled: enrolledAt !== null,
+          progress:
+            enrolledAt === null
+              ? null
+              : {
+                  completedLessons: completed ?? 0,
+                  totalLessons,
+                  percent: totalLessons ? Math.round(((completed ?? 0) / totalLessons) * 100) : 0,
+                  lastLessonId: lastLessonId ?? null,
+                  lastActivityAt: lastActivityAt?.toISOString() ?? null,
+                },
         };
       }),
     );
@@ -192,7 +242,7 @@ export class CoursesService {
             ip,
           });
           if (publishing && !course.publishedAt) {
-            await this.outbox.add(tx, 'course.published', { courseId: course.id, schoolId: school.id }, school.id);
+            await this.outbox.add(tx, 'course.published', { courseId: course.id, schoolId: school.id, actorId: userId }, school.id);
           }
         }
         return this.describe(tx, school, userId, updated!);
@@ -208,6 +258,7 @@ export class CoursesService {
     await this.db.transaction({ userId, schoolId: school.id }, async (tx) => {
       const course = await this.findEditable(tx, school, userId, courseSlug);
       const media = uploadedMedia(await tx.select({ mediaId: lessons.mediaId }).from(lessons).where(eq(lessons.courseId, course.id)));
+      await this.scheduleSubmissionFileDeletion(tx, school.id, eq(assignmentSubmissions.courseId, course.id));
       await tx.delete(courses).where(eq(courses.id, course.id));
       await this.scheduleMediaDeletion(tx, school.id, media);
       await this.audit.record(tx, { action: 'course.deleted', actorId: userId, schoolId: school.id, targetType: 'course', targetId: course.id, ip, data: { title: course.title } });
@@ -250,7 +301,11 @@ export class CoursesService {
       const modules = await tx.select({ id: courseModules.id }).from(courseModules).where(eq(courseModules.courseId, course.id));
       if (!modules.some((module) => module.id === moduleId)) throw notFound('This module');
       if (modules.length === 1) throw new ApiException(HttpStatus.CONFLICT, 'conflict', 'A course needs at least one module.');
-      const media = uploadedMedia(await tx.select({ mediaId: lessons.mediaId }).from(lessons).where(eq(lessons.moduleId, moduleId)));
+      const moduleLessons = await tx.select({ id: lessons.id, mediaId: lessons.mediaId }).from(lessons).where(eq(lessons.moduleId, moduleId));
+      const media = uploadedMedia(moduleLessons);
+      if (moduleLessons.length) {
+        await this.scheduleSubmissionFileDeletion(tx, school.id, inArray(assignmentSubmissions.lessonId, moduleLessons.map((lesson) => lesson.id)));
+      }
       await tx.delete(courseModules).where(eq(courseModules.id, moduleId));
       await this.scheduleMediaDeletion(tx, school.id, media);
       await this.audit.record(tx, { action: 'course.module_deleted', actorId: userId, schoolId: school.id, targetType: 'course', targetId: course.id, ip });
@@ -288,10 +343,15 @@ export class CoursesService {
     for (const assetId of mediaIds) await this.outbox.add(tx, 'media.deleted', { assetId, schoolId }, schoolId);
   }
 
+  /** Queues the removal of these submissions' files (see scheduleSubmissionFileDeletion). */
+  scheduleSubmissionFileDeletion(tx: Tx, schoolId: string, which: SQL | undefined) {
+    return scheduleSubmissionFileDeletion(tx, this.outbox, schoolId, which);
+  }
+
   /** Builds the full course view for this viewer inside an open transaction. */
   async describe(tx: Tx, school: SchoolContext, userId: string, course: CourseRecord): Promise<Course> {
     const editor = canEditCourse(school, userId, course);
-    const [moduleRows, lessonRows, [author], [enrollment], [{ enrolledCount } = { enrolledCount: 0 }]] = await Promise.all([
+    const [moduleRows, lessonRows, [author], [enrollment], [{ enrolledCount } = { enrolledCount: 0 }], progressRows] = await Promise.all([
       tx.select().from(courseModules).where(eq(courseModules.courseId, course.id)).orderBy(asc(courseModules.position)),
       tx
         .select({ lesson: lessons, media: mediaAssets })
@@ -302,14 +362,18 @@ export class CoursesService {
       course.createdBy ? tx.select({ id: users.id, name: users.name }).from(users).where(eq(users.id, course.createdBy)) : Promise.resolve([]),
       tx.select({ at: enrollments.createdAt }).from(enrollments).where(and(eq(enrollments.courseId, course.id), eq(enrollments.userId, userId))),
       tx.select({ enrolledCount: count() }).from(enrollments).where(eq(enrollments.courseId, course.id)),
+      tx.select().from(lessonProgress).where(and(eq(lessonProgress.courseId, course.id), eq(lessonProgress.userId, userId))),
     ]);
     const enrolled = enrollment !== undefined;
+    const progressByLesson = new Map(progressRows.map((row) => [row.lessonId, row]));
     const modules: CourseModule[] = moduleRows.map((module) => ({
       id: module.id,
       title: module.title,
       lessons: lessonRows
         .filter(({ lesson }) => lesson.moduleId === module.id)
-        .map(({ lesson, media }) => toLessonSummary(lesson, media, !canWatchLesson(school, userId, course, lesson, enrolled))),
+        .map(({ lesson, media }) =>
+          toLessonSummary(lesson, media, !canWatchLesson(school, userId, course, lesson, enrolled), enrolled ? progressSummary(lesson, progressByLesson.get(lesson.id)) : null),
+        ),
     }));
     // Editors see every module; others don't see modules that have nothing published yet.
     const visibleModules = editor ? modules : modules.filter((module) => module.lessons.length > 0);
@@ -319,6 +383,12 @@ export class CoursesService {
       lessonCount: allLessons.length,
       durationSeconds: allLessons.reduce((sum, lesson) => sum + (lesson.durationSeconds ?? 0), 0),
       enrolled,
+      progress: enrolled
+        ? courseProgress(
+            lessonRows.filter(({ lesson }) => lesson.status === 'published').map(({ lesson }) => lesson.id),
+            progressRows,
+          )
+        : null,
       description: course.description,
       createdBy: author ?? null,
       enrollmentCount: enrolledCount,

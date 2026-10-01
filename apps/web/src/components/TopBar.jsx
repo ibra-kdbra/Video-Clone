@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { m } from 'motion/react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 
@@ -11,18 +12,29 @@ import SourcePicker from './SourcePicker.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
 import styles from './TopBar.module.scss';
 
+// Only people signed in have notifications, so the bell (and its live updates) is its own chunk.
+const NotificationBell = lazy(() => import('./NotificationBell.jsx'));
+
 const LINKS = [
   { to: '/', label: 'Home', end: true },
   { to: '/browse/trending', label: 'Browse', match: '/browse' },
   { to: '/library', label: 'Library' },
 ];
 
-/** Signed in: the profile menu. Signed out: "Sign in", which comes back to this page after. */
+/** Signed in: the notifications bell and the profile menu. Signed out: "Sign in", which comes back to this page after. */
 function SessionControl() {
   const { status } = useSession();
   const { pathname, search } = useLocation();
   if (status === 'loading') return <span className={styles.pending} aria-hidden="true" />;
-  if (status === 'signedIn') return <AccountMenu />;
+  if (status === 'signedIn')
+    return (
+      <>
+        <Suspense fallback={<span className={styles.bellSpace} aria-hidden="true" />}>
+          <NotificationBell />
+        </Suspense>
+        <AccountMenu />
+      </>
+    );
   if (pathname === '/signin' || pathname === '/signup') return null;
   return (
     <Link to={authPath('signin', `${pathname}${search}`)} className={styles.signIn}>

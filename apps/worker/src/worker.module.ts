@@ -1,6 +1,7 @@
 import { type DynamicModule, Module } from '@nestjs/common';
 import { WORKER_CONFIG, type WorkerConfig } from './config.js';
 import { Connections } from './connections.js';
+import { SubmissionFilesService } from './files/submission-files.service.js';
 import { MaintenanceService } from './jobs/maintenance.service.js';
 import { OutboxProcessor } from './jobs/outbox.processor.js';
 import { OutboxRelayService } from './jobs/outbox-relay.service.js';
@@ -8,6 +9,7 @@ import { MailerService } from './mail/mailer.service.js';
 import { MediaProcessor } from './media/media.processor.js';
 import { MediaQueue } from './media/media.queue.js';
 import { MediaService } from './media/media.service.js';
+import { NotificationsService } from './notifications/notifications.service.js';
 import { RealtimeEmitter } from './realtime.js';
 import { WorkerStorage } from './storage.js';
 
@@ -22,6 +24,8 @@ export class WorkerModule {
         WorkerStorage,
         RealtimeEmitter,
         MailerService,
+        NotificationsService,
+        SubmissionFilesService,
         MediaQueue,
         MediaService,
         MediaProcessor,
@@ -29,7 +33,17 @@ export class WorkerModule {
         OutboxProcessor,
         MaintenanceService,
       ],
-      exports: [OutboxRelayService, OutboxProcessor, MaintenanceService, MediaService, MediaQueue, MediaProcessor, Connections],
+      exports: [
+        OutboxRelayService,
+        OutboxProcessor,
+        MaintenanceService,
+        MediaService,
+        MediaQueue,
+        MediaProcessor,
+        NotificationsService,
+        SubmissionFilesService,
+        Connections,
+      ],
     };
   }
 }

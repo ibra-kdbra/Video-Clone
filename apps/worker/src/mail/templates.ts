@@ -47,3 +47,41 @@ export function invitationEmail(invitation: InvitationEmail): Email {
 </html>`;
   return { to: invitation.email, subject, text, html };
 }
+
+export interface NotificationEmail {
+  to: string;
+  name: string;
+  schoolName: string;
+  title: string;
+  body: string;
+  url: string;
+  settingsUrl: string;
+}
+
+/** A notification sent by email: what happened, and a link to it. */
+export function notificationEmail(message: NotificationEmail): Email {
+  const subject = `${message.title} · ${message.schoolName}`;
+  const text = [
+    `Hi ${message.name},`,
+    '',
+    message.title,
+    ...(message.body ? [message.body] : []),
+    '',
+    `Open it: ${message.url}`,
+    '',
+    `You get this email because of your notification settings: ${message.settingsUrl}`,
+  ].join('\n');
+  const html = `<!doctype html>
+<html lang="en">
+  <body style="margin:0;padding:24px;background:#f4f4f5;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#18181b">
+    <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;padding:32px">
+      <p style="margin:0 0 8px;font-size:14px;color:#71717a">${escapeHtml(message.schoolName)} · Grand LMS</p>
+      <h1 style="margin:0 0 12px;font-size:20px">${escapeHtml(message.title)}</h1>
+      ${message.body ? `<p style="margin:0 0 24px;line-height:1.5">${escapeHtml(message.body)}</p>` : ''}
+      <p style="margin:0 0 24px"><a href="${escapeHtml(message.url)}" style="display:inline-block;background:#18181b;color:#fff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600">Open</a></p>
+      <p style="margin:0;font-size:13px;line-height:1.5;color:#71717a">You get this email because of your <a href="${escapeHtml(message.settingsUrl)}" style="color:#71717a">notification settings</a>.</p>
+    </div>
+  </body>
+</html>`;
+  return { to: message.to, subject, text, html };
+}

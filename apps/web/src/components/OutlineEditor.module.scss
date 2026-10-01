@@ -329,3 +329,72 @@
     white-space: nowrap;
   }
 }
+
+// Adding a lesson: its kind, then its title.
+.newLesson {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.kinds {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  border: 0;
+}
+
+.kindsLegend {
+  float: left;
+  margin-right: 0.35rem;
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.kindChoice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 36px;
+  padding: 0 0.85rem 0 0.7rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    background var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+
+  // The radio itself is hidden; the pill shows its state and its focus.
+  input {
+    @include visually-hidden;
+  }
+
+  @include hover {
+    color: var(--text);
+  }
+
+  &[data-checked] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent-text);
+  }
+
+  &:has(input:focus-visible) {
+    @include focus-ring;
+  }
+}
+
+.kindIcon {
+  display: inline-block;
+  margin: 0 0.4rem 0 0;
+  color: var(--text-3);
+  vertical-align: -0.15em;
+}

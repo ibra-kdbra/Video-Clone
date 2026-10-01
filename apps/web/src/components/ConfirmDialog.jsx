@@ -10,9 +10,22 @@ import styles from './ConfirmDialog.module.scss';
  * modal <dialog>: focus stays inside, Escape cancels and the page behind can't be reached. Focus
  * starts on the safe choice. Afterwards it goes to `returnFocus` when that ref is set (say, once
  * the thing that opened the dialog is gone), or else back to whatever opened it. For the gravest
- * actions (deleting a course), `confirmText` asks for that text to be typed first.
+ * actions (deleting a course), `confirmText` asks for that text to be typed first. `tone="primary"`
+ * is for a step that's final but not destructive (handing in work).
  */
-export default function ConfirmDialog({ open, title, children, confirmLabel, busy = false, onConfirm, onClose, returnFocus, confirmText }) {
+export default function ConfirmDialog({
+  open,
+  title,
+  children,
+  confirmLabel,
+  cancelLabel = 'Cancel',
+  busy = false,
+  onConfirm,
+  onClose,
+  returnFocus,
+  confirmText,
+  tone = 'danger',
+}) {
   const dialog = useRef(null);
   const opener = useRef(null);
   const target = useRef(returnFocus);
@@ -80,9 +93,9 @@ export default function ConfirmDialog({ open, title, children, confirmLabel, bus
           )}
           <div className={styles.actions}>
             <Button variant="ghost" onClick={cancel} autoFocus>
-              Cancel
+              {cancelLabel}
             </Button>
-            <Button variant="danger" busy={busy} disabled={!matches} onClick={onConfirm}>
+            <Button variant={tone === 'primary' ? 'primary' : 'danger'} busy={busy} disabled={!matches} onClick={onConfirm}>
               {confirmLabel}
             </Button>
           </div>

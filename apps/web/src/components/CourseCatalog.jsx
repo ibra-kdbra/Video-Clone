@@ -2,7 +2,6 @@ import { useId } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 import { getCourses, keys } from '../lib/courses.js';
-import { useProgress } from '../lib/progress.js';
 import { canCreateCourses, isManager } from '../lib/roles.js';
 import Button from './Button.jsx';
 import CourseCard, { CourseCardSkeleton } from './CourseCard.jsx';
@@ -26,14 +25,17 @@ function Section({ title, note, count, shelf = false, children }) {
   );
 }
 
+/** When this person last worked on a course (ms), 0 for never. */
+const lastActivity = (course) => Date.parse(course.progress?.lastActivityAt ?? '') || 0;
+
 /**
  * A school's courses, the heart of its page. Students see "Continue learning" (the courses they're
- * enrolled in, most recently watched first) and then every published course. Instructors and
- * admins also see the drafts and archived courses they can edit, each marked as such. Every state
- * has a next step: an empty school invites its instructors to create the first course.
+ * enrolled in, the one worked on most recently first, with how far along they are) and then every
+ * published course. Instructors and admins also see the drafts and archived courses they can edit,
+ * each marked as such. Every state has a next step: an empty school invites its instructors to
+ * create the first course.
  */
 export default function CourseCatalog({ school, onNewCourse }) {
-  const progress = useProgress();
   const creator = canCreateCourses(school.role);
   const courses = useQuery({
     queryKey: keys.courses(school.slug),
@@ -59,9 +61,8 @@ export default function CourseCatalog({ school, onNewCourse }) {
   if (courses.isError) return <ErrorState title="Couldn't load the courses" error={courses.error} onRetry={() => courses.refetch()} />;
 
   const list = courses.data;
-  const lastSeen = (course) => progress.courses[course.id]?.at ?? 0;
   const published = list.filter((course) => course.status === 'published');
-  const enrolled = published.filter((course) => course.enrolled).sort((a, b) => lastSeen(b) - lastSeen(a));
+  const enrolled = published.filter((course) => course.enrolled).sort((a, b) => lastActivity(b) - lastActivity(a));
   const unpublished = list.filter((course) => course.status !== 'published');
 
   if (list.length === 0)
@@ -89,7 +90,7 @@ export default function CourseCatalog({ school, onNewCourse }) {
         <Section title="Continue learning" count={enrolled.length} shelf>
           {enrolled.map((course, i) => (
             <li key={course.id} className={styles.item}>
-              <CourseCard course={course} schoolSlug={school.slug} resume={progress.courses[course.id] ?? null} index={i} priority={i < 2} />
+              <CourseCard course={course} schoolSlug={school.slug} showProgress index={i} priority={i < 2} />
             </li>
           ))}
         </Section>

@@ -3,8 +3,10 @@ import {
   AbortMultipartUploadCommand,
   CompleteMultipartUploadCommand,
   CreateMultipartUploadCommand,
+  DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  PutObjectCommand,
   S3Client,
   UploadPartCommand,
 } from '@aws-sdk/client-s3';
@@ -22,6 +24,9 @@ export const mediaKeys = (schoolId: string, assetId: string) => {
     poster: `${root}/poster.jpg`,
   };
 };
+
+/** Where a file handed in with an assignment lives. */
+export const submissionFileKey = (schoolId: string, submissionId: string, fileId: string) => `schools/${schoolId}/submissions/${submissionId}/${fileId}`;
 
 /** Signed URLs are made for fixed one-hour windows, so a URL repeats within the hour and caches. */
 const SIGNING_WINDOW_MS = 3_600_000;
@@ -104,6 +109,38 @@ export class StorageService {
       .catch((error: { name?: string }) => {
         if (error.name !== 'NoSuchUpload') throw error;
       });
+  }
+
+  /** A signed URL for uploading one object with a single PUT, sent with exactly this Content-Type. */
+  async presignPut(key: string, contentType: string, expiresIn: number): Promise<{ url: string; expiresAt: Date }> {
+    const url = await getSignedUrl(this.clients().public, new PutObjectCommand({ Bucket: this.bucket, Key: key, ContentType: contentType }), {
+      expiresIn,
+      signableHeaders: new Set(['content-type']),
+    });
+    return { url, expiresAt: new Date(Date.now() + expiresIn * 1000) };
+  }
+
+  /**
+   * A signed URL that downloads the object as a file with this name, never displayed in the
+   * browser, whatever it contains.
+   */
+  async signedDownload(key: string, fileName: string, expiresIn: number): Promise<{ url: string; expiresAt: Date }> {
+    const ascii = fileName.replace(/[^\x20-\x7e]|["\\]/g, '_');
+    const url = await getSignedUrl(
+      this.clients().public,
+      new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ResponseContentDisposition: `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
+        ResponseContentType: 'application/octet-stream',
+      }),
+      { expiresIn },
+    );
+    return { url, expiresAt: new Date(Date.now() + expiresIn * 1000) };
+  }
+
+  async deleteObject(key: string) {
+    await this.clients().internal.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }
 
   /** The object's size, or null when it doesn't exist. */

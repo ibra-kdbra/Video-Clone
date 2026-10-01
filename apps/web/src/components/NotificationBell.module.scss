@@ -1,0 +1,96 @@
+.root {
+  position: relative;
+  flex: none;
+}
+
+.bell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: var(--text-2);
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+
+  @include hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+
+  &[aria-expanded='true'] {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+}
+
+// The unread count, on the bell's shoulder; a ring in the bar's color keeps it apart from the bell.
+.badge {
+  position: absolute;
+  top: 3px;
+  right: 1px;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-solid);
+  color: var(--on-accent);
+  font-size: 0.6875rem;
+  font-weight: 750;
+  line-height: 1;
+  box-shadow: 0 0 0 2px var(--bg);
+  animation: arrive 320ms var(--ease);
+}
+
+@keyframes arrive {
+  from {
+    transform: scale(0.4);
+  }
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  width: min(380px, calc(100vw - 2 * var(--gutter)));
+  max-height: min(560px, calc(100dvh - var(--topbar-h) - 1.5rem));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-lg);
+  transform-origin: top right;
+  animation: open 160ms var(--ease);
+
+  @include up(sm) {
+    right: 0;
+  }
+
+  // Phones: the width of the screen, less the gutters, under the top bar.
+  @include down(sm) {
+    position: fixed;
+    top: calc(var(--topbar-h) + 0.25rem);
+    right: var(--gutter);
+    left: var(--gutter);
+    width: auto;
+  }
+}
+
+@keyframes open {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+
+.loading {
+  height: 14rem;
+}

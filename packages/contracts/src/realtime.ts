@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { MediaStatus } from './courses.js';
+import type { Notification } from './notifications.js';
 import type { Member, Role } from './schools.js';
 import { schoolSlug } from './schools.js';
 
@@ -36,6 +37,10 @@ export interface ServerToClientEvents {
   'school:presence': (event: PresenceUpdate) => void;
   /** An uploaded video moved on: transcoding progress, ready, or failed. Sent to the school's staff (instructors and above). */
   'media:updated': (event: MediaUpdate) => void;
+  /** A new notification for you. */
+  'notification:new': (event: Notification) => void;
+  /** Notifications were marked read (here or on another device): these ids, or all of them. */
+  'notification:read': (event: { ids: string[] | 'all'; unread: number }) => void;
   /** This device was signed out (signed out elsewhere, or its session was revoked). */
   'session:revoked': (event: { reason: 'logout' | 'revoked' | 'reuse_detected' }) => void;
 }

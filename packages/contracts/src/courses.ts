@@ -1,8 +1,10 @@
 import { z } from 'zod';
 import { uuid } from './common.js';
+import type { LessonProgress } from './learning.js';
 import { schoolSlug } from './schools.js';
 
-const plainText = (max: number) =>
+/** Text people write: trimmed, at most `max` characters, line breaks and tabs but no other control characters. */
+export const plainText = (max: number) =>
   z
     .string()
     .trim()
@@ -75,7 +77,11 @@ export type UpdateCourseInput = z.infer<typeof updateCourseInput>;
 export const moduleInput = z.strictObject({ title: shortTitle });
 export type ModuleInput = z.infer<typeof moduleInput>;
 
-export const createLessonInput = z.strictObject({ moduleId: uuid, title: shortTitle });
+export const LESSON_KINDS = ['lesson', 'quiz', 'assignment'] as const;
+export type LessonKind = (typeof LESSON_KINDS)[number];
+
+/** A lesson's kind is chosen when it's created: a lesson (video and notes), a quiz or an assignment. */
+export const createLessonInput = z.strictObject({ moduleId: uuid, title: shortTitle, kind: z.enum(LESSON_KINDS).default('lesson') });
 export type CreateLessonInput = z.infer<typeof createLessonInput>;
 
 export const embedVideoInput = z
@@ -140,9 +146,17 @@ export type LessonVideo =
   | { provider: 'upload'; assetId: string; status: MediaStatus; progress: number; error: string | null }
   | { provider: EmbedProvider; ref: string };
 
+/** How far the viewer has got with one lesson (enrolled students only). */
+export interface LessonProgressSummary {
+  completed: boolean;
+  /** Share of the video watched, or of the lesson done, 0–100. */
+  percent: number;
+}
+
 export interface LessonSummary {
   id: string;
   moduleId: string;
+  kind: LessonKind;
   title: string;
   summary: string;
   status: LessonStatus;
@@ -151,6 +165,7 @@ export interface LessonSummary {
   video: LessonVideo | null;
   /** True when the viewer may see the outline entry but not watch it (not enrolled). */
   locked: boolean;
+  progress: LessonProgressSummary | null;
 }
 
 export interface CourseModule {
@@ -170,8 +185,19 @@ export interface CourseSummary {
   lessonCount: number;
   durationSeconds: number;
   enrolled: boolean;
+  /** The viewer's progress, when enrolled. */
+  progress: CourseProgress | null;
   createdAt: string;
   publishedAt: string | null;
+}
+
+export interface CourseProgress {
+  completedLessons: number;
+  totalLessons: number;
+  percent: number;
+  /** Where to continue: the lesson worked on most recently. */
+  lastLessonId: string | null;
+  lastActivityAt: string | null;
 }
 
 export interface Course extends CourseSummary {
@@ -186,6 +212,8 @@ export interface Course extends CourseSummary {
 export interface Lesson extends LessonSummary {
   courseId: string;
   notes: string;
+  /** The viewer's progress in detail, when enrolled. */
+  progressDetail: LessonProgress | null;
   previous: { id: string; title: string } | null;
   next: { id: string; title: string } | null;
 }
@@ -224,4 +252,5 @@ export interface Enrollment {
   name: string;
   email: string;
   enrolledAt: string;
+  progress: { completedLessons: number; totalLessons: number; percent: number; lastActivityAt: string | null };
 }

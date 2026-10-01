@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { MediaUpdate } from '@grand/contracts';
+import type { MediaUpdate, ServerToClientEvents } from '@grand/contracts';
 import { Emitter } from '@socket.io/redis-emitter';
 import { Connections } from './connections.js';
 
@@ -13,6 +13,11 @@ export class RealtimeEmitter {
 
   constructor(connections: Connections) {
     this.emitter = new Emitter(connections.redis, { key: 'grand:io' });
+  }
+
+  /** To every open device of one person. */
+  toUser<E extends keyof ServerToClientEvents>(userId: string, event: E, ...args: Parameters<ServerToClientEvents[E]>) {
+    this.emitter.to(`user:${userId}`).emit(event, ...args);
   }
 
   /** To the school's staff room: students never hear about drafts or uploads in progress. */

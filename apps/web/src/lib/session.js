@@ -217,6 +217,37 @@ export async function apiFetch(path, { method = 'GET', body, signal, auth = true
   }
 }
 
+/**
+ * A signed-in call that outlives the page (fetch `keepalive`), for the last word as a tab is hidden
+ * or closed (the player's watch progress). It goes with the current access token as is, since
+ * there's no time to refresh one. While the page is still there it resolves like apiFetch; when
+ * there's no usable token it rejects at once, so the caller can keep what it meant to send.
+ */
+export async function apiFetchKeepalive(path, { method = 'POST', body } = {}) {
+  if (!token || Date.now() >= expiresAt) throw new ApiError(401, 'session_expired', 'Please sign in.');
+  let response;
+  try {
+    response = await fetch(`${BASE}${path}`, {
+      method,
+      keepalive: true,
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body ?? {}),
+    });
+  } catch {
+    throw new ApiError(0, 'network', OFFLINE);
+  }
+  let data = null;
+  try {
+    data = await response.json();
+  } catch {
+    // As in send().
+  }
+  if (response.ok && data !== null) return data;
+  throw toApiError(response, data);
+}
+
 // Sign-in goes through the same lock as refreshes, so its new cookie can't be overwritten by a
 // refresh that was already on its way.
 export const signIn = async (credentials) => adopt(await withRefreshLock(() => send('/auth/login', { method: 'POST', body: credentials })));

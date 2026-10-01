@@ -53,7 +53,7 @@ describe.skipIf(!s3config || !hasFfmpeg)('video pipeline', () => {
     });
     const moduleRef = await Test.createTestingModule({ imports: [WorkerModule.forRoot(config)] })
       .overrideProvider(RealtimeEmitter)
-      .useValue({ media: (update: MediaUpdate) => void updates.push(update) })
+      .useValue({ media: (update: MediaUpdate) => void updates.push(update), toUser: () => {} })
       .compile();
     media = moduleRef.get(MediaService);
     close = () => moduleRef.close();

@@ -42,6 +42,11 @@
   font-size: 1.125rem;
   font-weight: 800;
   letter-spacing: -0.03em;
+
+  // The narrowest phones keep the mark alone, so the bar's controls keep their size.
+  @media (max-width: 419.98px) {
+    @include visually-hidden;
+  }
 }
 
 .nav {
@@ -101,6 +106,10 @@
   gap: 0.35rem;
   margin-left: auto;
 
+  > * {
+    flex-shrink: 0;
+  }
+
   @include up(md) {
     margin-left: 0;
   }
@@ -141,4 +150,11 @@
   @include down(sm) {
     margin-right: 0.3rem;
   }
+}
+
+// Holds the bell's place while it loads, so nothing shifts.
+.bellSpace {
+  flex: none;
+  width: 40px;
+  height: 40px;
 }

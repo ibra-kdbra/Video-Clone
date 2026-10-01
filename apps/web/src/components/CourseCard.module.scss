@@ -209,3 +209,22 @@
     background-position: -100% 0;
   }
 }
+
+// How far along, along the foot of the artwork (a "Continue learning" card).
+.progress {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  height: 4px;
+  border-radius: 0;
+  background: var(--stage-track);
+}
+
+.percent {
+  flex: none;
+  margin-left: auto;
+  color: var(--text-3);
+  font-weight: 600;
+}

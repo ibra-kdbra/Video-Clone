@@ -6,10 +6,12 @@ import { MailerService } from '../mail/mailer.service.js';
 import { MediaQueue } from '../media/media.queue.js';
 import { MediaService } from '../media/media.service.js';
 import { type InvitationEmail, invitationEmail } from '../mail/templates.js';
+import { type DeletedFile, SubmissionFilesService } from '../files/submission-files.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { OUTBOX_QUEUE, type OutboxJob, QUEUE_PREFIX } from './queues.js';
 
 interface Handler {
-  run(payload: Record<string, unknown>): Promise<void>;
+  run(payload: Record<string, unknown>, event: { id: number; schoolId: string | null }): Promise<unknown>;
   /** Payload fields removed once handled, such as a secret link that has been emailed. */
   scrub?: string[];
 }
@@ -30,6 +32,8 @@ export class OutboxProcessor implements OnApplicationBootstrap, OnApplicationShu
     mailer: MailerService,
     mediaQueue: MediaQueue,
     media: MediaService,
+    notifications: NotificationsService,
+    files: SubmissionFilesService,
     @Inject(WORKER_CONFIG) private readonly config: WorkerConfig,
   ) {
     this.handlers = {
@@ -43,10 +47,24 @@ export class OutboxProcessor implements OnApplicationBootstrap, OnApplicationShu
       'media.deleted': {
         run: (payload) => media.remove({ assetId: String(payload.assetId), schoolId: String(payload.schoolId), keepRecord: payload.keepRecord === true }),
       },
-      // Recorded for later features (notifications, analytics); nothing to do yet.
+      'files.deleted': {
+        run: (payload) => files.deleted({ schoolId: String(payload.schoolId), files: payload.files as DeletedFile[] }),
+      },
+      'course.published': {
+        run: (payload, event) => notifications.coursePublished(payload as { courseId: string; schoolId: string; actorId?: string }, event.id),
+      },
+      'lesson.published': {
+        run: (payload, event) => notifications.lessonPublished(payload as { lessonId: string; courseId: string; actorId?: string }, event.schoolId!, event.id),
+      },
+      'assignment.submitted': {
+        run: (payload, event) => notifications.assignmentSubmitted(payload as Parameters<NotificationsService['assignmentSubmitted']>[0], event.schoolId!, event.id),
+      },
+      'assignment.graded': {
+        run: (payload, event) => notifications.assignmentGraded(payload as Parameters<NotificationsService['assignmentGraded']>[0], event.schoolId!, event.id),
+      },
+      // Recorded for later features (analytics); nothing to do yet.
       'school.created': { run: async () => {} },
       'member.joined': { run: async () => {} },
-      'course.published': { run: async () => {} },
     };
   }
 
@@ -66,15 +84,15 @@ export class OutboxProcessor implements OnApplicationBootstrap, OnApplicationShu
 
   async process(job: Job<OutboxJob>): Promise<'done' | 'skipped'> {
     const { sql } = this.connections;
-    const [event] = await sql<{ type: string; payload: Record<string, unknown>; processed_at: Date | null }[]>`
+    const [event] = await sql<{ type: string; school_id: string | null; payload: Record<string, unknown>; processed_at: Date | null }[]>`
       update outbox set attempts = attempts + 1
       where id = ${job.data.outboxId}
-      returning type, payload, processed_at`;
+      returning type, school_id, payload, processed_at`;
     if (!event || event.processed_at) return 'skipped';
 
     const handler = this.handlers[event.type];
     if (!handler) this.logger.warn(`No handler for ${event.type}; marking it done`);
-    else await handler.run(event.payload);
+    else await handler.run(event.payload, { id: job.data.outboxId, schoolId: event.school_id });
 
     const scrub = handler?.scrub ?? [];
     await sql`

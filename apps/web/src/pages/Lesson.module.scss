@@ -312,3 +312,103 @@
   color: var(--text-2);
   font-size: var(--text-md);
 }
+
+// A quiz or an assignment: no stage, just the page, with the outline beside it on wide screens.
+.work {
+  padding-top: 1rem;
+
+  &.withSide {
+    max-width: var(--content-max);
+    align-items: start;
+  }
+}
+
+.workMain {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 0;
+
+  > * {
+    width: 100%;
+    max-width: 920px;
+  }
+}
+
+// The side outline of a quiz or an assignment stays in view while the page scrolls.
+.sticky {
+  position: sticky;
+  top: calc(var(--topbar-h) + 1rem);
+  align-self: start;
+  height: calc(100dvh - var(--topbar-h) - 2rem);
+}
+
+.muted {
+  color: var(--text-2);
+}
+
+// Marked as complete (reading, or a video on another platform).
+.completed {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 34px;
+  padding: 0 0.85rem 0 0.65rem;
+  border-radius: var(--radius-pill);
+  background: var(--success-soft);
+  color: var(--success);
+  font-weight: 700;
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+
+  &:focus:not(:focus-visible) {
+    outline: none;
+  }
+}
+
+.completedOn {
+  color: var(--text-2);
+  font-weight: 500;
+
+  &::before {
+    content: '·';
+    margin-right: 0.4rem;
+  }
+}
+
+// A quiz or an assignment that needs enrolling first.
+.locked {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.lockedIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+
+.lockedText {
+  display: flex;
+  flex: 1 1 18rem;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.lockedTitle {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}

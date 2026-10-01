@@ -6,22 +6,32 @@ import { formatRuntime, joinMeta, plural } from '../lib/format.js';
 import Badge from './Badge.jsx';
 import CourseCover from './CourseCover.jsx';
 import Icon from './Icon.jsx';
+import ProgressBar from './ProgressBar.jsx';
 import styles from './CourseCard.module.scss';
 
 const STATUS = { draft: { label: 'Draft', tone: 'warning', icon: 'edit' }, archived: { label: 'Archived', tone: 'neutral', icon: 'archive' } };
+
+/** "Start the first lesson", "3 of 8 lessons done", "Completed". */
+function progressLine(progress) {
+  if (!progress || (progress.completedLessons === 0 && !progress.lastLessonId)) return 'Start the first lesson';
+  if (progress.totalLessons > 0 && progress.completedLessons >= progress.totalLessons) return 'Completed';
+  return `${progress.completedLessons} of ${plural(progress.totalLessons, 'lesson')} done`;
+}
 
 /**
  * A course in the catalog, in the streaming style of the video cards: artwork that lifts on hover
  * with a play hint, the title, a line of summary, and how much there is to watch. Drafts and
  * archived courses say so on the artwork; enrolled ones get a check. The whole card is one link.
- * `resume` (the last lesson opened) turns it into a "Continue" card.
+ * `showProgress` turns it into a "Continue" card: how far along this person is, with a bar along
+ * the artwork's foot, as streaming apps do.
  */
-function CourseCard({ course, schoolSlug, resume, index = 0, titleAs: Title = 'h3', priority = false }) {
+function CourseCard({ course, schoolSlug, showProgress = false, index = 0, titleAs: Title = 'h3', priority = false }) {
   const status = STATUS[course.status];
   const meta = joinMeta(plural(course.lessonCount, 'lesson'), formatRuntime(course.durationSeconds));
+  const progress = showProgress ? course.progress : null;
 
   return (
-    <article className={`${styles.card} ${resume !== undefined ? styles.continue : ''}`} style={{ '--i': Math.min(index, 12) }}>
+    <article className={`${styles.card} ${showProgress ? styles.continue : ''}`} style={{ '--i': Math.min(index, 12) }}>
       <div className={styles.media}>
         <CourseCover course={course} priority={priority} />
         <span className={styles.playHint} aria-hidden="true">
@@ -40,6 +50,7 @@ function CourseCard({ course, schoolSlug, resume, index = 0, titleAs: Title = 'h
             <span className="visually-hidden">Enrolled</span>
           </span>
         )}
+        {progress && progress.percent > 0 && <ProgressBar value={progress.percent} tone={progress.percent >= 100 ? 'success' : 'accent'} className={styles.progress} />}
       </div>
       <div className={styles.body}>
         <Title className={styles.title}>
@@ -48,10 +59,11 @@ function CourseCard({ course, schoolSlug, resume, index = 0, titleAs: Title = 'h
             {course.title}
           </Link>
         </Title>
-        {resume !== undefined ? (
-          <p className={styles.resume}>
-            <Icon name="play" size={12} />
-            <span>{resume ? `Continue: ${resume.title}` : 'Start the first lesson'}</span>
+        {showProgress ? (
+          <p className={`${styles.resume} tabular`}>
+            <Icon name={progress && progress.percent >= 100 ? 'checkCircle' : 'play'} size={12} />
+            <span>{progressLine(progress)}</span>
+            {progress && progress.percent > 0 && progress.percent < 100 && <span className={styles.percent}>{progress.percent}%</span>}
           </p>
         ) : (
           course.summary && <p className={styles.summary}>{course.summary}</p>

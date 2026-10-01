@@ -34,6 +34,11 @@ const Invite = lazy(() => import('../pages/Invite.jsx'));
 const Course = lazy(() => import('../pages/Course.jsx'));
 const Lesson = lazy(() => import('../pages/Lesson.jsx'));
 const CourseEditor = lazy(() => import('../pages/CourseEditor.jsx'));
+// Learning progress: assignments' submissions and grading, and notifications.
+const Submissions = lazy(() => import('../pages/Submissions.jsx'));
+const Grading = lazy(() => import('../pages/Grading.jsx'));
+const Notifications = lazy(() => import('../pages/Notifications.jsx'));
+const NotificationSettings = lazy(() => import('../pages/NotificationSettings.jsx'));
 
 /** Addresses from the previous version keep working. */
 function OldVideo() {
@@ -129,6 +134,16 @@ function Layout() {
                 <Route path="s/:slug/c/:courseSlug" element={<Course />} />
                 <Route path="s/:slug/c/:courseSlug/l/:lessonId" element={<Lesson />} />
                 <Route path="s/:slug/c/:courseSlug/edit" element={<CourseEditor />} />
+                <Route path="s/:slug/c/:courseSlug/l/:lessonId/submissions" element={<Submissions />} />
+                <Route path="s/:slug/c/:courseSlug/l/:lessonId/submissions/:submissionId" element={<Grading />} />
+                <Route
+                  path="notifications"
+                  element={
+                    <RequireAuth>
+                      <Notifications />
+                    </RequireAuth>
+                  }
+                />
                 <Route
                   path="schools/new"
                   element={
@@ -142,6 +157,14 @@ function Layout() {
                   element={
                     <RequireAuth>
                       <Account />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="account/notifications"
+                  element={
+                    <RequireAuth>
+                      <NotificationSettings />
                     </RequireAuth>
                   }
                 />
