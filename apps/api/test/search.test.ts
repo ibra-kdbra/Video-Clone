@@ -62,8 +62,15 @@ describe('search', () => {
     expect((await search(s.student, 'eigenvectors')).lessons.total).toBe(0);
     expect((await search(s.author, 'eigenvectors')).lessons.items.map((lesson) => lesson.id)).toEqual([s.lessons.draft]);
 
-    // Not enrolled: the lessons show, locked.
-    expect((await search(s.outsider, 'determinant')).lessons.items[0]).toMatchObject({ id: s.lessons.determinant, locked: true });
+    // Not enrolled: the lessons show, locked, found and quoted by their title and summary only.
+    const locked = (await search(s.outsider, 'determinant')).lessons.items[0];
+    expect(locked).toMatchObject({ id: s.lessons.determinant, locked: true });
+    expect(locked!.snippet).not.toContain('measures');
+    expect((await search(s.outsider, 'tail')).lessons.total).toBe(0);
+    expect((await search(s.student, 'tail')).lessons.items.map((lesson) => lesson.id)).toEqual([s.lessons.vectors]);
+    // A free preview is open to everyone, notes too.
+    await as(api, s.author).patch(`${s.url}/lessons/${s.lessons.vectors}`, { isPreview: true });
+    expect((await search(s.outsider, 'tail')).lessons.items[0]).toMatchObject({ id: s.lessons.vectors, locked: false });
 
     // A draft course: nobody but its editors.
     const draft = await as(api, s.author).post(`/schools/${s.school.slug}/courses`, { title: 'Secret Topology', summary: 'Doughnuts and coffee cups.' });

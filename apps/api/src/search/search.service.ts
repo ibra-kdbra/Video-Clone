@@ -77,16 +77,24 @@ export class SearchService {
     return section(rows, limit, (row) => ({ id: row.id, slug: row.slug, title: row.title, summary: row.summary, status: row.status, snippet: row.snippet, enrolled: row.enrolled }));
   }
 
+  /**
+   * A lesson's notes are for those who may open it. For the others (not enrolled, and not a free
+   * preview), a lesson is found, ranked and quoted by its title and summary only, as on the course
+   * page, so search never shows or hints at what the notes say.
+   */
   private async lessons(tx: Tx, tsquery: string, v: Viewer, limit: number, offset: number): Promise<SearchSection<SearchLessonHit>> {
     const rows = await tx.execute<{ id: string; course_slug: string; course_title: string; title: string; kind: SearchLessonHit['kind']; snippet: string; locked: boolean; total: number }>(sql`
       select l.id, c.slug as course_slug, c.title as course_title, l.title, l.kind,
-             ${limit ? sql`ts_headline('english', ${plain(sql`l.summary || ' ' || l.notes`)}, q, ${HEADLINE})` : sql`''`} as snippet,
-             not (${v.canEditCourse(sql`c`)} or (c.status = 'published' and l.status = 'published' and
-                  (l.is_preview or exists (select 1 from enrollments e where e.course_id = c.id and e.user_id = ${v.userId})))) as locked,
+             ${limit ? sql`ts_headline('english', ${plain(sql`case when a.open then l.summary || ' ' || l.notes else l.summary end`)}, q, ${HEADLINE})` : sql`''`} as snippet,
+             not a.open as locked,
              count(*) over ()::int as total
-      from lessons l join courses c on c.id = l.course_id, to_tsquery('english', ${tsquery}) q
-      where l.search_vector @@ q and ${v.canSeeCourse(sql`c`)} and (l.status = 'published' or ${v.canEditCourse(sql`c`)})
-      order by ts_rank_cd(l.search_vector, q) desc, l.title
+      from lessons l join courses c on c.id = l.course_id, to_tsquery('english', ${tsquery}) q,
+           lateral (select ${v.canEditCourse(sql`c`)} or (c.status = 'published' and l.status = 'published' and
+                      (l.is_preview or exists (select 1 from enrollments e where e.course_id = c.id and e.user_id = ${v.userId}))) as open,
+                    setweight(to_tsvector('english', l.title), 'A') || setweight(to_tsvector('english', l.summary), 'B') as outline) a
+      where l.search_vector @@ q and (a.open or a.outline @@ q)
+        and ${v.canSeeCourse(sql`c`)} and (l.status = 'published' or ${v.canEditCourse(sql`c`)})
+      order by ts_rank_cd(case when a.open then l.search_vector else a.outline end, q) desc, l.title
       limit ${Math.max(limit, 1)} offset ${offset}`);
     return section(rows, limit, (row) => ({ id: row.id, courseSlug: row.course_slug, courseTitle: row.course_title, title: row.title, kind: row.kind, snippet: row.snippet, locked: row.locked }));
   }
