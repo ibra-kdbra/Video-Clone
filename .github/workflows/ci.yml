@@ -42,6 +42,10 @@ jobs:
       TEST_S3_BUCKET: grand-media
       TEST_S3_ACCESS_KEY_ID: GK000000000000000000000001
       TEST_S3_SECRET_ACCESS_KEY: "0000000000000000000000000000000000000000000000000000000000000001"
+      # The live class tests sign LiveKit tokens and create rooms on a LiveKit server in dev mode.
+      TEST_LIVEKIT_URL: ws://localhost:7880
+      TEST_LIVEKIT_API_KEY: devkey
+      TEST_LIVEKIT_API_SECRET: secret
     steps:
       - uses: actions/checkout@v5
       # Garage needs its config file, which only exists after checkout, so it isn't a service.
@@ -49,6 +53,8 @@ jobs:
         run: >-
           docker run -d --name garage -p 3900:3900 -p 3903:3903
           -v "$PWD/infra/garage/garage.dev.toml:/etc/garage.toml:ro" dxflrs/garage:v2.1.0
+      - name: Start LiveKit
+        run: docker run -d --name livekit -p 7880:7880 livekit/livekit-server:v1.13.7 --dev --bind 0.0.0.0
       - name: Install ffmpeg
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
       - uses: actions/setup-node@v5

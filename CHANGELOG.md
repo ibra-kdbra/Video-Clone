@@ -2,6 +2,85 @@
 
 All notable changes to this project will be documented in this file.
 
+## [9.0.0] - 2026-10-02
+
+**Grand LMS, Phase 3: live and social.** Courses get live classes with a waiting room and chat,
+discussions under lessons and on a board for each course, with moderation, and search across the
+whole school. The demo school has all of it.
+
+### Added
+- **Live classes**, scheduled for a course by its editors:
+  - **Video, chosen per class:**
+    - LiveKit, in the browser: camera, microphone and screen sharing. It's open source, runs on
+      the same free server, and is optional.
+    - A YouTube Live stream.
+    - A meeting link, shown to students only from 10 minutes before the start.
+  - **The class page:**
+    - A countdown, an .ics calendar file, and times in each viewer's own time zone.
+    - A waiting room from 15 minutes before, with who's there and the chat.
+    - Students raise a hand. In LiveKit classes the host can let them speak, giving them a
+      microphone and camera.
+    - Hosts hide chat messages and see who came. A replay can be added afterwards.
+  - Chat is stored, so it becomes a transcript, and is limited to 8 messages per 10 seconds per
+    person.
+  - Notifications when a class is scheduled and when it starts, and a reminder 15 minutes
+    before, by email by default.
+  - The schedule shows on the dashboard, the school page and each course.
+- **Discussions**:
+  - Comments under every lesson, and a discussion board for each course, with replies.
+  - Mark posts helpful. Sort by activity, newest or most helpful, and filter to unanswered
+    threads or your own.
+  - Pages update live as people post. A notification link opens the right comment, even past
+    the first page.
+  - **Moderation** by the course's editors:
+    - Pin and lock threads, mark the answer, and hide posts.
+    - A reports queue: members report a post once, with a reason. Every decision is audited.
+  - Deleting a post with replies leaves a placeholder, so the conversation still reads.
+- **Search** across a school, from the top bar:
+  - Suggestions as you type, and a results page for courses, lessons and discussions.
+  - Postgres full text: English stemming, titles weighted above summaries above notes, and the
+    last word matched as a prefix.
+  - Matches are highlighted. You only find what you may open: a lesson you aren't enrolled in is
+    found by its title and summary, never its notes.
+- **Demo school**:
+  - Discussions in every course, with answers, a locked thread and reports to work through.
+  - A class that's live now, with classmates who chat, raise hands and are answered.
+  - A class about to open its waiting room, and others coming up.
+  - Search across all of it.
+- **Deployment**:
+  - An optional `livekit` profile in the production compose file, with Caddy serving it at
+    `LIVE_DOMAIN`.
+  - `LIVEKIT_*` settings for the API, and `LIVEKIT_ORIGIN` for the page's Content-Security-Policy.
+  - LiveKit in the local `infra:up` stack and in CI.
+- **Tests**:
+  - API: 144 (27 new). Classes and their rooms, LiveKit tokens checked against a real LiveKit
+    server, discussions and moderation, search and its access rules, and row-level security on
+    the new tables.
+  - Worker: 24 (4 new). Who hears about posts, replies, reports and classes, and reminders that
+    go once.
+  - Web: 484 (113 new). Time zones and calendar files, chat reconciliation, the LiveKit layout,
+    search, discussion cache updates, the page's security headers, and the demo's new routes and
+    scripted rooms.
+- **Docs**:
+  - [ADR 9](docs/adr/0009-live-and-social.md).
+  - The live class, discussion and search sections of the architecture page.
+  - LiveKit in the deployment guide.
+
+### Security
+- **LiveKit tokens** are signed per person and class, for two hours. Students can't publish until
+  a host lets them, and nobody can send data through LiveKit or change their own metadata.
+- **Chat messages** can be hidden but never rewritten or deleted in the database.
+- **Search** builds its query from the words typed, never from raw syntax. Snippets mark matches
+  with control characters, never HTML.
+- **The page's Permissions-Policy** allows the camera, microphone and screen capture for the site
+  itself only, not for embedded players.
+- **Real-time events** about a change are sent only after it's committed.
+
+### Changed
+- **Settings**: empty environment values now count as unset, so Docker Compose can leave the
+  optional LiveKit settings blank.
+- **Notification emails** quote posts as plain text, without their Markdown.
+
 ## [8.1.0] - 2026-10-01
 
 **A demo school on the public site, and an LMS-first front page.** The public site has no API

@@ -32,7 +32,7 @@ stays within free tiers.
 - A lesson can use a YouTube, Dailymotion or Twitch video instead.
 - Enrollments, free preview lessons, and a course catalog for each school.
 
-## Phase 2: learning progress (this release)
+## Phase 2: learning progress (done)
 
 - Lessons come in three kinds: a lesson (video and notes), a quiz, or an assignment.
 - **Watch progress**:
@@ -49,12 +49,20 @@ stays within free tiers.
 - **Insights** for a course's editors: activity, completion, where students stop watching each
   video, quiz pass rates and the hardest questions, and grades.
 
-## Phase 3: live and social
+## Phase 3: live and social (this release)
 
-- Live classes: scheduling, a waiting room and live chat over the existing socket rooms. Video is
-  either an embedded YouTube Live stream or self-hosted WebRTC (LiveKit) when a server allows it.
-- Lesson comments and course discussions, with moderation.
-- Full-text search across a school's courses (Postgres `tsvector`).
+- **Live classes**, scheduled for a course by its editors:
+  - Video from self-hosted LiveKit (WebRTC in the browser: camera, microphone, screen), a YouTube
+    Live stream, or a meeting link.
+  - A waiting room from 15 minutes before, chat over the existing socket connection, raised
+    hands, letting students speak, hidden messages, attendance, and a replay afterwards.
+  - Notifications when a class is scheduled, 15 minutes before, and when it starts.
+- **Discussions**: comments under lessons and a board for each course, with replies, helpful
+  votes, answers, live updates, and moderation (pin, lock, hide, reports).
+- **Search** across a school's courses, lessons and discussions (Postgres `tsvector`, GIN indexes,
+  English stemming), as you type, limited to what each person may see.
+- The demo school has all of it: classes to join with scripted classmates, discussions to
+  moderate, and search.
 
 ## Later
 

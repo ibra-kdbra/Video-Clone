@@ -9,6 +9,9 @@ what is built so far:
 - **Phase 2**, learning progress: what students watched and completed, quizzes graded on the
   server, assignments with files and feedback, notifications in the app and by email, and
   insights for a course's editors.
+- **Phase 3**, live and social: live classes with a waiting room and chat (video through LiveKit,
+  YouTube Live or a meeting link), lesson comments and course discussions with moderation, and
+  full-text search across a school.
 
 The decisions behind it are recorded in [docs/adr](adr).
 
@@ -27,7 +30,8 @@ browser ──https (signed URLs: uploads, video)───┐   │      │
                     ┌─────────── one small server (Oracle Cloud Always Free) ───────────────────┐
                     │ Caddy (HTTPS, Let's Encrypt)                                              │
                     │   ├► apps/api: NestJS 12 on Fastify, REST /api/v1 + Socket.IO /api/v1/ws  │
-                    │   └► Garage (S3 API) at MEDIA_DOMAIN: uploads, segments, posters          │
+                    │   ├► Garage (S3 API) at MEDIA_DOMAIN: uploads, segments, posters          │
+                    │   └► LiveKit (optional) at LIVE_DOMAIN: live classes over WebRTC          │
                     │ apps/worker: outbox relay, BullMQ jobs, email, ffmpeg transcoding         │
                     │ PostgreSQL 17 (row-level security)     Redis 8 (queues, limits, pub/sub)  │
                     └───────────────────────────────────────────────────────────────────────────┘
@@ -86,6 +90,8 @@ browser ──https (signed URLs: uploads, video)───┐   │      │
 | `lesson_progress`, `quizzes`, `assignments`, `assignment_submissions`, `submission_files` | read, create, update, delete | Only the acting school's rows. Whose progress or submission you see is decided in the API, as for courses. |
 | `quiz_attempts` | read, add | Only the acting school's rows. Attempts are never changed or deleted, except with their lesson or membership. |
 | `notifications` | read, update, delete | Only your own, in any school. There's no insert grant: they're written through `app.add_notifications(...)`, a `SECURITY DEFINER` function that only writes for members of the acting school. |
+| `live_sessions`, `live_attendance`, `discussion_posts`, `discussion_votes`, `discussion_reports` | read, create, update, delete | Only the acting school's rows. Who may see, join or moderate is decided in the API, as for courses. |
+| `live_messages` | read, add, hide | Only the acting school's rows. Only `hidden_at` and `hidden_by` can be updated, so a message's text can't be rewritten, and there's no delete grant. |
 | `users`, `sessions`, `refresh_tokens`, `outbox` | as granted | Not school-scoped. They're reached only through the services, by id or by token hash. |
 
 There are more guarantees:
@@ -98,6 +104,12 @@ There are more guarantees:
   course, or at a module of another course, even if a bug in the API tried.
 - Progress, attempts and submissions point at `(lesson_id, course_id, school_id)` and at the
   person's membership `(school_id, user_id)`. Leaving a school deletes them.
+- Discussion posts, chat messages and reports also point at the membership, but leaving a school
+  keeps them, unsigned (`ON DELETE SET NULL (author_id)`). A reply points at its parent through
+  `(parent_id, course_id, school_id)`, so it can't hang under another course's thread.
+- The socket knows a course's or a class's id before it knows the school.
+  `app.course_school(id)` and `app.live_session_school(id)` (`SECURITY DEFINER`) return only the
+  school id; access is then checked acting for that school.
 
 `apps/api/test/rls.test.ts` checks all of this straight against Postgres as `grand_app`:
 - queries with no school filter at all
@@ -145,11 +157,20 @@ See [ADR 5](adr/0005-realtime.md).
   - `school:{id}:staff` is joined too by instructors and above, and follows role changes. Video
     progress goes only there.
   - The Redis adapter shares the rooms across API instances.
+  - `course:{id}` is joined on request (`course:watch`) by those who may read the course's
+    discussions. New, edited and moderated posts are announced there (`discussion:changed`) so
+    open pages refresh.
+  - `live:{id}` is joined with `live:join` by those who may be in the class now (below).
 - **Events**:
   - Members joining, changing role or leaving.
   - Presence: who is connected to a school.
   - Session revoked.
   - A new notification, and notifications read on another device (`user:{id}` only).
+  - In a class: chat messages and hidden ones, who's there with raised hands, the class starting
+    or ending, and a student allowed to speak.
+- **After commit**: an event about a change is queued with `DatabaseService.afterCommit` and sent
+  once the transaction has committed (never if it rolls back), so a page that refetches on hearing
+  it sees the change.
 - **Limits**:
   - 16 KiB per message.
   - 20 events in a burst, then 5 a second.
@@ -169,7 +190,12 @@ See [ADR 4](adr/0004-outbox.md).
 6. The processor checks `processed_at` first and sets it last. A crash can repeat an email, but
    never lose one.
 7. Secrets in a payload (the invitation link) are deleted once handled.
-8. A BullMQ job scheduler runs the nightly clean-up. Only one worker runs it, however many are up.
+8. BullMQ job schedulers run the nightly clean-up and, every minute, the live classes job. Only
+   one worker runs each, however many are up. The live classes job:
+   - claims classes starting within 15 minutes that haven't had their reminder
+     (`app.claim_live_reminders`, `FOR UPDATE SKIP LOCKED`), and sends it once
+   - ends classes still live two hours after their end, and cancels scheduled ones that never
+     started (`app.close_stale_live`)
 
 ## Courses and lessons
 
@@ -322,10 +348,17 @@ See [ADR 8](adr/0008-learning-progress.md).
 | `assignment.submitted` | The course's author; if they've left, the school's admins and owner | No |
 | `assignment.graded` | The student (graded or returned) | Yes |
 | `video.processed` | Whoever uploaded the video (ready or failed) | No |
+| `discussion.posted` | The course's author (or the school's admins and owner), for a new thread or lesson comment | No |
+| `discussion.reply` | The author of the thread or comment replied to | No |
+| `discussion.reported` | The course's author (or the school's admins and owner) | Yes |
+| `live.scheduled` | The course's enrolled students | No |
+| `live.reminder` | The course's enrolled students and the class's host, 15 minutes before | Yes |
+| `live.started` | The course's enrolled students | No |
 
 - **Delivery**:
   - The worker writes one row per person through `app.add_notifications(...)`. Its key, from the
     outbox event, makes a retried event notify nobody twice.
+  - A post quoted in a notification is cut to 140 characters of plain text, its Markdown removed.
   - It pushes each new row to the person's devices over Socket.IO (`notification:new`), through
     the Redis emitter.
   - It emails those who asked, paced by `MAIL_RATE_PER_SECOND`. Links use `PUBLIC_WEB_URL`.
@@ -342,6 +375,79 @@ See [ADR 8](adr/0008-learning-progress.md).
 - `GET .../lessons/:id/insights` gives a video's retention curve (how many students played each
   5-second stretch), or how often each quiz question is answered correctly.
 - Both are computed on request, from enrolled students' rows only.
+
+## Live classes
+
+See [ADR 9](adr/0009-live-and-social.md).
+
+- **A class** belongs to a course: a title, a start, a length (5 minutes to 8 hours) and where the
+  video comes from. The course's editors are its hosts: they schedule, change, start, end, cancel
+  or remove it. Enrolled students of the published course may join.
+- **Its status** goes `scheduled` → `live` → `ended`, or `scheduled` → `cancelled`. A `CHECK`
+  constraint ties `started_at` and `ended_at` to the status.
+- **The video**:
+  - `livekit`: `POST .../token` signs a LiveKit token for two hours, for the room `grand-{id}`.
+    Hosts may publish and administer the room from before the start; students may subscribe once
+    the class is live, and publish only after a host lets them speak, which the API also applies
+    to their live connection through LiveKit's server API. Nobody may send data packets or change
+    their own metadata, so the chat stays ours. Offered only when `LIVEKIT_*` is set
+    (`GET /live/options`).
+  - `youtube`: the live video's id (pasted as a link or an id), embedded on the class page.
+  - `link`: an `https` meeting address, shown to students only from 10 minutes before the start.
+  - Any class can have a replay afterwards, as a YouTube video id.
+- **The room** (`live:{id}` on the socket):
+  - Students come in from 15 minutes before the start; hosts at any time until it ends.
+  - Joining returns the class, the latest messages and who's there. Attendance (first joined,
+    last seen) is saved on joining and leaving.
+  - Chat is stored (`live_messages`), at most 500 characters, 8 messages per 10 seconds per
+    person. Hosts hide messages; others then see an empty, hidden message.
+  - Raised hands and who may speak are Redis sets for the length of the class, cleared when it
+    ends. Hands go up only while live.
+  - Starting or ending a class is announced to the room; ending it also closes the LiveKit room.
+
+## Discussions
+
+- **Posts** come in three shapes, in one table: a course thread (with a title), a comment under a
+  lesson, and a reply to either, one level deep. A `CHECK` constraint keeps the shapes apart.
+- **Readers** are the course's editors and the students enrolled in the published course. Lesson
+  comments also need the lesson to be published, unless you edit it.
+- **Lists** are sorted by latest activity, newest, or most helpful, and filtered to unanswered
+  questions or your own. Pinned threads come first. Pages use keyset cursors (pinned, the sort key,
+  id), so new posts don't shift them.
+- **Helpful votes**: one per person and post, never on your own. Counts are kept on the post.
+- **Each post tells the reader** whether they found it helpful, wrote it, may moderate it, have
+  reported it, and, for a thread or comment, whether it has an accepted answer.
+- **Moderation**, by the course's editors:
+  - Pin and lock threads (a locked thread takes no replies, except from moderators), hide posts,
+    and mark the reply that answers a thread.
+  - Reports: once per person and post, with a reason and a note. Hiding the post or dismissing the
+    report resolves it, and hiding a post resolves all of its reports. Every decision goes in the
+    audit log.
+  - Hidden posts stay visible to their author and the moderators.
+- **Deleting**: authors delete their own posts, moderators any. A post with replies becomes a
+  `[deleted]` placeholder so the conversation still reads; one without is removed, and so is a
+  deleted thread whose last reply goes.
+- **Limits**: 30 posts per 10 minutes, 120 votes a minute and 20 reports an hour per person.
+
+## Search
+
+- `GET /schools/:slug/search?q&type&limit&offset` searches courses, lessons and discussions.
+- **Indexes**: generated, stored `tsvector` columns with English stemming and GIN indexes:
+  - courses: title (A), summary (B), description (C)
+  - lessons: title (A), summary (B), notes (C)
+  - discussion posts: title (A), body (B)
+- **The query** is built from what was typed, never passed through as syntax: up to 8 words of
+  letters and digits (accents removed), joined with `&`, the last one a prefix (`word:*`), so
+  results come as you type. Ranking uses `ts_rank_cd`.
+- **What you see**:
+  - published courses, plus drafts for their editors
+  - those courses' lessons, published ones (drafts for editors), marked `locked` if you can't open
+    them. A locked lesson is found, ranked and quoted by its title and summary only, never its
+    notes.
+  - visible posts in the courses whose discussions you read
+- **Snippets** come from `ts_headline`, with matches between the control characters `\u0002` and
+  `\u0003`. The page splits on them (`snippetParts` in the contracts) and never renders HTML.
+- The answer has every type's total, and the items of one type or all of them.
 
 ## Demo mode
 
@@ -361,6 +467,15 @@ mock of the API inside the page (`apps/web/src/demo`):
   the visitor's changes are saved, in one `localStorage` entry; "Reset demo" forgets them.
 - **Video**: lessons embed YouTube lectures, except *The Physics of Sound*, whose HLS files are
   served from `public/demo/media` and played by the app's own player.
+- **Live and social**: the mock has discussions, live classes and search with the API's rules.
+  - Discussions are seeded for every course (`src/demo/social.js`), with answers, a locked
+    thread, a deleted one kept for its replies, and reports to work through.
+  - Live classes use YouTube or a meeting link. A scripted room (`src/demo/liveRooms.js`) has
+    classmates who come and go, chat, raise hands and are called on, and a host who answers.
+  - Seeded classes are timed from the visit: each visit gets a fresh schedule (a class live now,
+    one about to start, and others), while classes the visitor scheduled or ran are kept.
+  - Search ranks titles above summaries above notes, stems lightly, and treats the last word as
+    a prefix, as Postgres does.
 - **Nothing of it in a real build**: with the flag off, a build plugin resolves every import of
   `src/demo` to an empty module and drops `public/demo`. A test checks that `src/demo` is only ever
   imported dynamically, behind the flag, which is what lets the build drop it.
@@ -390,12 +505,14 @@ mock of the API inside the page (`apps/web/src/demo`):
 | `apps/api/src/**/*.spec.ts` | Nothing external | Configuration, cursors, address masking, the progress bitset, quiz grading. |
 | `apps/api/test/courses.test.ts`, `media.test.ts` | Real Postgres, Redis and Garage | Courses, drafts and permissions, outlines, enrollments, uploads and quotas, playback tokens and rewritten playlists. |
 | `apps/api/test/learning.test.ts`, `notifications.test.ts` | Real Postgres, Redis and Garage | Lesson kinds, watch progress and completion, quiz grading and attempt limits under parallel requests, assignment files and grading, insights, the notification inbox and settings. |
-| `apps/worker/test` | Real Postgres, Redis and Garage, and ffmpeg | Relay deduplication, email and scrubbing, idempotent retries, clean-up. Transcoding landscape, portrait and silent video, refusing files that aren't video or are too long, deletion, abandoned uploads. Notification recipients, choices and emails; handed-in files' deletion. |
+| `apps/api/test/live.test.ts`, `discussions.test.ts`, `search.test.ts` | Real Postgres and Redis, and a LiveKit server | Scheduling and the class lifecycle, who sees a meeting link when, the waiting room, chat and its limit, hiding, hands, attendance, LiveKit tokens and grants against a real server. Threads, comments and replies, locking, voting, moderation, reports, deletion, live updates. Stemming, prefixes, ranking, snippets and what each person may find. |
+| `apps/worker/test` | Real Postgres, Redis and Garage, and ffmpeg | Relay deduplication, email and scrubbing, idempotent retries, clean-up. Transcoding landscape, portrait and silent video, refusing files that aren't video or are too long, deletion, abandoned uploads. Notification recipients, choices and emails; handed-in files' deletion. Discussion and live class notifications, reminders sent once, classes left behind closed. |
 | `apps/worker/scripts/check-ffmpeg.mjs` | The worker image's ffmpeg (in CI) | The pipeline's ffmpeg commands work with the ffmpeg the image ships. |
 | `apps/web/tests` | Mocks | The video proxy, client logic, security rules for the page. |
 
 Set `TEST_DATABASE_ADMIN_URL` (a superuser connection string) and `TEST_REDIS_URL`. With
 `npm run infra:up`, the defaults already point at the right place. The video tests also need
 `TEST_S3_ENDPOINT`, `TEST_S3_BUCKET`, `TEST_S3_ACCESS_KEY_ID` and `TEST_S3_SECRET_ACCESS_KEY`
-(Garage from `infra:up`, after `npm run storage:setup`), and ffmpeg for the worker. Without them
-those tests are skipped.
+(Garage from `infra:up`, after `npm run storage:setup`), and ffmpeg for the worker. The LiveKit
+test needs `TEST_LIVEKIT_URL`, `TEST_LIVEKIT_API_KEY` and `TEST_LIVEKIT_API_SECRET` (LiveKit from
+`infra:up` uses `devkey` and `secret`). Without them those tests are skipped.

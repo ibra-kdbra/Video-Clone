@@ -44,6 +44,13 @@ services:
       - garage_meta:/var/lib/garage/meta
       - garage_data:/var/lib/garage/data
 
+  # LiveKit for live classes over WebRTC, in development mode (keys devkey / secret). Set
+  # LIVEKIT_URL=ws://localhost:7880, LIVEKIT_API_KEY=devkey and LIVEKIT_API_SECRET=secret for the API.
+  livekit:
+    image: livekit/livekit-server:v1.13.7
+    command: ["--dev", "--bind", "0.0.0.0", "--node-ip", "127.0.0.1"]
+    ports: ["127.0.0.1:7880:7880", "127.0.0.1:7881:7881", "127.0.0.1:7882:7882/udp"]
+
 volumes:
   postgres:
   redis:

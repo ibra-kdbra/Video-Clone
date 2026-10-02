@@ -1,9 +1,11 @@
 # Production on one small server (Oracle Cloud Always Free, see docs/deploy.md): the API, the
-# worker, Postgres, Redis, Garage (video storage) and Caddy (HTTPS). Only Caddy is reachable from
-# outside.
+# worker, Postgres, Redis, Garage (video storage) and Caddy (HTTPS), and optionally LiveKit (live
+# classes over WebRTC). Only Caddy is reachable from outside, and LiveKit's media ports when it runs.
 #
 #   cp infra/.env.prod.example infra/.env.prod   # fill it in
 #   docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --build
+#
+# With live classes over LiveKit, add `--profile live` (or export COMPOSE_PROFILES=live).
 #
 # The values in .env.prod fill in the ${...} below; nothing reads the file directly.
 name: grand-lms
@@ -43,6 +45,7 @@ services:
     environment:
       API_DOMAIN: ${API_DOMAIN:?Set API_DOMAIN, such as grand-lms.duckdns.org}
       MEDIA_DOMAIN: ${MEDIA_DOMAIN:?Set MEDIA_DOMAIN, such as media.grand-lms.duckdns.org}
+      LIVE_DOMAIN: ${LIVE_DOMAIN:-live.localhost}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -65,6 +68,13 @@ services:
       # visitor's address in this header; without it, everyone would share Netlify's addresses.
       TRUST_PROXY: "1"
       CLIENT_IP_HEADER: x-nf-client-connection-ip
+      # Live classes over WebRTC, when LiveKit runs (`--profile live`). Left empty, classes use
+      # YouTube Live or a meeting link. Browsers connect to LIVEKIT_URL; the API reaches LiveKit's
+      # server API inside the server's network.
+      LIVEKIT_URL: ${LIVEKIT_URL:-}
+      LIVEKIT_API_URL: http://livekit:7880
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-}
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/health/ready').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
       interval: 15s
@@ -125,6 +135,31 @@ services:
       test: ["CMD", "/garage", "status"]
       interval: 5s
       retries: 20
+
+  # LiveKit, the WebRTC server for live classes. Optional: it runs with `--profile live`. Browsers
+  # reach its signal connection through Caddy at LIVE_DOMAIN, and send media straight to it on
+  # 7881/tcp and 7882/udp, which must be open in the firewall (docs/deploy.md). It finds the
+  # server's public address itself (STUN).
+  livekit:
+    image: livekit/livekit-server:v1.13.7
+    profiles: [live]
+    restart: unless-stopped
+    ports: ["7881:7881", "7882:7882/udp"]
+    environment:
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:-}: ${LIVEKIT_API_SECRET:-}"
+      LIVEKIT_CONFIG: |
+        port: 7880
+        rtc:
+          tcp_port: 7881
+          udp_port: 7882
+          use_external_ip: true
+        room:
+          empty_timeout: 300
+        logging:
+          level: info
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
 
   postgres:
     image: postgres:17-alpine
