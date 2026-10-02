@@ -2,6 +2,7 @@ import { PROGRESS_SEGMENT_SECONDS } from '@grand/contracts';
 
 import { createRandom, stableId } from './ids.js';
 import { formatPoints, gradeQuiz, markSegments, normalizeAnswer, segmentCount, toHex } from './logic.js';
+import { seedSocial, socialIds } from './seedSocial.js';
 import { reachablePercents } from './validate.js';
 
 /**
@@ -12,7 +13,8 @@ import { reachablePercents } from './validate.js';
  * start where START puts them, and get the notifications that history would have sent them.
  *
  * Times are milliseconds, relative to `now`, so the demo always looks recent. Rows are kept per
- * table, by id, in the shapes the mock's routes work with (src/demo/routes).
+ * table, by id, in the shapes the mock's routes work with (src/demo/routes). With `social`
+ * (social.js), the school also has its discussions and live classes (seedSocial.js).
  */
 
 export const DAY = 86_400_000;
@@ -29,6 +31,10 @@ export const ids = {
   question: (slug, lesson, key) => stableId('question', slug, lesson, key),
   option: (slug, lesson, key, index) => stableId('option', slug, lesson, key, index),
   media: (key) => stableId('media', key),
+  /** A course thread (`post(course, thread)`), a reply (`post(course, thread, reply)`), a lesson comment (`post(course, 'comment', key)`)… */
+  post: (course, ...keys) => stableId('post', course, ...keys),
+  /** A seeded class, in the occurrence that started at `occurrence` (ms). */
+  live: (key, occurrence) => socialIds.live(key, occurrence),
 };
 
 export const TABLES = [
@@ -50,6 +56,12 @@ export const TABLES = [
   'notifications',
   'sessions',
   'jobs',
+  'posts',
+  'votes',
+  'reports',
+  'liveSessions',
+  'liveMessages',
+  'liveAttendance',
 ];
 
 /** What instructors write when they hand work back for another try. */
@@ -72,7 +84,7 @@ export function sampleFileText({ studentName, lessonTitle, body }) {
   return `# ${lessonTitle}\n\n*${studentName}*\n\n${body}\n\n## Working\n\n1. Read the question and noted what was given.\n2. Tried the method from the lesson on a small example first.\n3. Checked the result a second way before writing it up.\n`;
 }
 
-export function buildSeed({ content, media = {}, now }) {
+export function buildSeed({ content, media = {}, social = null, now, occurrence = null }) {
   const { SCHOOL, PEOPLE, COURSES, START = {}, FEEDBACK = [], ANSWERS = [] } = content;
   const tables = Object.fromEntries(TABLES.map((name) => [name, new Map()]));
   const put = (table, row) => tables[table].set(row.id, row);
@@ -674,6 +686,13 @@ export function buildSeed({ content, media = {}, now }) {
     }
   }
 
+  // Discussions and live classes ---------------------------------------------------------------------
+  // The live classes count from the occurrence's start (the visit's first page load), minute-aligned.
+  const liveAnchor = occurrence === null ? anchor : Math.floor(occurrence / MINUTE) * MINUTE;
+  const { problems, occurrenceEnds } = social
+    ? seedSocial({ social, tables, put, anchor, occurrence: liveAnchor, people, courses, enroll: (course, person, at) => enroll(course, person, at), notify, personaMembers, schoolSlug: SCHOOL.slug })
+    : { problems: [], occurrenceEnds: null };
+
   // Another device each persona is signed in on, and the school's storage ----------------------------
   for (const persona of personaMembers) {
     const random = createRandom(`device/${persona.key}`);
@@ -691,7 +710,7 @@ export function buildSeed({ content, media = {}, now }) {
   const fileBytes = [...tables.files.values()].reduce((sum, file) => sum + file.sizeBytes, 0);
   put('storage', { id: schoolId, quotaBytes: 2 * 1024 ** 3, usedBytes: videoBytes + fileBytes, reservedBytes: 0 });
 
-  return { tables, schoolId };
+  return { tables, schoolId, problems, occurrence: liveAnchor, occurrenceEnds };
 }
 
 /** The end of that day (17:00 local is when work is usually due), as ms. */

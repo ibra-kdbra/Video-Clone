@@ -17,6 +17,8 @@ import { HttpError, conflict, forbidden, notFound } from '../http.js';
 import { randomId } from '../ids.js';
 import { canCreateCourses, canEditCourse, canWatchLesson, iso, slugify } from '../logic.js';
 import { storedBytes } from '../seed.js';
+import { removePosts } from './discussions.js';
+import { removeSessions } from './live.js';
 import {
   describeCourse,
   describeLesson,
@@ -167,6 +169,16 @@ export function register(router, server) {
     );
     db.removeWhere('modules', (row) => row.courseId === current.id);
     db.removeWhere('enrollments', (row) => row.courseId === current.id);
+    removePosts(
+      db,
+      db.filter('posts', (row) => row.courseId === current.id).map((row) => row.id),
+    );
+    const sessions = db.filter('liveSessions', (row) => row.courseId === current.id);
+    for (const session of sessions) server.live.closed(session);
+    removeSessions(
+      db,
+      sessions.map((row) => row.id),
+    );
     db.remove('courses', current.id);
   });
 
