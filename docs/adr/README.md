@@ -13,3 +13,4 @@ A decision that changes gets a new record that supersedes the old one.
 | [6](0006-free-hosting.md) | Free hosting: Netlify for the app, one Oracle Always Free server for the rest | Accepted |
 | [7](0007-video-pipeline.md) | Videos in self-hosted S3 storage (Garage), uploaded directly, transcoded to HLS by the worker, played through signed URLs | Accepted |
 | [8](0008-learning-progress.md) | Watch progress as a bitset of 5-second stretches; quizzes graded on the server; assignments with signed uploads; notifications from the outbox | Accepted |
+| [9](0009-live-and-social.md) | Live classes over LiveKit, YouTube Live or a link, with our own chat; discussions in one table with moderation; search with Postgres full text | Accepted |

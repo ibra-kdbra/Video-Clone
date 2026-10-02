@@ -7,6 +7,12 @@ export const NOTIFICATION_TYPES = [
   'assignment.submitted',
   'assignment.graded',
   'video.processed',
+  'discussion.reply',
+  'discussion.posted',
+  'discussion.reported',
+  'live.scheduled',
+  'live.reminder',
+  'live.started',
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
@@ -23,6 +29,12 @@ export const NOTIFICATION_DEFAULTS: NotificationSettings = {
   'assignment.submitted': { inApp: true, email: false },
   'assignment.graded': { inApp: true, email: true },
   'video.processed': { inApp: true, email: false },
+  'discussion.reply': { inApp: true, email: false },
+  'discussion.posted': { inApp: true, email: false },
+  'discussion.reported': { inApp: true, email: true },
+  'live.scheduled': { inApp: true, email: false },
+  'live.reminder': { inApp: true, email: true },
+  'live.started': { inApp: true, email: false },
 };
 
 /** Settings as stored, completed with the defaults; anything malformed falls back to them. */

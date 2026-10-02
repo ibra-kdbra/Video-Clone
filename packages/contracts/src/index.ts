@@ -5,3 +5,6 @@ export * from './courses.js';
 export * from './learning.js';
 export * from './notifications.js';
 export * from './realtime.js';
+export * from './live.js';
+export * from './discussions.js';
+export * from './search.js';
