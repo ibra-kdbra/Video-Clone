@@ -13,6 +13,8 @@ declare module 'vitest' {
     redisUrl: string;
     /** S3-compatible storage for the video tests (Garage locally and in CI), or null to skip them. */
     s3: { endpoint: string; bucket: string; accessKeyId: string; secretAccessKey: string; region: string } | null;
+    /** A LiveKit server for the in-browser live-class tests, or null to skip them. */
+    livekit: { url: string; apiKey: string; apiSecret: string } | null;
   }
 }
 
@@ -54,6 +56,13 @@ export default async function setup(project: TestProject) {
   project.provide('ownerDatabaseUrl', ownerUrl);
   project.provide('redisUrl', redisUrl);
   project.provide('s3', await storageForTests());
+  project.provide('livekit', livekitForTests());
+}
+
+/** TEST_LIVEKIT_* point at a LiveKit server (livekit-server --dev: devkey / secret) for the live-class tests. */
+function livekitForTests() {
+  const { TEST_LIVEKIT_URL: url, TEST_LIVEKIT_API_KEY: apiKey, TEST_LIVEKIT_API_SECRET: apiSecret } = process.env;
+  return url && apiKey && apiSecret ? { url, apiKey, apiSecret } : null;
 }
 
 /** TEST_S3_* point at a bucket the tests may write to; its CORS is set for the test web origin. */

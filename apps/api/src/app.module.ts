@@ -4,7 +4,9 @@ import { LoggerModule } from 'nestjs-pino';
 import { AuthGuard } from './auth/auth.guard.js';
 import { AuthModule } from './auth/auth.module.js';
 import { CoursesModule } from './courses/courses.module.js';
+import { DiscussionsModule } from './discussions/discussions.module.js';
 import { LearningModule } from './learning/learning.module.js';
+import { LiveModule } from './live/live.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import type { AppConfig } from './config/app-config.js';
 import { ConfigModule } from './config/config.module.js';
@@ -17,6 +19,7 @@ import { RealtimeCoreModule } from './realtime/realtime-core.module.js';
 import { RealtimeModule } from './realtime/realtime.module.js';
 import { RedisModule } from './redis/redis.module.js';
 import { SchoolsModule } from './schools/schools.module.js';
+import { SearchModule } from './search/search.module.js';
 import { StorageModule } from './storage/storage.module.js';
 
 @Module({})
@@ -59,6 +62,9 @@ export class AppModule {
         SchoolsModule,
         CoursesModule,
         LearningModule,
+        DiscussionsModule,
+        LiveModule,
+        SearchModule,
         NotificationsModule,
         RealtimeModule,
         HealthModule,

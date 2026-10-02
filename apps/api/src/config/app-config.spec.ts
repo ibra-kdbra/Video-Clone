@@ -30,6 +30,20 @@ describe('configuration', () => {
     expect(loadConfig({ ...base, TRUST_PROXY: '127.0.0.1, 10.0.0.0/8' }).trustProxy).toEqual(['127.0.0.1', '10.0.0.0/8']);
   });
 
+  it('sets up LiveKit only when it is configured, treating empty values as unset', () => {
+    expect(loadConfig(base).livekit).toBeNull();
+    expect(loadConfig({ ...base, LIVEKIT_URL: '', LIVEKIT_API_KEY: '', LIVEKIT_API_SECRET: '' }).livekit).toBeNull();
+    expect(loadConfig({ ...base, LIVEKIT_URL: 'wss://live.grand.example/', LIVEKIT_API_KEY: 'key', LIVEKIT_API_SECRET: 'secret' }).livekit).toEqual({
+      url: 'wss://live.grand.example',
+      apiUrl: 'https://live.grand.example',
+      apiKey: 'key',
+      apiSecret: 'secret',
+    });
+    expect(loadConfig({ ...base, LIVEKIT_URL: 'wss://live.grand.example', LIVEKIT_API_URL: 'http://livekit:7880', LIVEKIT_API_KEY: 'key', LIVEKIT_API_SECRET: 'secret' }).livekit?.apiUrl).toBe('http://livekit:7880');
+    expect(() => loadConfig({ ...base, LIVEKIT_URL: 'wss://live.grand.example' })).toThrow(/LIVEKIT_URL needs/);
+    expect(() => loadConfig({ ...base, LIVEKIT_URL: 'https://live.grand.example', LIVEKIT_API_KEY: 'key', LIVEKIT_API_SECRET: 'secret' })).toThrow(/LIVEKIT_URL/);
+  });
+
   it('lists every problem at once', () => {
     expect(() => loadConfig({ DATABASE_URL: 'mysql://x', JWT_SECRET: 'short' })).toThrow(
       /DATABASE_URL[\s\S]*REDIS_URL[\s\S]*JWT_SECRET/,

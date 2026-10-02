@@ -242,4 +242,72 @@ describe('row-level security', () => {
       ).rejects.toThrow(/permission denied/);
     });
   });
+
+  describe('live classes and discussions', () => {
+    async function courseInB() {
+      const [course] = await owner<{ id: string }[]>`insert into courses (school_id, slug, title) values (${ids.schoolB}, ${`rls-live-${randomUUID().slice(0, 8)}`}, 'Course B3') returning id`;
+      const [session] = await owner<{ id: string }[]>`
+        insert into live_sessions (school_id, course_id, title, starts_at, duration_minutes, provider)
+        values (${ids.schoolB}, ${course!.id}, 'Live B', now() + interval '1 day', 30, 'livekit') returning id`;
+      const [post] = await owner<{ id: string }[]>`
+        insert into discussion_posts (school_id, course_id, author_id, title, body) values (${ids.schoolB}, ${course!.id}, ${ids.alice}, 'Thread B', 'Hello') returning id`;
+      return { courseId: course!.id, sessionId: session!.id, postId: post!.id };
+    }
+
+    it("keeps each school's classes, chat and discussions to itself", async () => {
+      const b = await courseInB();
+      await owner`insert into live_messages (school_id, session_id, user_id, body) values (${ids.schoolB}, ${b.sessionId}, ${ids.alice}, 'Hi')`;
+      await owner`insert into discussion_votes (school_id, post_id, user_id) values (${ids.schoolB}, ${b.postId}, ${ids.bob})`;
+      await owner`insert into discussion_reports (school_id, course_id, post_id, reporter_id, reason) values (${ids.schoolB}, ${b.courseId}, ${b.postId}, ${ids.bob}, 'spam')`;
+      const fromA = await actingAs({ userId: ids.alice, schoolId: ids.schoolA }, async (sql) => ({
+        sessions: await sql`select 1 from live_sessions where id = ${b.sessionId}`,
+        messages: await sql`select 1 from live_messages where session_id = ${b.sessionId}`,
+        posts: await sql`select 1 from discussion_posts where id = ${b.postId}`,
+        votes: await sql`select 1 from discussion_votes where post_id = ${b.postId}`,
+        reports: await sql`select 1 from discussion_reports where post_id = ${b.postId}`,
+      }));
+      expect(fromA).toEqual({ sessions: [], messages: [], posts: [], votes: [], reports: [] });
+      // Forged into another school.
+      await expect(
+        actingAs({ userId: ids.alice, schoolId: ids.schoolA }, (sql) =>
+          sql`insert into discussion_posts (school_id, course_id, author_id, title, body) values (${ids.schoolB}, ${b.courseId}, ${ids.alice}, 'Forged', 'x')`,
+        ),
+      ).rejects.toThrow(/row-level security/);
+    });
+
+    it('keeps chat messages unchangeable except for hiding them', async () => {
+      const b = await courseInB();
+      const [message] = await owner<{ id: string }[]>`insert into live_messages (school_id, session_id, user_id, body) values (${ids.schoolB}, ${b.sessionId}, ${ids.alice}, 'Original') returning id`;
+      await expect(actingAs({ userId: ids.alice, schoolId: ids.schoolB }, (sql) => sql`update live_messages set body = 'Rewritten' where id = ${message!.id}`)).rejects.toThrow(
+        /permission denied/,
+      );
+      await expect(actingAs({ userId: ids.alice, schoolId: ids.schoolB }, (sql) => sql`delete from live_messages where id = ${message!.id}`)).rejects.toThrow(/permission denied/);
+      const hidden = await actingAs({ userId: ids.alice, schoolId: ids.schoolB }, (sql) => sql`update live_messages set hidden_at = now(), hidden_by = ${ids.alice} where id = ${message!.id}`);
+      expect(hidden.count).toBe(1);
+    });
+
+    it('tells the live connection which school a course or class belongs to, and nothing more', async () => {
+      const b = await courseInB();
+      const found = await actingAs({ userId: ids.alice }, async (sql) => ({
+        course: (await sql`select app.course_school(${b.courseId}) as id`)[0]!.id,
+        session: (await sql`select app.live_session_school(${b.sessionId}) as id`)[0]!.id,
+        missing: (await sql`select app.course_school(${randomUUID()}) as id`)[0]!.id,
+      }));
+      expect(found).toEqual({ course: ids.schoolB, session: ids.schoolB, missing: null });
+    });
+
+    it('keeps a reply in its thread’s course, and a thread’s shape', async () => {
+      const b = await courseInB();
+      const [other] = await owner<{ id: string }[]>`insert into courses (school_id, slug, title) values (${ids.schoolB}, ${`rls-other-${randomUUID().slice(0, 8)}`}, 'Other') returning id`;
+      await expect(
+        owner`insert into discussion_posts (school_id, course_id, parent_id, author_id, body) values (${ids.schoolB}, ${other!.id}, ${b.postId}, ${ids.alice}, 'Wrong course')`,
+      ).rejects.toThrow(/foreign key/);
+      await expect(owner`insert into discussion_posts (school_id, course_id, author_id, body) values (${ids.schoolB}, ${b.courseId}, ${ids.alice}, 'Thread without a title')`).rejects.toThrow(
+        /discussion_posts_shape/,
+      );
+      await expect(
+        owner`insert into discussion_posts (school_id, course_id, parent_id, author_id, body, pinned) values (${ids.schoolB}, ${b.courseId}, ${b.postId}, ${ids.alice}, 'Pinned reply', true)`,
+      ).rejects.toThrow(/discussion_posts_top_level_flags/);
+    });
+  });
 });
