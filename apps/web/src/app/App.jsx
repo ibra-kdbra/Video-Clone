@@ -42,6 +42,13 @@ const Submissions = lazy(() => import('../pages/Submissions.jsx'));
 const Grading = lazy(() => import('../pages/Grading.jsx'));
 const Notifications = lazy(() => import('../pages/Notifications.jsx'));
 const NotificationSettings = lazy(() => import('../pages/NotificationSettings.jsx'));
+// Live and social: searching a school, a course's discussion (threads, a thread, the reports) and
+// its live classes.
+const SchoolSearch = lazy(() => import('../pages/SchoolSearch.jsx'));
+const Discussions = lazy(() => import('../pages/Discussions.jsx'));
+const Thread = lazy(() => import('../pages/Thread.jsx'));
+const DiscussionReports = lazy(() => import('../pages/DiscussionReports.jsx'));
+const LiveClass = lazy(() => import('../pages/LiveClass.jsx'));
 // The demo's note under the top bar, only in demo builds.
 const DemoBanner = DEMO ? lazy(() => import('../demo/DemoBanner.jsx')) : null;
 
@@ -142,9 +149,14 @@ function Layout() {
                 <Route path="register" element={<Alias to="/signup" />} />
                 <Route path="invite" element={<Invite />} />
                 <Route path="s/:slug" element={<School />} />
+                <Route path="s/:slug/search" element={<SchoolSearch />} />
                 <Route path="s/:slug/c/:courseSlug" element={<Course />} />
                 <Route path="s/:slug/c/:courseSlug/l/:lessonId" element={<Lesson />} />
                 <Route path="s/:slug/c/:courseSlug/edit" element={<CourseEditor />} />
+                <Route path="s/:slug/c/:courseSlug/discussions" element={<Discussions />} />
+                <Route path="s/:slug/c/:courseSlug/discussions/reports" element={<DiscussionReports />} />
+                <Route path="s/:slug/c/:courseSlug/discussions/:threadId" element={<Thread />} />
+                <Route path="s/:slug/c/:courseSlug/live/:sessionId" element={<LiveClass />} />
                 <Route path="s/:slug/c/:courseSlug/l/:lessonId/submissions" element={<Submissions />} />
                 <Route path="s/:slug/c/:courseSlug/l/:lessonId/submissions/:submissionId" element={<Grading />} />
                 <Route

@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { lazy, Suspense, useId } from 'react';
 import { useQueries } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
@@ -17,6 +17,9 @@ import SchoolRow from './SchoolRow.jsx';
 import { Block } from './Skeleton.jsx';
 import { EmptyState } from './States.jsx';
 import styles from './Dashboard.module.scss';
+
+// Upcoming live classes: their own small chunk, with the schedule's helpers.
+const UpcomingLive = lazy(() => import('./UpcomingLive.jsx'));
 
 const STATUS = { draft: { label: 'Draft', tone: 'warning', icon: 'edit' }, archived: { label: 'Archived', tone: 'neutral', icon: 'archive' } };
 
@@ -136,9 +139,9 @@ function DashboardSkeleton() {
 }
 
 /**
- * The home page for someone signed in: a greeting, the courses to carry on with (across every
- * school, with how far along and a button to the right lesson), for instructors and above the
- * courses they teach (with a way to their insights), and their schools.
+ * The home page for someone signed in: a greeting, the live classes coming up, the courses to
+ * carry on with (across every school, with how far along and a button to the right lesson), for
+ * instructors and above the courses they teach (with a way to their insights), and their schools.
  */
 export default function Dashboard() {
   const { user, schools, schoolsLoading } = useSession();
@@ -204,6 +207,10 @@ export default function Dashboard() {
         </EmptyState>
       ) : (
         <>
+          <Suspense fallback={null}>
+            <UpcomingLive schools={schools} showSchool={schools.length > 1} />
+          </Suspense>
+
           {staffSchools.length > 0 && (
             <Section
               title="Courses you teach"

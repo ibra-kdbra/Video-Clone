@@ -3,8 +3,10 @@
  * dist/_headers for Netlify, `vite preview` serves them locally, and tests/security.test.mjs checks
  * them. The Content-Security-Policy lets the page run only its own code (plus the one inline theme
  * script in index.html, by hash), call only its own API (and the real-time server, when it lives on
- * another origin), load lesson videos and posters from the video store, show images from the video
- * platforms' image servers, and frame their players.
+ * another origin, and the LiveKit server for live classes in the browser), load lesson videos and
+ * posters from the video store, show images from the video platforms' image servers, and frame
+ * their players. The Permissions-Policy lets the page itself (only) use the camera, microphone
+ * and screen sharing, for live classes.
  */
 
 /** Hash of the inline theme script in index.html. The security test prints the new one if it drifts. */
@@ -48,9 +50,27 @@ export function websocketOrigin(realtimeOrigin) {
   throw new Error(`REALTIME_ORIGIN must use https (or http on localhost), got "${realtimeOrigin}"`);
 }
 
-export function contentSecurityPolicy({ realtimeOrigin, mediaOrigin: media, https = true } = {}) {
+/**
+ * The LiveKit server's origins for connect-src, from LIVEKIT_ORIGIN: a bare wss:// origin (ws:// on
+ * localhost), plus its https:// (http://) twin, since livekit-client also checks /rtc/validate over
+ * HTTP when a connection fails. Null when there's no LiveKit server. The WebRTC media itself isn't
+ * governed by the CSP.
+ */
+export function livekitOrigins(origin) {
+  if (!origin) return null;
+  const url = new URL(origin);
+  if (`${url.protocol}//${url.host}` !== origin.replace(/\/$/, '') || url.username || url.password) {
+    throw new Error(`LIVEKIT_ORIGIN must be a bare origin, got "${origin}"`);
+  }
+  if (url.protocol === 'wss:') return [`wss://${url.host}`, `https://${url.host}`];
+  if (url.protocol === 'ws:' && ['localhost', '127.0.0.1'].includes(url.hostname)) return [`ws://${url.host}`, `http://${url.host}`];
+  throw new Error(`LIVEKIT_ORIGIN must use wss:// (or ws:// on localhost), got "${origin}"`);
+}
+
+export function contentSecurityPolicy({ realtimeOrigin, mediaOrigin: media, livekitOrigin, https = true } = {}) {
   const socket = websocketOrigin(realtimeOrigin);
   const store = mediaOrigin(media);
+  const livekit = livekitOrigins(livekitOrigin) ?? [];
   const only = (...sources) => sources.filter(Boolean).join(' ');
   const directives = [
     "default-src 'self'",
@@ -59,7 +79,8 @@ export function contentSecurityPolicy({ realtimeOrigin, mediaOrigin: media, http
     `img-src ${only("'self'", 'data:', store, ...IMAGE_HOSTS)}`,
     "font-src 'self'",
     // The player fetches signed video segments from the store; posters and thumbnails come from there too.
-    `connect-src ${only("'self'", socket, store)}`,
+    // Live classes in the browser connect to the LiveKit server.
+    `connect-src ${only("'self'", socket, ...livekit, store)}`,
     `frame-src ${PLAYER_HOSTS.join(' ')}`,
     // blob: is the stream hls.js builds from those segments (Media Source Extensions).
     `media-src ${only("'self'", 'blob:', store)}`,
@@ -76,14 +97,15 @@ export function contentSecurityPolicy({ realtimeOrigin, mediaOrigin: media, http
 }
 
 /** Headers for every page. Leave `https` off only for plain-http local previews. */
-export function securityHeaders({ realtimeOrigin, mediaOrigin: media, https = true } = {}) {
+export function securityHeaders({ realtimeOrigin, mediaOrigin: media, livekitOrigin, https = true } = {}) {
   return {
-    'Content-Security-Policy': contentSecurityPolicy({ realtimeOrigin, mediaOrigin: media, https }),
+    'Content-Security-Policy': contentSecurityPolicy({ realtimeOrigin, mediaOrigin: media, livekitOrigin, https }),
     ...(https && { 'Strict-Transport-Security': 'max-age=31536000; includeSubDomains' }),
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()',
+    // The camera, microphone and screen are for live classes, on this site only (not in the embedded players).
+    'Permissions-Policy': 'camera=(self), microphone=(self), display-capture=(self), geolocation=(), payment=(), usb=(), browsing-topics=()',
     'Cross-Origin-Opener-Policy': 'same-origin',
     'Cross-Origin-Resource-Policy': 'same-origin',
   };

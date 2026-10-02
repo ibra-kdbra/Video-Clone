@@ -93,6 +93,12 @@ const STALE_AFTER = {
   'assignment.submitted': [['submissions'], ['assignment'], ['insights']],
   'assignment.graded': [['assignment'], ['course'], ['lesson']],
   'video.processed': [['course'], ['lesson'], ['playback'], ['storage']],
+  'discussion.reply': [['discussions']],
+  'discussion.posted': [['discussions']],
+  'discussion.reported': [['discussions']],
+  'live.scheduled': [['live'], ['liveSchedule']],
+  'live.reminder': [['live'], ['liveSchedule']],
+  'live.started': [['live'], ['liveSchedule']],
 };
 
 /**

@@ -3,7 +3,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { contentSecurityPolicy, mediaOrigin, securityHeaders, websocketOrigin } from '../config/headers.mjs';
+import { contentSecurityPolicy, livekitOrigins, mediaOrigin, securityHeaders, websocketOrigin } from '../config/headers.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const read = (file) => readFileSync(path.join(root, file), 'utf8');
@@ -60,6 +60,40 @@ describe('Content-Security-Policy', () => {
     expect(directive('media-src')).toBe("media-src 'self' blob:");
     expect(() => mediaOrigin('http://media.example.com')).toThrow(/https/);
     expect(mediaOrigin('http://localhost:3900')).toBe('http://localhost:3900');
+  });
+
+  it('lets live classes reach the LiveKit server, over wss:// and its https:// twin, only when there is one', () => {
+    const policy = contentSecurityPolicy({ livekitOrigin: 'wss://live.grand-lms.duckdns.org' });
+    const get = (name) => policy.split(';').map((d) => d.trim()).find((d) => d.startsWith(`${name} `));
+    expect(get('connect-src')).toBe("connect-src 'self' wss://live.grand-lms.duckdns.org https://live.grand-lms.duckdns.org");
+    // Nothing else opens up for it: WebRTC media isn't governed by the CSP, and nothing is framed or run from there.
+    expect(get('frame-src')).toBe(directive('frame-src'));
+    expect(get('script-src')).toBe(directive('script-src'));
+    expect(get('media-src')).toBe(directive('media-src'));
+    expect(directive('connect-src')).toBe("connect-src 'self'");
+    expect(livekitOrigins(undefined)).toBeNull();
+    expect(livekitOrigins('ws://127.0.0.1:7880')).toEqual(['ws://127.0.0.1:7880', 'http://127.0.0.1:7880']);
+    expect(livekitOrigins('wss://live.example.com/')).toEqual(['wss://live.example.com', 'https://live.example.com']);
+    const all = contentSecurityPolicy({ realtimeOrigin: 'https://api.example.com', livekitOrigin: 'wss://live.example.com', mediaOrigin: 'https://media.example.com' });
+    expect(all).toContain("connect-src 'self' wss://api.example.com wss://live.example.com https://live.example.com https://media.example.com;");
+  });
+
+  it('refuses a LiveKit origin that isn’t a bare wss:// origin', () => {
+    expect(() => livekitOrigins('wss://live.example.com/rtc')).toThrow(/bare origin/);
+    expect(() => livekitOrigins('wss://user:pass@live.example.com')).toThrow(/bare origin/);
+    expect(() => livekitOrigins('https://live.example.com')).toThrow(/wss/);
+    expect(() => livekitOrigins('ws://live.example.com')).toThrow(/wss/);
+    expect(() => livekitOrigins('live.example.com')).toThrow();
+    expect(() => contentSecurityPolicy({ livekitOrigin: 'wss://live.example.com/x' })).toThrow(/bare origin/);
+  });
+
+  it('lets this site alone use the camera, microphone and screen sharing (live classes), and nothing else', () => {
+    const policy = securityHeaders()['Permissions-Policy'];
+    expect(policy).toContain('camera=(self)');
+    expect(policy).toContain('microphone=(self)');
+    expect(policy).toContain('display-capture=(self)');
+    expect(policy).toContain('geolocation=()');
+    expect(policy).toContain('payment=()');
   });
 
   it('forces HTTPS in production and drops only that for local previews', () => {

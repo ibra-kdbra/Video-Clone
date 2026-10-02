@@ -22,6 +22,17 @@
   &[aria-expanded='true'] {
     background: var(--surface-2);
   }
+
+  &[data-size='sm'] {
+    width: 34px;
+    height: 34px;
+    border-color: transparent;
+    color: var(--text-2);
+
+    @include hover {
+      color: var(--text);
+    }
+  }
 }
 
 .menu {

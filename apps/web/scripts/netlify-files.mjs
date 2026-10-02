@@ -9,6 +9,9 @@
  *
  * - MEDIA_ORIGIN (e.g. https://media.grand-lms.duckdns.org): the video store that lesson videos,
  *   posters and thumbnails stream from, through signed URLs.
+ * - LIVEKIT_ORIGIN (e.g. wss://live.grand-lms.duckdns.org): the LiveKit server that live classes in
+ *   the browser connect to (a bare wss:// origin). Its https:// twin is allowed too, for
+ *   livekit-client's connection check. Leave it out when the school doesn't run LiveKit.
  *
  * Without API_ORIGIN the site still builds; only the video pages work then.
  */
@@ -20,6 +23,7 @@ const dist = path.resolve(import.meta.dirname, '../dist');
 const apiOrigin = process.env.API_ORIGIN?.replace(/\/$/, '') || null;
 const realtimeOrigin = process.env.REALTIME_ORIGIN?.replace(/\/$/, '') || apiOrigin;
 const mediaOrigin = process.env.MEDIA_ORIGIN?.replace(/\/$/, '') || null;
+const livekitOrigin = process.env.LIVEKIT_ORIGIN?.replace(/\/$/, '') || null;
 
 if (apiOrigin && !/^https:\/\/[a-z0-9.-]+(:\d+)?$/i.test(apiOrigin)) {
   throw new Error(`API_ORIGIN must be an https origin such as https://grand-lms.duckdns.org, got "${apiOrigin}"`);
@@ -31,7 +35,7 @@ const headerBlock = (pattern, headers) =>
 writeFileSync(
   path.join(dist, '_headers'),
   [
-    headerBlock('/*', securityHeaders({ realtimeOrigin, mediaOrigin })),
+    headerBlock('/*', securityHeaders({ realtimeOrigin, mediaOrigin, livekitOrigin })),
     // Vite fingerprints everything in /assets, so those files never change under the same name.
     headerBlock('/assets/*', { 'Cache-Control': 'public, max-age=31536000, immutable' }),
     '',
@@ -47,5 +51,5 @@ writeFileSync(path.join(dist, '_redirects'), `${apiRule}\n${spaFallback}\n`);
 if (!apiOrigin) writeFileSync(path.join(dist, '404.json'), '{"error":{"code":"not_found","message":"The API is not configured."}}\n');
 
 console.log(
-  `Netlify files written (API: ${apiOrigin ?? 'not configured'}, real-time: ${realtimeOrigin ?? 'same origin'}, media: ${mediaOrigin ?? 'not configured'}).`,
+  `Netlify files written (API: ${apiOrigin ?? 'not configured'}, real-time: ${realtimeOrigin ?? 'same origin'}, media: ${mediaOrigin ?? 'not configured'}, LiveKit: ${livekitOrigin ?? 'not configured'}).`,
 );

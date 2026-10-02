@@ -9,7 +9,9 @@ import Button from '../components/Button.jsx';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import CourseCover from '../components/CourseCover.jsx';
 import CourseOutline from '../components/CourseOutline.jsx';
+import CourseTabs from '../components/CourseTabs.jsx';
 import Icon from '../components/Icon.jsx';
+import LiveClasses from '../components/LiveClasses.jsx';
 import Markdown from '../components/Markdown.jsx';
 import OverflowMenu from '../components/OverflowMenu.jsx';
 import ProgressBar from '../components/ProgressBar.jsx';
@@ -21,6 +23,7 @@ import { continueLesson, editorPath, enroll, firstOpenLesson, firstPreview, getC
 import { formatDate, formatRuntime, joinMeta, plural } from '../lib/format.js';
 import { errorMessage } from '../lib/forms.js';
 import { toast } from '../lib/toast.js';
+import { useCourseWatch } from '../lib/useCourseWatch.js';
 import { useDocumentTitle } from '../lib/useDocumentTitle.js';
 import NotFound from './NotFound.jsx';
 import styles from './Course.module.scss';
@@ -95,6 +98,9 @@ function CourseView({ school, courseSlug }) {
   });
   const c = course.data;
   useDocumentTitle(c ? `${c.title} · ${school.name}` : course.isError ? 'Course not found' : 'Course');
+  // For those taking part: the discussion's changes (the reports count, for moderators) arrive live.
+  const member = Boolean(c && (c.enrolled || c.canEdit));
+  useCourseWatch({ slug, courseSlug, courseId: c?.id, enabled: member });
 
   const settle = () => {
     queryClient.invalidateQueries({ queryKey: key });
@@ -232,28 +238,37 @@ function CourseView({ school, courseSlug }) {
         </div>
       </section>
 
+      {member && (
+        <div className={`page ${styles.tabsRow}`}>
+          <CourseTabs slug={slug} course={c} current="overview" />
+        </div>
+      )}
+
       <div className={`page ${styles.body}`}>
-        <section className={styles.lessons} aria-labelledby="lessons-title">
-          <header className={styles.sectionHead}>
-            <h2 id="lessons-title" className={styles.sectionTitle}>
-              Lessons
-            </h2>
-            <p className={`${styles.sectionMeta} tabular`}>{joinMeta(plural(c.modules.length, 'module'), plural(lessons.length, 'lesson'), runtime)}</p>
-          </header>
-          {!canWatch && lessons.length > 0 && (
-            <p className={styles.hint}>
-              <Icon name="lock" size={16} />
-              <span>Enroll to unlock every lesson.{preview ? ' Lessons marked Free preview are open to everyone in the school.' : ''}</span>
-            </p>
-          )}
-          {lessons.length === 0 && !c.canEdit ? (
-            <EmptyState icon="film" title="No lessons yet" titleAs="h3">
-              The first lessons of this course are on their way. Check back soon.
-            </EmptyState>
-          ) : (
-            <CourseOutline course={c} schoolSlug={slug} />
-          )}
-        </section>
+        <div className={styles.main}>
+          <LiveClasses slug={slug} course={c} />
+          <section className={styles.lessons} aria-labelledby="lessons-title">
+            <header className={styles.sectionHead}>
+              <h2 id="lessons-title" className={styles.sectionTitle}>
+                Lessons
+              </h2>
+              <p className={`${styles.sectionMeta} tabular`}>{joinMeta(plural(c.modules.length, 'module'), plural(lessons.length, 'lesson'), runtime)}</p>
+            </header>
+            {!canWatch && lessons.length > 0 && (
+              <p className={styles.hint}>
+                <Icon name="lock" size={16} />
+                <span>Enroll to unlock every lesson.{preview ? ' Lessons marked Free preview are open to everyone in the school.' : ''}</span>
+              </p>
+            )}
+            {lessons.length === 0 && !c.canEdit ? (
+              <EmptyState icon="film" title="No lessons yet" titleAs="h3">
+                The first lessons of this course are on their way. Check back soon.
+              </EmptyState>
+            ) : (
+              <CourseOutline course={c} schoolSlug={slug} />
+            )}
+          </section>
+        </div>
 
         <aside className={styles.about} aria-labelledby="about-title">
           <h2 id="about-title" className={styles.sectionTitle}>
