@@ -62,6 +62,21 @@ export class OutboxProcessor implements OnApplicationBootstrap, OnApplicationShu
       'assignment.graded': {
         run: (payload, event) => notifications.assignmentGraded(payload as Parameters<NotificationsService['assignmentGraded']>[0], event.schoolId!, event.id),
       },
+      'discussion.posted': {
+        run: (payload, event) => notifications.discussionPosted(payload as Parameters<NotificationsService['discussionPosted']>[0], event.schoolId!, event.id),
+      },
+      'discussion.replied': {
+        run: (payload, event) => notifications.discussionReplied(payload as Parameters<NotificationsService['discussionReplied']>[0], event.schoolId!, event.id),
+      },
+      'discussion.reported': {
+        run: (payload, event) => notifications.discussionReported(payload as Parameters<NotificationsService['discussionReported']>[0], event.schoolId!, event.id),
+      },
+      'live.scheduled': {
+        run: (payload, event) => notifications.liveScheduled(payload as Parameters<NotificationsService['liveScheduled']>[0], event.schoolId!, event.id),
+      },
+      'live.started': {
+        run: (payload, event) => notifications.liveStarted(payload as Parameters<NotificationsService['liveStarted']>[0], event.schoolId!, event.id),
+      },
       // Recorded for later features (analytics); nothing to do yet.
       'school.created': { run: async () => {} },
       'member.joined': { run: async () => {} },
