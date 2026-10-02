@@ -4,6 +4,7 @@ import {
   courseSlug,
   type CreateLiveSessionInput,
   createLiveSessionInput,
+  type LiveAttendance,
   type LiveKitAccess,
   type LiveMessage,
   type LiveOptions,
@@ -191,7 +192,7 @@ export class LiveController {
     @Param('sessionId', { schema: uuid }) sessionId: string,
     @CurrentSchool() school: SchoolContext,
     @CurrentAuth() auth: AuthContext,
-  ): Promise<{ userId: string; name: string; joinedAt: string; lastSeenAt: string }[]> {
+  ): Promise<LiveAttendance[]> {
     return this.live.attendance(school, auth.userId, slug, sessionId);
   }
 
@@ -212,7 +213,7 @@ export class LiveController {
   @Post(':sessionId/speakers/:userId')
   @SchoolRole('instructor')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Let a student speak, or stop them' })
+  @ApiOperation({ summary: 'Let a student speak, or stop them (LiveKit classes)' })
   speaker(
     @Param('courseSlug', { schema: courseSlug }) slug: string,
     @Param('sessionId', { schema: uuid }) sessionId: string,

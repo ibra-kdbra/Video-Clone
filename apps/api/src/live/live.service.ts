@@ -1,6 +1,7 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import {
   type CreateLiveSessionInput,
+  type LiveAttendance,
   type LiveKitAccess,
   type LiveMessage,
   type LiveOptions,
@@ -251,7 +252,7 @@ export class LiveService {
     });
   }
 
-  async attendance(school: SchoolContext, userId: string, courseSlug: string, sessionId: string) {
+  async attendance(school: SchoolContext, userId: string, courseSlug: string, sessionId: string): Promise<LiveAttendance[]> {
     return this.db.transaction({ userId, schoolId: school.id }, async (tx) => {
       const viewing = await this.hosting(tx, school, userId, courseSlug);
       await this.store.session(tx, viewing, sessionId);
@@ -287,6 +288,8 @@ export class LiveService {
       const viewing = await this.hosting(tx, school, userId, courseSlug);
       const session = await this.store.session(tx, viewing, sessionId);
       if (session.status !== 'live') throw conflict(session.status === 'scheduled' ? "The class hasn't started yet." : 'This class is over.');
+      // Only a LiveKit class carries students' microphones and cameras; elsewhere, answer them in the chat.
+      if (session.provider !== 'livekit') throw conflict('Students can speak only in LiveKit classes.');
       if (allowed) {
         const [enrolled] = await tx
           .select({ userId: enrollments.userId })
@@ -313,7 +316,7 @@ export class LiveService {
   /** The course, if this person may come into its classes. */
   private async joining(tx: Tx, school: SchoolContext, userId: string, courseSlug: string) {
     const viewing = await this.store.viewCourse(tx, school, userId, courseSlug);
-    if (!viewing.canJoin) throw enrollmentRequired();
+    if (!viewing.canJoin) throw enrollmentRequired('Enroll in this course to join its live classes.');
     return viewing;
   }
 }

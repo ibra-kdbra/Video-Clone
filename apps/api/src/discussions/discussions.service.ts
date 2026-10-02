@@ -397,7 +397,7 @@ export class DiscussionsService {
   private async reader(tx: Tx, school: SchoolContext, userId: string, courseSlug: string): Promise<Reader> {
     const course = await this.courses.findVisible(tx, school, userId, courseSlug);
     const moderator = canEditCourse(school, userId, course);
-    if (!moderator && (course.status !== 'published' || !(await this.lessons.isEnrolled(tx, course.id, userId)))) throw enrollmentRequired();
+    if (!moderator && (course.status !== 'published' || !(await this.lessons.isEnrolled(tx, course.id, userId)))) throw enrollmentRequired('Enroll in this course to take part in its discussions.');
     return { school, userId, course, moderator };
   }
 

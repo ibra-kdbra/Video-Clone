@@ -13,8 +13,8 @@ demo has no server at all, so every feature also has to work against the in-brow
 
 ## Decision
 - **Live classes are scheduled sessions of a course** (`live_sessions`). They're scheduled,
-  started, ended or cancelled by the course's editors. Enrolled students see them, get a reminder
-  15 minutes before, and are told when one starts.
+  started, ended or cancelled by the course's editors. Enrolled students see them, are told when
+  one is scheduled and when it starts, and get a reminder 15 minutes before, as does the host.
 - **The video comes from one of three places, chosen per class**:
   - **LiveKit** (`livekit`): WebRTC in the browser, through a LiveKit server the school runs next
     to the API. It's open source and runs on the same free server. The API signs a short-lived
@@ -58,7 +58,7 @@ All routes are under `/api/v1/schools/:slug`. `C` stands for `/courses/:courseSl
 
 | Route | Who | What |
 | --- | --- | --- |
-| `GET /search?q&type&limit&offset` | members | `SearchResults` |
+| `GET /search?q&type&limit&offset` | members | `SearchResults` (`offset` pages one type; `all` returns the first of each) |
 | `GET /live/options` | members | `LiveOptions`: the providers this server offers |
 | `GET /live?when=upcoming\|past` | members | `LiveSession[]` for courses you take or teach |
 | `GET C/live?when` | course viewers | `LiveSession[]` |
@@ -69,9 +69,9 @@ All routes are under `/api/v1/schools/:slug`. `C` stands for `/courses/:courseSl
 | `DELETE C/live/:id` | editors | remove a class that hasn't started |
 | `GET C/live/:id/messages?before&limit` | joiners | chat history, newest last |
 | `POST C/live/:id/messages/:messageId/hide` | editors | hide a message |
-| `GET C/live/:id/attendance` | editors | who came |
+| `GET C/live/:id/attendance` | editors | `LiveAttendance[]`: who came |
 | `POST C/live/:id/token` | joiners | `LiveKitAccess` (LiveKit classes, once live; hosts any time before the end) |
-| `POST C/live/:id/speakers/:userId` | editors | `{ allowed }`: let a student speak, or stop them |
+| `POST C/live/:id/speakers/:userId` | editors | `{ allowed }`: let a student speak, or stop them (LiveKit classes, while live) |
 | `GET C/discussions?sort&filter&cursor&limit` | readers | course threads |
 | `POST C/discussions` | readers | new thread: `DiscussionThread` |
 | `GET C/discussions/:postId` | readers | the thread or lesson comment, with replies |

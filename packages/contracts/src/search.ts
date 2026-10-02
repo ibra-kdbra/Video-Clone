@@ -14,6 +14,7 @@ export const searchQuery = z.strictObject({
   type: z.enum(SEARCH_TYPES).default('all'),
   /** Per type: with `all`, at most this many of each. */
   limit: z.coerce.number().int().min(1).max(50).default(5),
+  /** For paging through one type; ignored with `all`, which returns the first of each. */
   offset: z.coerce.number().int().min(0).max(500).default(0),
 });
 export type SearchQuery = z.infer<typeof searchQuery>;

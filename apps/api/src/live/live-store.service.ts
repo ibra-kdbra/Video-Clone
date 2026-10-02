@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ROLE_RANK, type Role } from '@grand/contracts';
-import { and, desc, eq, inArray, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, lt, or, type SQL, sql } from 'drizzle-orm';
 import { notFound } from '../common/api-exception.js';
 import type { SchoolContext } from '../common/request-context.js';
 import { DatabaseService, type Tx } from '../database/database.service.js';
@@ -127,16 +127,18 @@ export class LiveStore {
 
   /** The latest messages before `before` (an id), returned oldest first. */
   async messages(tx: Tx, viewing: Viewing, sessionId: string, { before, limit }: { before?: string; limit: number }) {
-    let beforeAt: Date | null = null;
+    // Older than the anchor in the same (time, id) order as the list, so messages sharing a
+    // timestamp with it aren't skipped.
+    let older: SQL | undefined;
     if (before) {
       const [anchor] = await tx.select({ createdAt: liveMessages.createdAt }).from(liveMessages).where(and(eq(liveMessages.id, before), eq(liveMessages.sessionId, sessionId)));
       if (!anchor) throw notFound('This message');
-      beforeAt = anchor.createdAt;
+      older = or(lt(liveMessages.createdAt, anchor.createdAt), and(eq(liveMessages.createdAt, anchor.createdAt), lt(liveMessages.id, before)));
     }
     const rows = await tx
       .select()
       .from(liveMessages)
-      .where(and(eq(liveMessages.sessionId, sessionId), beforeAt ? lt(liveMessages.createdAt, beforeAt) : undefined))
+      .where(and(eq(liveMessages.sessionId, sessionId), older))
       .orderBy(desc(liveMessages.createdAt), desc(liveMessages.id))
       .limit(limit);
     return this.toMessages(tx, viewing, rows.reverse());

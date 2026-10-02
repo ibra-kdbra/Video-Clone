@@ -87,7 +87,10 @@ export function normalizeStreamRef(provider: LiveProvider, value: string | null 
 }
 
 export const liveScheduleQuery = z.strictObject({
-  /** Which classes: coming up (scheduled or live, soonest first) or past (ended, latest first). */
+  /**
+   * Which classes: coming up (scheduled or live, and cancelled ones whose time hasn't come, so
+   * people see they're off; soonest first) or past (ended, latest first).
+   */
   when: z.enum(['upcoming', 'past']).default('upcoming'),
   limit: z.coerce.number().int().min(1).max(50).default(20),
 });
@@ -135,6 +138,14 @@ export interface LiveSession {
   canJoin: boolean;
   /** People who came, once it has started. */
   attendeeCount: number;
+}
+
+/** Who came to a class (for its hosts): first joined and last seen. */
+export interface LiveAttendance {
+  userId: string;
+  name: string;
+  joinedAt: string;
+  lastSeenAt: string;
 }
 
 export interface LiveAttendee {

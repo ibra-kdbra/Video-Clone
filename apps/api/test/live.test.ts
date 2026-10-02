@@ -169,12 +169,26 @@ describe('the class room', () => {
     expect((await student.emitWithAck('live:hand', { sessionId: s.session.id, raised: true })).ok).toBe(true);
     expect((await raised).attendees.find((attendee) => attendee.name === 'Student One')).toMatchObject({ handRaised: true });
     expect(refused(await host.emitWithAck('live:hand', { sessionId: s.session.id, raised: true }))).toBe('conflict');
+    // Hands go up in any class, but only a LiveKit class lets a student speak.
+    expect((await as(api, s.author).post(`${s.liveUrl}/speakers/${s.student.user.id}`, { allowed: true })).status).toBe(409);
 
     // The class ends: everyone hears, and the chat stops.
     const ended = nextEvent<{ status: string }>(student, 'live:status');
     await as(api, s.author).post(`${s.liveUrl}/end`);
     expect((await ended).status).toBe('ended');
     expect(refused(await student.emitWithAck('live:message', { sessionId: s.session.id, body: 'Bye' }))).toBe('conflict');
+  });
+
+  it('pages back through the chat without skipping messages sent in the same instant', async () => {
+    const s = await scheduled('youtube', 5);
+    const at = new Date();
+    for (const body of ['one', 'two', 'three']) {
+      await owner`insert into live_messages (school_id, session_id, user_id, body, created_at) values (${s.school.id}, ${s.session.id}, ${s.student.user.id}, ${body}, ${at})`;
+    }
+    const latest = (await as(api, s.other).get(`${s.liveUrl}/messages?limit=2`)).body as { id: string; body: string }[];
+    expect(latest).toHaveLength(2);
+    const earlier = (await as(api, s.other).get(`${s.liveUrl}/messages?limit=2&before=${latest[0]!.id}`)).body as { body: string }[];
+    expect([...earlier, ...latest].map((message) => message.body).sort()).toEqual(['one', 'three', 'two']);
   });
 
   it('keeps chat to a reasonable pace', async () => {
