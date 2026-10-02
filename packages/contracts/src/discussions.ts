@@ -92,13 +92,15 @@ export interface DiscussionPost {
   canModerate: boolean;
   /** Open reports, for moderators (0 for everyone else). */
   reportCount: number;
+  /** The viewer has reported it (once per person, so they can't again). */
+  reported: boolean;
+  /** A thread or comment with a visible reply accepted as the answer; false for replies. */
+  answered: boolean;
 }
 
 /** A thread or lesson comment with its replies, oldest first. */
 export interface DiscussionThread extends DiscussionPost {
   replies: DiscussionPost[];
-  /** A reply has been accepted as the answer. */
-  answered: boolean;
   /** For lesson comments, the lesson. */
   lesson: { id: string; title: string } | null;
 }

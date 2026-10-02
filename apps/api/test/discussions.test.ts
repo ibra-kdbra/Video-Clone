@@ -83,6 +83,9 @@ describe('course threads', () => {
     const unanswered = (await as(api, s.student).get(`${s.url}/discussions?filter=unanswered`)).body.items.map((post: Post) => post.id);
     expect(unanswered).not.toContain(ids[3]);
     expect(unanswered).toHaveLength(4);
+    // Each thread in the list says whether it's answered.
+    const listed = (await as(api, s.student).get(`${s.url}/discussions`)).body.items as (Post & { answered: boolean })[];
+    expect(listed.filter((post) => post.answered).map((post) => post.id)).toEqual([ids[3]]);
   });
 
   it('is for the course’s editors and enrolled students only', async () => {
@@ -194,6 +197,9 @@ describe('moderation', () => {
     expect((await as(api, s.student).post(reportUrl, { reason: 'spam' })).status).toBe(409);
     expect((await as(api, s.other).post(reportUrl, { reason: 'off_topic', note: 'Not about algebra' })).status).toBe(204);
     expect((await as(api, s.other).post(reportUrl, { reason: 'spam' })).body.error.message).toMatch(/already reported/);
+    // Each person sees whether they've reported it.
+    expect((await as(api, s.other).get(`${s.url}/discussions/${thread.body.id}`)).body.reported).toBe(true);
+    expect((await as(api, s.author).get(`${s.url}/discussions/${thread.body.id}`)).body.reported).toBe(false);
     expect((await as(api, s.head).post(reportUrl, { reason: 'other' })).status).toBe(204);
     expect(await owner`select 1 from outbox where type = 'discussion.reported' and payload->>'postId' = ${thread.body.id}`).toHaveLength(2);
 
@@ -249,5 +255,13 @@ describe('live updates', () => {
     const changed = nextEvent<{ courseId: string; threadId: string; change: string }>(watcher, 'discussion:changed');
     const thread = await as(api, s.student).post(`${s.url}/discussions`, { title: 'Live update?', body: 'Ping' });
     expect(await changed).toMatchObject({ courseId: s.courseId, threadId: thread.body.id, postId: thread.body.id, change: 'created', lessonId: null });
+
+    // The event is sent once the change is saved: fetching on hearing it finds the reply.
+    const replied = nextEvent<{ postId: string }>(watcher, 'discussion:changed');
+    const posting = as(api, s.other).post(`${s.url}/discussions/${thread.body.id}/replies`, { body: 'Pong' });
+    const { postId } = await replied;
+    const seen = (await as(api, s.student).get(`${s.url}/discussions/${thread.body.id}`)).body as { replies: { id: string }[] };
+    expect(seen.replies.map((reply) => reply.id)).toEqual([postId]);
+    expect((await posting).status).toBe(201);
   });
 });

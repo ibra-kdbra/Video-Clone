@@ -375,9 +375,21 @@ export class NotificationsService {
 
 const formatPoints = (points: number) => (Number.isInteger(points) ? String(points) : points.toFixed(2).replace(/0+$/, ''));
 
-/** The start of a post, on one line, for a notification's body. */
+/** A post's Markdown down to its words: a notification shows plain text. */
+export const plainText = (markdown: string) =>
+  markdown
+    .replace(/^\s*(```|~~~)[^\n]*$/gm, ' ') // code fences (the code stays)
+    .replace(/^\s{0,3}(#{1,6}|>+|[-*+]|\d+[.)])\s+/gm, '') // headings, quotes, list markers
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1') // images: their alt text
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1') // links: their text
+    .replace(/(\*\*|__)(?=\S)(.+?)(?<=\S)\1/g, '$2') // bold
+    .replace(/(^|[^\w*])([*_])(?=\S)(.+?)(?<=\S)\2(?![\w*])/g, '$1$3') // italics, not snake_case or 2*3
+    .replace(/~~(.+?)~~/g, '$1')
+    .replace(/`([^`]+)`/g, '$1');
+
+/** The start of a post, as plain text on one line, for a notification's body. */
 export const excerpt = (text: string, max = 140) => {
-  const line = text.replace(/\s+/g, ' ').trim();
+  const line = plainText(text).replace(/\s+/g, ' ').trim();
   return line.length > max ? `${line.slice(0, max - 1).trimEnd()}…` : line;
 };
 

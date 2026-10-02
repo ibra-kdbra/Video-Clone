@@ -184,7 +184,7 @@ const minutesFromNow = (minutes: number) => new Date(Date.now() + minutes * 60_0
 describe('discussions and live classes', () => {
   it("tells the course's author about new threads and lesson comments, and an author about replies to them", async () => {
     const s = await school();
-    const thread = await post(s, { authorId: s.student, title: 'Which finger crosses under?', body: 'After E,\n\nor after F?' });
+    const thread = await post(s, { authorId: s.student, title: 'Which finger crosses under?', body: 'After **E**,\n\n- or after _F_?' });
     await handle('discussion.posted', s.schoolId, { postId: thread, courseId: s.courseId, lessonId: null, actorId: s.student });
     expect((await inbox(s.author)).map((row) => row.data)).toEqual([
       { title: 'Student started a thread: Which finger crosses under?', body: 'After E, or after F?', path: `/s/${s.slug}/c/piano/discussions/${thread}`, schoolName: 'Riverside' },

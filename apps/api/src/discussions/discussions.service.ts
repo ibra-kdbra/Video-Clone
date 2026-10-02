@@ -49,6 +49,8 @@ interface PostRow extends Record<string, unknown> {
   author_role: Role | null;
   voted: boolean;
   report_count: number;
+  reported: boolean;
+  answered: boolean;
 }
 
 /** Who is reading, and what they may do in this course's discussions. */
@@ -122,7 +124,7 @@ export class DiscussionsService {
         .values({ schoolId: school.id, courseId: reader.course.id, authorId: userId, title: input.title, body: input.body })
         .returning({ id: discussionPosts.id });
       await this.outbox.add(tx, 'discussion.posted', { postId: post!.id, courseId: reader.course.id, lessonId: null, actorId: userId }, school.id);
-      this.announce(reader, null, post!.id, post!.id, 'created');
+      this.announce(tx, reader, null, post!.id, post!.id, 'created');
       return this.describeThread(tx, reader, post!.id);
     });
   }
@@ -136,7 +138,7 @@ export class DiscussionsService {
         .values({ schoolId: school.id, courseId: reader.course.id, lessonId: lesson.id, authorId: userId, body: input.body })
         .returning({ id: discussionPosts.id });
       await this.outbox.add(tx, 'discussion.posted', { postId: post!.id, courseId: reader.course.id, lessonId: lesson.id, actorId: userId }, school.id);
-      this.announce(reader, lesson.id, post!.id, post!.id, 'created');
+      this.announce(tx, reader, lesson.id, post!.id, post!.id, 'created');
       return this.describeThread(tx, reader, post!.id);
     });
   }
@@ -160,7 +162,7 @@ export class DiscussionsService {
         { postId: reply!.id, parentId: parent.id, courseId: reader.course.id, lessonId: parent.lessonId, actorId: userId },
         school.id,
       );
-      this.announce(reader, parent.lessonId, parent.id, reply!.id, 'created');
+      this.announce(tx, reader, parent.lessonId, parent.id, reply!.id, 'created');
       return this.describePost(tx, reader, reply!.id);
     });
   }
@@ -178,7 +180,7 @@ export class DiscussionsService {
         .update(discussionPosts)
         .set({ body: input.body, ...(input.title !== undefined && { title: input.title }), editedAt: sql`now()` })
         .where(eq(discussionPosts.id, post.id));
-      this.announce(reader, post.lessonId, post.parentId ?? post.id, post.id, 'updated');
+      this.announce(tx, reader, post.lessonId, post.parentId ?? post.id, post.id, 'updated');
       return this.describePost(tx, reader, post.id);
     });
   }
@@ -214,7 +216,7 @@ export class DiscussionsService {
       if (post.authorId !== userId) {
         await this.audit.record(tx, { action: 'discussion.deleted', actorId: userId, schoolId: school.id, targetType: 'discussion_post', targetId: post.id, ip });
       }
-      this.announce(reader, post.lessonId, post.parentId ?? post.id, post.id, 'removed');
+      this.announce(tx, reader, post.lessonId, post.parentId ?? post.id, post.id, 'removed');
     });
   }
 
@@ -235,7 +237,7 @@ export class DiscussionsService {
         .set({ voteCount: sql`(select count(*)::int from discussion_votes v where v.post_id = ${post.id})` })
         .where(eq(discussionPosts.id, post.id))
         .returning({ voteCount: discussionPosts.voteCount });
-      this.announce(reader, post.lessonId, post.parentId ?? post.id, post.id, 'updated');
+      this.announce(tx, reader, post.lessonId, post.parentId ?? post.id, post.id, 'updated');
       return { voteCount: updated!.voteCount, voted: helpful };
     });
   }
@@ -282,7 +284,7 @@ export class DiscussionsService {
         ip,
         data: { ...input },
       });
-      this.announce(reader, post.lessonId, post.parentId ?? post.id, post.id, 'updated');
+      this.announce(tx, reader, post.lessonId, post.parentId ?? post.id, post.id, 'updated');
       return this.describePost(tx, reader, post.id);
     });
   }
@@ -372,7 +374,7 @@ export class DiscussionsService {
           .returning({ id: discussionPosts.id, parentId: discussionPosts.parentId, lessonId: discussionPosts.lessonId });
         await this.resolveReportsOf(tx, report.postId, userId, 'hidden');
         if (post?.parentId) await this.recount(tx, post.parentId);
-        if (post) this.announce(reader, post.lessonId, post.parentId ?? post.id, post.id, 'updated');
+        if (post) this.announce(tx, reader, post.lessonId, post.parentId ?? post.id, post.id, 'updated');
       } else {
         await tx
           .update(discussionReports)
@@ -479,7 +481,9 @@ export class DiscussionsService {
              p.reply_count, p.vote_count, p.created_at::text, p.edited_at::text, p.last_activity_at::text,
              u.name as author_name, m.role as author_role,
              exists (select 1 from discussion_votes v where v.post_id = p.id and v.user_id = ${reader.userId}) as voted,
-             (select count(*)::int from discussion_reports r where r.post_id = p.id and r.resolved_at is null) as report_count
+             (select count(*)::int from discussion_reports r where r.post_id = p.id and r.resolved_at is null) as report_count,
+             exists (select 1 from discussion_reports r where r.post_id = p.id and r.reporter_id = ${reader.userId}) as reported,
+             p.parent_id is null and exists (select 1 from discussion_posts a where a.parent_id = p.id and a.accepted and a.status = 'visible') as answered
              ${options.extra ?? sql``}
       from discussion_posts p
       left join users u on u.id = p.author_id
@@ -514,6 +518,8 @@ export class DiscussionsService {
       mine: mine && !deleted,
       canModerate: reader.moderator,
       reportCount: reader.moderator ? row.report_count : 0,
+      reported: row.reported,
+      answered: row.answered,
     };
   }
 
@@ -521,7 +527,6 @@ export class DiscussionsService {
     return {
       ...this.toPost(row, reader),
       replies: replies.map((reply) => this.toPost(reply, reader)),
-      answered: replies.some((reply) => reply.accepted && reply.status === 'visible'),
       lesson,
     };
   }
@@ -548,8 +553,9 @@ export class DiscussionsService {
       .where(and(eq(discussionReports.postId, postId), isNull(discussionReports.resolvedAt)));
   }
 
-  private announce(reader: Reader, lessonId: string | null, threadId: string, postId: string, change: 'created' | 'updated' | 'removed') {
-    this.realtime.emitToCourse(reader.course.id, 'discussion:changed', { courseId: reader.course.id, lessonId, threadId, postId, change });
+  /** Tells the course's open pages, once the transaction has committed, so a refetch sees the change. */
+  private announce(tx: Tx, reader: Reader, lessonId: string | null, threadId: string, postId: string, change: 'created' | 'updated' | 'removed') {
+    this.db.afterCommit(tx, () => this.realtime.emitToCourse(reader.course.id, 'discussion:changed', { courseId: reader.course.id, lessonId, threadId, postId, change }));
   }
 }
 

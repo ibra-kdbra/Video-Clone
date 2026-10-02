@@ -164,7 +164,7 @@ export class LiveService {
         changes.recordingRef = input.recordingRef;
       }
       const [updated] = await tx.update(liveSessions).set(changes).where(eq(liveSessions.id, session.id)).returning();
-      this.realtime.emitToLive(session.id, 'live:status', statusEvent(updated!));
+      this.db.afterCommit(tx, () => this.realtime.emitToLive(session.id, 'live:status', statusEvent(updated!)));
       return this.store.describe(tx, viewing, updated!);
     });
   }
@@ -182,7 +182,7 @@ export class LiveService {
         await this.outbox.add(tx, 'live.started', { sessionId: session.id, courseId: viewing.course.id, actorId: userId }, school.id);
       }
       await this.audit.record(tx, { action: 'live.started', actorId: userId, schoolId: school.id, targetType: 'live_session', targetId: session.id, ip });
-      this.realtime.emitToLive(session.id, 'live:status', statusEvent(started!));
+      this.db.afterCommit(tx, () => this.realtime.emitToLive(session.id, 'live:status', statusEvent(started!)));
       return this.store.describe(tx, viewing, started!);
     });
   }
@@ -195,7 +195,7 @@ export class LiveService {
       if (session.status !== 'live') throw conflict(session.status === 'cancelled' ? 'This class was cancelled.' : "This class hasn't started.");
       const [ended] = await tx.update(liveSessions).set({ status: 'ended', endedAt: sql`now()` }).where(eq(liveSessions.id, session.id)).returning();
       await this.audit.record(tx, { action: 'live.ended', actorId: userId, schoolId: school.id, targetType: 'live_session', targetId: session.id, ip });
-      this.realtime.emitToLive(session.id, 'live:status', statusEvent(ended!));
+      this.db.afterCommit(tx, () => this.realtime.emitToLive(session.id, 'live:status', statusEvent(ended!)));
       return this.store.describe(tx, viewing, ended!);
     });
     await Promise.all([this.livekit.closeRoom(sessionId), this.store.clearFlags(sessionId)]);
@@ -210,7 +210,7 @@ export class LiveService {
       if (session.status !== 'scheduled') throw conflict('A class that has started can only be ended.');
       const [cancelled] = await tx.update(liveSessions).set({ status: 'cancelled' }).where(eq(liveSessions.id, session.id)).returning();
       await this.audit.record(tx, { action: 'live.cancelled', actorId: userId, schoolId: school.id, targetType: 'live_session', targetId: session.id, ip });
-      this.realtime.emitToLive(session.id, 'live:status', statusEvent(cancelled!));
+      this.db.afterCommit(tx, () => this.realtime.emitToLive(session.id, 'live:status', statusEvent(cancelled!)));
       return this.store.describe(tx, viewing, cancelled!);
     });
   }
@@ -248,7 +248,7 @@ export class LiveService {
         if (!exists) throw notFound('This message');
         return;
       }
-      this.realtime.emitToLive(sessionId, 'live:message-hidden', { sessionId, messageId });
+      this.db.afterCommit(tx, () => this.realtime.emitToLive(sessionId, 'live:message-hidden', { sessionId, messageId }));
     });
   }
 
