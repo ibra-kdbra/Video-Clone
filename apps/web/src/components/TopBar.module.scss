@@ -12,14 +12,6 @@
     border-color var(--medium) var(--ease);
 }
 
-// Over the billboard: no fill, just a soft shade so the controls stay readable on any image.
-.floating {
-  border-bottom-color: transparent;
-  background: linear-gradient(180deg, rgb(0 0 0 / 0.55) 0%, rgb(0 0 0 / 0) 100%);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
 .inner {
   display: flex;
   align-items: center;
@@ -90,20 +82,12 @@
   z-index: 1;
 }
 
-.search {
-  flex: 1;
-  max-width: 520px;
-  margin-left: auto;
-
-  @include down(md) {
-    display: none;
-  }
-}
-
 // The school search needs the room the section links leave on wide screens; narrower ones get a
 // button to the results page (which has its own field) instead.
-.schoolSearch {
+.search {
+  flex: 1;
   max-width: 460px;
+  margin-left: auto;
 
   @include down(lg) {
     display: none;

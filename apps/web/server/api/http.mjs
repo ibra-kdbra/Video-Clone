@@ -44,11 +44,9 @@ export const fail = (status, code, message) =>
     headers: { ...BASE_HEADERS, 'Cache-Control': 'no-store' },
   });
 
-/** Formats of the ids and tokens the API accepts. */
+/** Formats of the ids the API accepts. */
 export const PATTERNS = {
   videoId: /^[A-Za-z0-9_-]{11}$/,
-  channelId: /^UC[A-Za-z0-9_-]{22}$/,
-  pageToken: /^[A-Za-z0-9_-]{1,100}$/,
   clipId: /^[A-Za-z0-9_-]{1,100}$/,
   dailymotionId: /^x[A-Za-z0-9]{2,15}$/,
 };
@@ -57,22 +55,6 @@ export const PATTERNS = {
 export function need(params, name, pattern) {
   const value = params.get(name)?.trim();
   if (!value || !pattern.test(value)) throw new ApiError(400, 'bad_request', `Missing or invalid "${name}".`);
-  return value;
-}
-
-/** Reads an optional query parameter; when present it must match `pattern`. */
-export function maybe(params, name, pattern) {
-  const value = params.get(name)?.trim();
-  if (!value) return undefined;
-  if (!pattern.test(value)) throw new ApiError(400, 'bad_request', `Invalid "${name}".`);
-  return value;
-}
-
-/** Reads a search query: required, trimmed, at most `max` characters. */
-export function query(params, max = 100) {
-  const value = params.get('q')?.replace(/\s+/g, ' ').trim();
-  if (!value) throw new ApiError(400, 'bad_request', 'Missing search query "q".');
-  if (value.length > max) throw new ApiError(400, 'bad_request', `The search query is longer than ${max} characters.`);
   return value;
 }
 
@@ -98,8 +80,8 @@ export async function upstream(ctx, url, init = {}, label = 'upstream') {
 const NAMED = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
 
 /**
- * Decodes HTML entities. The YouTube API escapes titles and descriptions
- * ("Nor&#39;easter"), and React would otherwise show the codes as text.
+ * Decodes HTML entities. The YouTube API escapes titles ("Nor&#39;easter"), and React would
+ * otherwise show the codes as text.
  */
 export function decodeEntities(text) {
   if (typeof text !== 'string' || !text.includes('&')) return text ?? '';
@@ -113,8 +95,8 @@ export function decodeEntities(text) {
 }
 
 /**
- * Plain text from an upstream string: entities decoded, any HTML tags dropped (Dailymotion
- * descriptions contain some), and length capped so a response stays small.
+ * Plain text from an upstream string: entities decoded, any HTML tags dropped, and length capped
+ * so a response stays small.
  */
 export function text(value, max = 5000) {
   if (typeof value !== 'string') return '';
@@ -122,25 +104,14 @@ export function text(value, max = 5000) {
   return plain.length > max ? `${plain.slice(0, max - 1)}…` : plain;
 }
 
-/**
- * A URL the browser may load: absolute https, or a same-origin path (the local mock's
- * thumbnails). Anything else (javascript:, data:, http:) becomes null.
- */
+/** A URL the browser may load: absolute https. Anything else (javascript:, data:, http:, paths) becomes null. */
 export function safeUrl(value) {
   if (typeof value !== 'string' || !value) return null;
-  if (value.startsWith('/') && !value.startsWith('//')) return value;
   try {
     return new URL(value).protocol === 'https:' ? value : null;
   } catch {
     return null;
   }
-}
-
-/** A count from an upstream string or number, or null when it is missing or hidden. */
-export function count(value) {
-  if (value === null || value === undefined || value === '') return null;
-  const n = Number(value);
-  return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
 /** Seconds from an ISO 8601 duration ("PT1H2M3S"); null when unknown, 0 for live ("P0D"). */

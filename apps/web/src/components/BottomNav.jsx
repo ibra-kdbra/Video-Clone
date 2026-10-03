@@ -8,9 +8,9 @@ import Icon from './Icon.jsx';
 import styles from './BottomNav.module.scss';
 
 /**
- * Phones: the main sections within thumb's reach, as in the top bar (home, the person's school,
- * the video Explore pages). The last tab is the person's account when signed in, and "Sign in"
- * (coming back to this page) when not.
+ * Phones: the main sections within thumb's reach, as in the top bar (home, and the person's school
+ * when signed in). The last tab is the person's account when signed in, and "Sign in" (coming back
+ * to this page) when not.
  */
 export default function BottomNav() {
   const { pathname, search } = useLocation();
@@ -27,7 +27,7 @@ export default function BottomNav() {
         <NavLink key={item.label} to={item.to} end className={styles.item} aria-current={item.active ? 'page' : undefined}>
           {item.active && <m.span layoutId="tab-indicator" className={styles.indicator} aria-hidden="true" />}
           <Icon name={item.icon} size={22} />
-          <span>{item.short ?? item.label}</span>
+          <span>{item.label}</span>
         </NavLink>
       ))}
     </nav>

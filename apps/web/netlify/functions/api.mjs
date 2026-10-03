@@ -1,9 +1,10 @@
 import { handle } from '../../server/api/router.mjs';
 
 /**
- * The app's only way to reach the video APIs. The keys come from the site's environment
- * variables (YOUTUBE_API_KEY, TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET; all free) and never reach
- * the browser. Responses are cached at Netlify's CDN (see server/api/http.mjs).
+ * The video proxy: the details (title, pictures, length) of the YouTube, Dailymotion and Twitch
+ * videos that lessons embed, for the course editor and the player's poster. The keys come from the
+ * site's environment variables (YOUTUBE_API_KEY, TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET; all free)
+ * and never reach the browser. Responses are cached at Netlify's CDN (see server/api/http.mjs).
  */
 export default async (request) =>
   handle(request, {

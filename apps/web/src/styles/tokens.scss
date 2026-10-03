@@ -128,16 +128,16 @@
   --page-bg: var(--bg);
 }
 
-// Dark whatever the theme: for things drawn over video images (the home billboard, and the top
-// bar while it floats over it), the way streaming apps keep their hero cinematic in light mode.
+// Dark whatever the theme: for things drawn over video and cover images (the course hero, the
+// lesson theatre and the live stage), so they stay cinematic in the light theme too.
 .theme-dark {
   @include dark;
   color: var(--text);
 }
 
 // Monograms and school banners: each school (and person) gets one of these gradients, picked from
-// its address or id, so it looks the same everywhere. They stay deep in both themes, like the
-// billboard, so the white initials on them keep AA contrast.
+// its address or id, so it looks the same everywhere. They stay deep in both themes, so the white
+// initials on them keep AA contrast.
 $tones: (
   1: (#5b21b6, #c026d3),
   2: (#1e40af, #7c3aed),

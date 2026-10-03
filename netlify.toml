@@ -1,5 +1,7 @@
-# Grand LMS on Netlify: the web app (apps/web) and its video proxy function. The NestJS API runs on
-# its own server (see docs/deploy.md); the build proxies /api/v1/* to it when API_ORIGIN is set.
+# Grand LMS on Netlify: the web app (apps/web) and its video proxy function, which looks up the
+# title, pictures and length of the YouTube, Dailymotion and Twitch videos that lessons embed. The
+# NestJS API runs on its own server (see docs/deploy.md); the build proxies /api/v1/* to it when
+# API_ORIGIN is set.
 [build]
   command = "npm run build -w @grand/web"
   publish = "apps/web/dist"

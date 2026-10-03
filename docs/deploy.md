@@ -122,7 +122,7 @@ docker compose -f infra/docker-compose.prod.yml logs -f api worker
 | `API_ORIGIN` | `https://grand-lms.duckdns.org` (no trailing slash) |
 | `MEDIA_ORIGIN` | `https://media.grand-lms.duckdns.org`: the page may load video and images from here |
 | `LIVEKIT_ORIGIN` | Only with LiveKit (step 6): `wss://live.grand-lms.duckdns.org` |
-| `YOUTUBE_API_KEY`, `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET` | Optional, for the Explore pages (see the README) |
+| `YOUTUBE_API_KEY`, `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET` | Optional: the titles, pictures and lengths of the YouTube videos and Twitch clips lessons embed (see the README) |
 
 3. Deploy. The build writes `dist/_redirects`, which proxies `/api/v1/*` to the API, and
    `dist/_headers`, whose Content-Security-Policy allows WebSockets to the API's host and video

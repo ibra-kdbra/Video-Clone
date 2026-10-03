@@ -4,25 +4,14 @@ import { twitch } from './twitch.mjs';
 import { youtube } from './youtube.mjs';
 
 /**
- * Every endpoint the app may call, with the query parameters each one accepts. Anything else is
- * a 404 (the function is not an open proxy), and unknown or repeated parameters are a 400.
+ * Every endpoint the app may call, with the query parameters each one accepts: one video's
+ * details, for lessons that embed it (its title, pictures and length). Anything else is a 404 (the
+ * function is not an open proxy), and unknown or repeated parameters are a 400.
  */
 const routes = {
-  'youtube/search': { run: youtube.search, params: ['q'] },
-  'youtube/trending': { run: youtube.trending, params: [] },
   'youtube/video': { run: youtube.video, params: ['id'] },
-  'youtube/related': { run: youtube.related, params: ['id'] },
-  'youtube/channel': { run: youtube.channel, params: ['id'] },
-  'youtube/channel-videos': { run: youtube.channelVideos, params: ['id', 'pageToken'] },
-  'youtube/comments': { run: youtube.comments, params: ['id'] },
-  'dailymotion/search': { run: dailymotion.search, params: ['q'] },
-  'dailymotion/trending': { run: dailymotion.trending, params: [] },
   'dailymotion/video': { run: dailymotion.video, params: ['id'] },
-  'dailymotion/related': { run: dailymotion.related, params: ['id'] },
-  'twitch/search': { run: twitch.search, params: ['q'] },
-  'twitch/trending': { run: twitch.trending, params: [] },
   'twitch/clip': { run: twitch.clip, params: ['id'] },
-  'twitch/related': { run: twitch.related, params: ['id'] },
 };
 
 /**
@@ -34,7 +23,7 @@ const isCrossSite = (request) => request.headers.get('sec-fetch-site') === 'cros
 
 /**
  * Handles `/api/<provider>/<endpoint>?…`. `env` holds the server-side keys; `fetchImpl` is
- * swappable for tests and local development, and `timeout` (ms) for tests.
+ * swappable for tests, and `timeout` (ms) for tests.
  */
 export async function handle(request, env, fetchImpl = fetch, { timeout } = {}) {
   if (request.method !== 'GET') return fail(405, 'method_not_allowed', 'Only GET requests are supported.');

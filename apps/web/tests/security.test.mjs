@@ -42,6 +42,10 @@ describe('Content-Security-Policy', () => {
     expect(directive('frame-src').split(' ').slice(1).every((source) => source.startsWith('https://'))).toBe(true);
   });
 
+  it('shows pictures from this site and from the image servers of the platforms lessons embed, only', () => {
+    expect(directive('img-src')).toBe("img-src 'self' data: https://*.ytimg.com https://*.dmcdn.net https://static-cdn.jtvnw.net https://clips-media-assets2.twitch.tv");
+  });
+
   it('adds only the real-time server’s secure WebSocket origin to connect-src', () => {
     const policy = contentSecurityPolicy({ realtimeOrigin: 'https://grand-lms.duckdns.org' });
     expect(policy).toContain("connect-src 'self' wss://grand-lms.duckdns.org;");

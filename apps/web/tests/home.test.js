@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { continueLearning, coursesYouTeach, dashboardLine, greeting, isExplorePath, isStaff, mainLinks, schoolsLink } from '../src/lib/home.js';
+import { continueLearning, coursesYouTeach, dashboardLine, greeting, isStaff, mainLinks, schoolsLink } from '../src/lib/home.js';
 
 const school = (slug, role = 'student') => ({ id: `id-${slug}`, slug, name: slug.replace(/-/g, ' '), role, createdAt: '2026-01-01T00:00:00Z' });
 const course = (slug, { enrolled = true, status = 'published', completed = 0, total = 5, last = null } = {}) => ({
@@ -13,11 +13,6 @@ const course = (slug, { enrolled = true, status = 'published', completed = 0, to
 });
 
 describe('navigation', () => {
-  it('knows the video Explore pages', () => {
-    for (const path of ['/explore', '/browse/music', '/watch/youtube/abc', '/search', '/channel/x', '/library', '/history']) expect(isExplorePath(path), path).toBe(true);
-    for (const path of ['/', '/s/riverside', '/explorer', '/account', '/searching']) expect(isExplorePath(path), path).toBe(false);
-  });
-
   it('leads "My school" straight to the one school, or to the list of several', () => {
     expect(schoolsLink([])).toBeNull();
     expect(schoolsLink([school('riverside')])).toMatchObject({ to: '/s/riverside', label: 'My school' });
@@ -25,14 +20,11 @@ describe('navigation', () => {
   });
 
   it('builds the main links, with the current one marked', () => {
-    expect(mainLinks([], '/').map((link) => [link.label, link.active])).toEqual([
-      ['Home', true],
-      ['Explore videos', false],
-    ]);
+    expect(mainLinks([], '/').map((link) => [link.label, link.active])).toEqual([['Home', true]]);
     const links = mainLinks([school('riverside')], '/s/riverside/c/piano');
-    expect(links.map((link) => link.label)).toEqual(['Home', 'My school', 'Explore videos']);
+    expect(links.map((link) => link.label)).toEqual(['Home', 'My school']);
     expect(links.find((link) => link.active).label).toBe('My school');
-    expect(mainLinks([], '/watch/youtube/abc').find((link) => link.active).label).toBe('Explore videos');
+    expect(mainLinks([school('riverside')], '/account').some((link) => link.active)).toBe(false);
   });
 });
 

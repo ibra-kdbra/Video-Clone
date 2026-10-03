@@ -8,22 +8,6 @@ export function formatDuration(seconds) {
   return hours ? `${hours}:${String(minutes).padStart(2, '0')}:${secs}` : `${minutes}:${secs}`;
 }
 
-const compact = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 });
-
-/** 1234 → "1.2K", 3400000 → "3.4M". Empty for missing or hidden counts. */
-export function formatCount(value) {
-  if (value === null || value === undefined || value === '') return '';
-  const n = Number(value);
-  return Number.isFinite(n) ? compact.format(n) : '';
-}
-
-/** "1.2M views", "1 view", or empty. */
-export function formatViews(value) {
-  const n = Number(value);
-  if (value === null || value === undefined || !Number.isFinite(n)) return '';
-  return n === 1 ? '1 view' : `${formatCount(n)} views`;
-}
-
 const relative = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 const UNITS = [
   ['year', 365 * 24 * 3600],
@@ -45,15 +29,7 @@ export function timeAgo(iso, now = Date.now()) {
   return 'just now';
 }
 
-/** A `srcset` from a video's thumbnail sizes, so each card downloads the size it shows. */
-export function srcSet(thumbnails = []) {
-  return thumbnails
-    .filter((t) => t?.url && t?.width)
-    .map((t) => `${t.url} ${t.width}w`)
-    .join(', ');
-}
-
-/** "Channel · 1.2M views · 3 days ago", skipping what's unknown. */
+/** "12 lessons · 1 h 20 min · 30 students", skipping what's unknown. */
 export const joinMeta = (...parts) => parts.filter(Boolean).join(' · ');
 
 const DATE_STYLES = {

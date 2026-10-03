@@ -33,13 +33,3 @@ export function ErrorState({ error, onRetry, title = "Couldn't load this", title
     </div>
   );
 }
-
-/** A quiet informational banner (not an error), e.g. which platform the videos come from. */
-export function Notice({ children }) {
-  return (
-    <p className={styles.notice} role="status">
-      <Icon name="alert" size={18} />
-      <span>{children}</span>
-    </p>
-  );
-}

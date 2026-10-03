@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef } from 'react';
 import { m } from 'motion/react';
-import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigationType, useParams } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigationType } from 'react-router-dom';
 
 import BottomNav from '../components/BottomNav.jsx';
 import ErrorBoundary from '../components/ErrorBoundary.jsx';
@@ -16,16 +16,9 @@ import Motion from './Motion.jsx';
 import SessionProvider from './Session.jsx';
 import styles from './App.module.scss';
 
-// The video Explore pages: the streaming-style home, browse, watch, search, channels, library.
-const Explore = lazy(() => import('../pages/Explore.jsx'));
-const Browse = lazy(() => import('../pages/Browse.jsx'));
-const Watch = lazy(() => import('../pages/Watch.jsx'));
-const Search = lazy(() => import('../pages/Search.jsx'));
-const Channel = lazy(() => import('../pages/Channel.jsx'));
-const Library = lazy(() => import('../pages/Library.jsx'));
 const NotFound = lazy(() => import('../pages/NotFound.jsx'));
-// Grand LMS: accounts and schools. These pages (and the form checks they share with the API) load
-// only when opened, so the home page and the video pages don't carry them.
+// Accounts and schools. These pages (and the form checks they share with the API) load only when
+// opened, so the home page doesn't carry them.
 const SignIn = lazy(() => import('../pages/SignIn.jsx'));
 const SignUp = lazy(() => import('../pages/SignUp.jsx'));
 const Account = lazy(() => import('../pages/Account.jsx'));
@@ -52,16 +45,12 @@ const LiveClass = lazy(() => import('../pages/LiveClass.jsx'));
 // The demo's note under the top bar, only in demo builds.
 const DemoBanner = DEMO ? lazy(() => import('../demo/DemoBanner.jsx')) : null;
 
-/** Addresses from the previous version keep working. */
-function OldVideo() {
-  const { id } = useParams();
-  return <Navigate to={`/watch/youtube/${encodeURIComponent(id)}`} replace />;
-}
-
-function OldSearch() {
-  const { term } = useParams();
-  return <Navigate to={`/search?q=${encodeURIComponent(term)}`} replace />;
-}
+/**
+ * The addresses of the video browser that came before the LMS (explore, browse, watch, search,
+ * channels, the library and their older forms). It's gone, so links to it lead home rather than to
+ * "Page not found". The school search, /s/:slug/search, is a different address.
+ */
+const RETIRED = ['explore', 'browse', 'watch', 'search', 'channel', 'library', 'video', 'history', 'watch-later'];
 
 /** Common guesses at the sign-in addresses lead to the real ones, keeping `?next=`. */
 function Alias({ to }) {
@@ -132,17 +121,9 @@ function Layout() {
             <PageTransition>
               <Routes>
                 <Route index element={<Home />} />
-                <Route path="explore" element={<Explore />} />
-                <Route path="browse" element={<Navigate to="/browse/trending" replace />} />
-                <Route path="browse/:slug" element={<Browse />} />
-                <Route path="watch/:provider/:id" element={<Watch />} />
-                <Route path="search" element={<Search />} />
-                <Route path="channel/:id" element={<Channel />} />
-                <Route path="library" element={<Library />} />
-                <Route path="video/:id" element={<OldVideo />} />
-                <Route path="search/:term" element={<OldSearch />} />
-                <Route path="history" element={<Navigate to="/library?tab=history" replace />} />
-                <Route path="watch-later" element={<Navigate to="/library?tab=saved" replace />} />
+                {RETIRED.map((path) => (
+                  <Route key={path} path={`${path}/*`} element={<Navigate to="/" replace />} />
+                ))}
                 <Route path="signin" element={<SignIn />} />
                 <Route path="signup" element={<SignUp />} />
                 <Route path="login" element={<Alias to="/signin" />} />
