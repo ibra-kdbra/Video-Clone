@@ -1,8 +1,7 @@
-import { ApiError, PATTERNS, count, need, query, upstream } from './http.mjs';
+import { ApiError, PATTERNS, need, upstream } from './http.mjs';
 import { video } from './video.mjs';
 
 const HELIX = 'https://api.twitch.tv/helix';
-const DAY = 24 * 3600 * 1000;
 
 /** The app access token (client-credentials flow), reused until shortly before it expires. */
 let token = null;
@@ -60,68 +59,21 @@ async function helix(ctx, path, params, retried = false) {
   return response.json();
 }
 
-const since = (days) => new Date(Date.now() - days * DAY).toISOString();
-
-/** Clip thumbnails are 480 px wide. */
-const toVideo = (clip) =>
-  video({
-    provider: 'twitch',
-    id: clip.id,
-    title: clip.title,
-    thumbnail: clip.thumbnail_url,
-    thumbnails: [{ url: clip.thumbnail_url, width: 480 }],
-    channel: { id: clip.broadcaster_id, title: clip.broadcaster_name },
-    publishedAt: clip.created_at,
-    views: count(clip.view_count),
-    duration: clip.duration,
-  });
-
-async function clipsFor(ctx, filter, days, first) {
-  const data = await helix(ctx, '/clips', { ...filter, first, started_at: since(days) });
-  return (data.data ?? []).filter((clip) => typeof clip?.id === 'string').map(toVideo);
-}
-
 export const twitch = {
-  /**
-   * Clips for a search: the best-matching game or category ("Music", "Software and Game
-   * Development"…), or else the best-matching channel.
-   */
-  async search(params, ctx) {
-    const q = query(params);
-    const categories = await helix(ctx, '/search/categories', { query: q, first: 1 });
-    const gameId = categories.data?.[0]?.id;
-    let items = gameId ? await clipsFor(ctx, { game_id: gameId }, 30, 20) : [];
-    if (!items.length) {
-      const channels = await helix(ctx, '/search/channels', { query: q, first: 1 });
-      const broadcasterId = channels.data?.[0]?.id;
-      if (broadcasterId) items = await clipsFor(ctx, { broadcaster_id: broadcasterId }, 365, 20);
-    }
-    return { body: { items }, ttl: 6 * 3600 };
-  },
-
+  /** One clip's title, picture (480 px wide) and length. */
   async clip(params, ctx) {
     const id = need(params, 'id', PATTERNS.clipId);
     const data = await helix(ctx, '/clips', { id });
     const clip = data.data?.[0];
     if (!clip) throw new ApiError(404, 'not_found', 'That clip was not found.');
-    return { body: { item: toVideo(clip) }, ttl: 3600 };
-  },
-
-  /** This week's top clips from the most-watched game. */
-  async trending(_params, ctx) {
-    const games = await helix(ctx, '/games/top', { first: 1 });
-    const gameId = games.data?.[0]?.id;
-    const items = gameId ? await clipsFor(ctx, { game_id: gameId }, 7, 20) : [];
-    return { body: { items }, ttl: 3600 };
-  },
-
-  /** "Up next": the same streamer's top clips of the past year. */
-  async related(params, ctx) {
-    const id = need(params, 'id', PATTERNS.clipId);
-    const data = await helix(ctx, '/clips', { id });
-    const broadcasterId = data.data?.[0]?.broadcaster_id;
-    if (!broadcasterId) return { body: { items: [] }, ttl: 3600 };
-    const items = await clipsFor(ctx, { broadcaster_id: broadcasterId }, 365, 17);
-    return { body: { items: items.filter((item) => item.id !== id).slice(0, 16) }, ttl: 3600 };
+    const item = video({
+      provider: 'twitch',
+      id: clip.id,
+      title: clip.title,
+      thumbnail: clip.thumbnail_url,
+      thumbnails: [{ url: clip.thumbnail_url, width: 480 }],
+      duration: clip.duration,
+    });
+    return { body: { item }, ttl: 3600 };
   },
 };

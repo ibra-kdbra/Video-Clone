@@ -26,14 +26,14 @@ FONT_DIR = '/usr/share/fonts/truetype/liberation'
 BOLD = os.path.join(FONT_DIR, 'LiberationSans-Bold.ttf')
 REGULAR = os.path.join(FONT_DIR, 'LiberationSans-Regular.ttf')
 
-BG = (12, 12, 20)
-PANEL = (22, 22, 34)
-GRID = (40, 40, 58)
-TEXT = (245, 245, 250)
-MUTED = (161, 161, 178)
-VIOLET = (167, 139, 250)
-PINK = (244, 114, 182)
-SKY = (56, 189, 248)
+# The app's dark theme (apps/web/src/styles/tokens.scss): navy surfaces, blue, teal and amber.
+BG = (11, 18, 32)
+PANEL = (17, 26, 44)
+GRID = (45, 62, 95)
+TEXT = (241, 245, 249)
+MUTED = (169, 182, 202)
+BLUE = (96, 165, 250)
+TEAL = (45, 212, 191)
 AMBER = (251, 191, 36)
 
 COURSE = 'Grand Academy  ·  The Physics of Sound'
@@ -186,7 +186,7 @@ def draw_title(draw, t, s, alpha):
     # A short wave under the title.
     box = (W / 2 - 220, top + len(lines) * 78 + 70, W / 2 + 220, top + len(lines) * 78 + 150)
     phase = t * 0.8
-    curve(draw, box, lambda u: np.sin(2 * np.pi * (2 * u - phase)) * np.clip(np.minimum(u, 1 - u) * 6, 0, 1), VIOLET, alpha, width=3.5, amplitude=0.8)
+    curve(draw, box, lambda u: np.sin(2 * np.pi * (2 * u - phase)) * np.clip(np.minimum(u, 1 - u) * 6, 0, 1), BLUE, alpha, width=3.5, amplitude=0.8)
 
 
 WAVE_BOX = (64, 92, W - 64, 500)
@@ -200,7 +200,7 @@ def draw_wave(draw, t, s, alpha):
     cycles = s['cycles']
     # Leave room on the right for the loudness meter, when there is one.
     box = (WAVE_BOX[0], WAVE_BOX[1], WAVE_BOX[2] - (64 if 'meter' in s else 0), WAVE_BOX[3])
-    curve(draw, box, lambda u: shape(cycles * u - phase), s.get('color', VIOLET), alpha, width=4.5, amplitude=amp)
+    curve(draw, box, lambda u: shape(cycles * u - phase), s.get('color', BLUE), alpha, width=4.5, amplitude=amp)
     # The axes: time along, air pressure up.
     x0, y0, x1, y1 = WAVE_BOX
     text(draw, (x1 - 24, y1 - 36), 'time →', 20, MUTED, alpha=alpha, anchor='ra')
@@ -223,7 +223,7 @@ def draw_two(draw, t, s, alpha):
     top = (64, 92, W - 64, 290)
     bottom = (64, 302, W - 64, 500)
     phase = (t - s['start']) * 0.4
-    for box, f, color, label in ((top, 440, VIOLET, '440 Hz'), (bottom, 444, PINK, '444 Hz')):
+    for box, f, color, label in ((top, 440, BLUE, '440 Hz'), (bottom, 444, TEAL, '444 Hz')):
         panel(draw, box, alpha)
         cycles = f / 100  # a 1/100-second window
         curve(draw, box, lambda u, c=cycles: np.sin(2 * np.pi * (c * u - phase)), color, alpha, width=4, amplitude=0.62)
@@ -252,8 +252,8 @@ def draw_beats(draw, t, s, alpha):
     upper = [(S(x), S(cy - e * half * 0.74)) for x, e in zip(xs, env)]
     lower = [(S(x), S(cy + e * half * 0.74)) for x, e in zip(xs[::-1], env[::-1])]
     draw.polygon(upper + lower, fill=blend((70, 52, 120), alpha))
-    draw.line(upper, fill=blend(VIOLET, alpha), width=S(3), joint='curve')
-    draw.line(lower, fill=blend(VIOLET, alpha), width=S(3), joint='curve')
+    draw.line(upper, fill=blend(BLUE, alpha), width=S(3), joint='curve')
+    draw.line(lower, fill=blend(BLUE, alpha), width=S(3), joint='curve')
     # Mark each beat.
     for k in range(5):
         u_peak = (k - local * 0.25) / df
@@ -262,7 +262,7 @@ def draw_beats(draw, t, s, alpha):
         top = cy - half * 0.74 - 22
         draw.ellipse((S(x - 6), S(top - 6), S(x + 6), S(top + 6)), fill=blend(AMBER, alpha))
     text(draw, (x1 - 24, y0 + 20), '1 s window', 20, MUTED, alpha=alpha, anchor='ra')
-    text(draw, (x0 + 24, y1 - 38), '440 Hz + 444 Hz', 22, VIOLET, bold=True, alpha=alpha)
+    text(draw, (x0 + 24, y1 - 38), '440 Hz + 444 Hz', 22, BLUE, bold=True, alpha=alpha)
     text(draw, (x1 - 24, y1 - 36), 'time →', 20, MUTED, alpha=alpha, anchor='ra')
     caption(draw, s['label'], s['text'], alpha)
 
@@ -312,7 +312,7 @@ def draw_summary(draw, t, s, alpha):
         y = 300 + i * 74
         a = alpha * ease((t - s['start'] - 0.5 - i * 0.6) / 0.5)
         draw.rounded_rectangle((S(250), S(y - 28), S(W - 250), S(y + 30)), radius=S(14), fill=blend(PANEL, a))
-        text(draw, (284, y), key, 28, VIOLET, bold=True, alpha=a, anchor='lm')
+        text(draw, (284, y), key, 28, BLUE, bold=True, alpha=a, anchor='lm')
         text(draw, (W - 284, y), value, 26, TEXT, alpha=a, anchor='rm')
 
 
@@ -366,11 +366,11 @@ CLIPS = {
     ),
     'timbre': seq(
         (6, {'kind': 'title', 'title': 'Timbre: same note, different shapes', 'subtitle': 'Lesson 4  ·  Harmonics'}),
-        (10, {'kind': 'timbre', 'amps': [1], 'tone': sine(220), 'color': SKY, 'label': 'A pure tone',
+        (10, {'kind': 'timbre', 'amps': [1], 'tone': sine(220), 'color': BLUE, 'label': 'A pure tone',
               'text': 'One frequency only. It sounds clean and a little dull, like a tuning fork.'}),
-        (10, {'kind': 'timbre', 'amps': CLARINET_LIKE, 'tone': harmonics(220, CLARINET_LIKE), 'color': VIOLET, 'label': 'Odd harmonics',
+        (10, {'kind': 'timbre', 'amps': CLARINET_LIKE, 'tone': harmonics(220, CLARINET_LIKE), 'color': TEAL, 'label': 'Odd harmonics',
               'text': 'Add 3, 5 and 7 times the frequency, quieter each time: hollow and reedy, a little like a clarinet.'}),
-        (10, {'kind': 'timbre', 'amps': SAW, 'tone': harmonics(220, SAW), 'color': PINK, 'label': 'Every harmonic',
+        (10, {'kind': 'timbre', 'amps': SAW, 'tone': harmonics(220, SAW), 'color': AMBER, 'label': 'Every harmonic',
               'text': 'All of them, each a bit softer than the last: bright and buzzy, like a bowed string. Still the same note, A3.'}),
         (8, {'kind': 'summary', 'title': 'What makes instruments differ', 'tone': None,
              'points': [('Pitch', 'the lowest frequency'), ('Timbre', 'the mix of harmonics'), ('Waveform', 'the harmonics, added up')]}),

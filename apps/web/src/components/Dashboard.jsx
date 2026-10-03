@@ -193,14 +193,9 @@ export default function Dashboard() {
           title="You're not in a school yet"
           titleAs="h2"
           action={
-            <div className={styles.emptyActions}>
-              <Button variant="primary" icon="plus" to="/schools/new">
-                Create a school
-              </Button>
-              <Button variant="ghost" icon="compass" to="/explore">
-                Explore videos
-              </Button>
-            </div>
+            <Button variant="primary" icon="plus" to="/schools/new">
+              Create a school
+            </Button>
           }
         >
           Create one for your own students, or open the invitation link your school emailed you.

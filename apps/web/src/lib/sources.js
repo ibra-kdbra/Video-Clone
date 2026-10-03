@@ -1,22 +1,8 @@
-/** The video platforms, their labels, and how their ids look. */
-export const SOURCES = ['youtube', 'dailymotion', 'twitch'];
-
+/**
+ * The video platforms a lesson (or a live class) can embed: their names, addresses, players and
+ * pictures. Which ids each accepts is the API's EMBED_REF_FORMAT (see videoLinks.js).
+ */
 export const SOURCE_LABELS = { youtube: 'YouTube', dailymotion: 'Dailymotion', twitch: 'Twitch' };
-
-export const ID_PATTERNS = {
-  youtube: /^[A-Za-z0-9_-]{11}$/,
-  dailymotion: /^x[A-Za-z0-9]{2,15}$/,
-  twitch: /^[A-Za-z0-9_-]{1,100}$/,
-};
-
-export const CHANNEL_ID = /^UC[A-Za-z0-9_-]{22}$/;
-
-export const isSource = (value) => SOURCES.includes(value);
-
-export const isValidId = (provider, id) => isSource(provider) && typeof id === 'string' && ID_PATTERNS[provider].test(id);
-
-/** The in-app page for a video. */
-export const watchPath = (video) => `/watch/${video.provider}/${encodeURIComponent(video.id)}`;
 
 /** The video on its own site. */
 export function externalUrl(provider, id) {

@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file.
 
+## [9.1.0] - 2026-10-03
+
+**Only the LMS, in a learning palette.** The video pages left over from FundaStream are gone, and
+violet and pink gave way to navy, a calm blue and teal.
+
+### Changed
+- **A learning palette**, in both themes:
+  - Dark: navy surfaces with blue for actions and focus, and teal beside it. Light: cool paper
+    whites with the same blue.
+  - Every text color still passes WCAG AA on the background and on raised surfaces.
+  - Course and school colors run through navy, teal, blue to cyan, green, amber and slate.
+  - The logo, favicon, home-screen icons and browser theme color go from blue to teal.
+- **The demo's sound lessons were re-rendered** in the same colors: blue, teal and amber
+  waveforms on navy (`apps/web/scripts/demo-media`).
+- **The top bar hides its menu when the only link would be Home**: signed out, or in no school
+  yet. The logo already leads home.
+
+### Removed
+- **The Explore video pages** (trending, browse, watch, search, channels, the library) and
+  everything only they used: the video search box, the platform switcher, the billboard, the
+  rows and cards, mock mode (`--mode mock`) and the embla-carousel packages.
+  - Their addresses (`/explore`, `/browse`, `/watch/…`, `/search`, `/library` and the older
+    forms) lead to the home page. The school search, `/s/:slug/search`, is unchanged.
+  - The browser data they kept (watch history, saved videos, recent searches, the platform
+    choice) is cleared on the next visit.
+- **Most of the video proxy.** It keeps the three lookups lessons need for embedded videos: a
+  YouTube video, a Dailymotion video and a Twitch clip, returning only the title, pictures and
+  length. A YouTube lookup now costs one quota unit instead of two. The other twelve endpoints
+  return 404.
+- Two image hosts from the Content-Security-Policy, which only served YouTube channel avatars and
+  banners.
+
+### Numbers
+- First-load JavaScript: 135 kB gzipped, down from 141 kB.
+- Tests: web, 449 (35 fewer: the removed pages' tests went with them).
+
 ## [9.0.0] - 2026-10-02
 
 **Grand LMS, Phase 3: live and social.** Courses get live classes with a waiting room and chat,

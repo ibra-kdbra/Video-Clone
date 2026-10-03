@@ -22,9 +22,7 @@ video of Phase 1 and the foundation of Phase 0:
 **Try it:** the public site runs a demo school, Grand Academy, entirely in the browser (see
 [Demo mode](#demo-mode)): sign in as its student, instructor or owner with one click.
 
-What comes next is on the [roadmap](docs/roadmap.md). The video pages from the earlier
-FundaStream app are still here, under Explore videos: trending, browse, search and watch across
-YouTube, Dailymotion and Twitch.
+What comes next is on the [roadmap](docs/roadmap.md).
 
 ## What's in it
 
@@ -59,7 +57,9 @@ YouTube, Dailymotion and Twitch.
     storyboard. Progress shows live.
   - Playback is adaptive, through signed links that expire. The player has quality, speed,
     picture in picture, keyboard shortcuts and thumbnails over the seek bar.
-  - A lesson can use a YouTube, Dailymotion or Twitch video instead.
+  - A lesson can use a YouTube, Dailymotion or Twitch video instead. Its title, picture and
+    length are looked up through a small server-side proxy that keeps the platforms' keys off the
+    page.
 - **Progress**:
   - The player reports which 5-second stretches actually played. Skipping ahead counts nothing,
     and a lesson with an uploaded video completes at 90%.
@@ -92,13 +92,11 @@ YouTube, Dailymotion and Twitch.
 - **Insights** for a course's editors: enrolled and active students, completion per lesson, a
   retention curve for each video, quiz pass rates and the hardest questions, and grades. The
   Students tab shows each student's progress.
-- **Explore**: the streaming-style video pages. A billboard, rows, search and in-app players for
-  YouTube, Dailymotion and Twitch, through a server-side proxy that keeps the keys off the page.
 
 ## How it fits together
 
 ```text
-browser ──► Netlify: apps/web (React)          /api/*    → video proxy function
+browser ──► Netlify: apps/web (React)          /api/*    → video proxy function (embedded videos' details)
                                                /api/v1/* → proxied to the API (same origin)
         ──► wss ──┐
                   ▼
@@ -182,7 +180,7 @@ quizzes, assignments, notifications, insights, live classes, discussions and sea
 | LiveKit (self-hosted, optional) | Open source, on the same server | Live classes over WebRTC |
 | YouTube Live | Free | Live classes streamed from YouTube Studio or OBS, without LiveKit |
 | Brevo or Resend | 300 or 100 emails a day | Invitation and notification emails |
-| YouTube Data API, Dailymotion, Twitch | Free quotas | The Explore pages |
+| YouTube Data API, Dailymotion, Twitch | Free quotas | Optional: the titles, pictures and lengths of the videos lessons embed |
 
 The step-by-step setup is in [docs/deploy.md](docs/deploy.md).
 
@@ -202,8 +200,11 @@ npm run dev:worker           # relays events and sends email to Mailpit: http://
 npm run dev:web              # http://localhost:5173, proxying /api/v1 to the API
 ```
 
-The Explore pages need no keys in mock mode: `npm run dev:mock -w @grand/web`. With real keys in
-`.env`, they use the platforms' APIs; `.env.example` explains where to get each key.
+Lessons can embed YouTube, Dailymotion and Twitch videos with no keys at all. The course editor
+looks up each linked video's title, picture and length through the web app's video proxy:
+Dailymotion needs no key, YouTube needs `YOUTUBE_API_KEY`, and Twitch clips need a Twitch app's
+`TWITCH_CLIENT_ID` and `TWITCH_CLIENT_SECRET`, all free (`.env.example` says where to get them).
+Without them, those videos still play.
 
 ### Demo mode
 
@@ -229,7 +230,7 @@ public Netlify site is built this way (`netlify.toml`). Without the flag, none o
   Search covers all of it.
 
 ```bash
-VITE_DEMO=true npm run dev -w @grand/web            # add `-- --mode mock` for the Explore pages without keys
+VITE_DEMO=true npm run dev -w @grand/web
 VITE_DEMO=true npm run build -w @grand/web
 ```
 
@@ -290,7 +291,7 @@ Docker images and transcodes test clips inside the worker image
 
 ```text
 apps/
-  web/        React app, the Netlify video proxy (server/, netlify/), security headers (config/)
+  web/        React app, the video proxy for lesson embeds (server/, netlify/), security headers (config/)
   api/        NestJS API: src/{auth,schools,courses,learning,notifications,live,discussions,search,storage,realtime,database,rate-limit,events,health}, migrations/, test/
   worker/     NestJS worker: src/{jobs,mail,media,notifications,files}, scripts/, test/
 packages/

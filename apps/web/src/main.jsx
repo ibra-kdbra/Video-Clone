@@ -5,19 +5,18 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@fontsource-variable/inter';
 import './styles/main.scss';
 import App from './app/App.jsx';
-import { TRENDING } from './lib/categories.js';
 import { captureInviteToken } from './lib/invite.js';
-import { getSources } from './lib/preferences.js';
 import { restoreSession } from './lib/session.js';
-import { categoryVideos } from './lib/videos.js';
 
 // Before anything renders: take an invitation's token out of the address bar, and start picking up
 // the session from the last visit (if there was one), in parallel with rendering.
 captureInviteToken();
 restoreSession();
-// Progress used to be kept in this browser; it's on the server now, so the old copy goes.
+// What this browser kept for things that have moved or gone: lesson progress (on the server now),
+// and the old video browser's watch history, saved videos, recent searches and platform choice.
+const STALE_KEYS = ['grand.progress', 'fs.history.v2', 'fs.saved.v2', 'fundastream_watch_history', 'fundastream_watch_later', 'fs.recent', 'fs.sources'];
 try {
-  localStorage.removeItem('grand.progress');
+  for (const key of STALE_KEYS) localStorage.removeItem(key);
 } catch {
   // Storage blocked: nothing to clear.
 }
@@ -32,17 +31,11 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 5 * 60_000,
       refetchOnWindowFocus: false,
-      // Retry network hiccups once; a missing video or a used-up quota won't change on retry.
+      // Retry network hiccups once; anything else (not found, not allowed…) won't change on retry.
       retry: (failures, error) => failures < 1 && (error?.status === 0 || [502, 504].includes(error?.status)),
     },
   },
 });
-
-// On the Explore page, ask for the trending feed right away, in parallel with rendering.
-if (window.location.pathname === '/explore') {
-  const sources = getSources();
-  queryClient.prefetchQuery({ queryKey: ['feed', TRENDING.slug, sources], queryFn: () => categoryVideos(TRENDING, sources) });
-}
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

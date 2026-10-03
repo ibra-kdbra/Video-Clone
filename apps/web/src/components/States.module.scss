@@ -44,21 +44,3 @@
   color: var(--bg);
   font-weight: 600;
 }
-
-.notice {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  margin-bottom: 1.5rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--accent-soft);
-  font-size: var(--text-sm);
-
-  svg {
-    flex: none;
-    margin-top: 0.1rem;
-    color: var(--accent-text);
-  }
-}

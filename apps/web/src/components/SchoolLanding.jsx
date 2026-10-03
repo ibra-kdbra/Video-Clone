@@ -78,8 +78,8 @@ export default function SchoolLanding({ slug }) {
         <div className={styles.actions}>
           {signedIn ? (
             <>
-              <Button variant="primary" to="/browse/trending" icon="compass">
-                Explore videos
+              <Button variant="primary" to="/" icon="home">
+                Go to your dashboard
               </Button>
               <Button
                 variant="ghost"

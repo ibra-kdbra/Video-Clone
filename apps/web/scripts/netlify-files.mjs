@@ -13,7 +13,8 @@
  *   the browser connect to (a bare wss:// origin). Its https:// twin is allowed too, for
  *   livekit-client's connection check. Leave it out when the school doesn't run LiveKit.
  *
- * Without API_ORIGIN the site still builds; only the video pages work then.
+ * Without API_ORIGIN the site still builds, for the demo (VITE_DEMO=true), which needs no API;
+ * `/api/v1/*` answers with a 404 then.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';

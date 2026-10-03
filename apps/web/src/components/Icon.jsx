@@ -4,13 +4,6 @@
  */
 const PATHS = {
   home: <path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
-  library: (
-    <>
-      <rect x="3" y="4" width="4" height="16" rx="1" />
-      <rect x="9" y="4" width="4" height="16" rx="1" />
-      <path d="m15.5 5.2 3.9-1 2.4 15.1-3.9 1z" />
-    </>
-  ),
   search: (
     <>
       <circle cx="11" cy="11" r="7" />
@@ -25,15 +18,6 @@ const PATHS = {
   ),
   moon: <path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z" />,
   play: <path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.8l-12-7.5A1 1 0 0 0 7 4.5z" fill="currentColor" stroke="none" />,
-  bookmark: <path d="M18 21 12 17 6 21V4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5z" />,
-  bookmarkFilled: <path d="M18 21 12 17 6 21V4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5z" fill="currentColor" />,
-  share: (
-    <>
-      <path d="M12 3v12" />
-      <path d="m7 8 5-5 5 5" />
-      <path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
-    </>
-  ),
   external: (
     <>
       <path d="M14 4h6v6" />
@@ -481,8 +465,8 @@ export function LogoMark({ size = 30 }) {
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" focusable="false">
       <defs>
         <linearGradient id="fs-logo" x1="4" y1="2" x2="28" y2="30" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#8b5cf6" />
-          <stop offset="1" stopColor="#d946ef" />
+          <stop stopColor="#2563eb" />
+          <stop offset="1" stopColor="#0d9488" />
         </linearGradient>
       </defs>
       <path d="M16 1.8a3 3 0 0 1 1.5.4l10.3 5.9a3 3 0 0 1 1.5 2.6v11.8a3 3 0 0 1-1.5 2.6L17.5 29.9a3 3 0 0 1-3 0L4.2 24a3 3 0 0 1-1.5-2.6V10.6A3 3 0 0 1 4.2 8L14.5 2.1a3 3 0 0 1 1.5-.3z" fill="url(#fs-logo)" />

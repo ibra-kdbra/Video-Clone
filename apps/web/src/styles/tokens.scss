@@ -2,44 +2,47 @@
 
 // Design tokens. Dark is the default; light applies when the visitor picks it, or when their
 // system is light and they haven't picked (index.html sets data-theme before the first paint).
-// Text colors are checked for WCAG AA contrast on --bg and --surface in both themes.
+// Text colors are checked for WCAG AA contrast on --bg, --surface and --surface-2 in both themes.
+//
+// The palette is a learning one: a calm scholarly blue for actions and focus, teal beside it, on
+// navy-tinted surfaces in the dark theme and cool paper whites in the light one.
 
 @mixin dark {
   color-scheme: dark;
 
-  --bg: #09090b;
-  --bg-blur: rgb(9 9 11 / 0.78);
-  --surface: #131317;
-  --surface-2: #1b1b20;
-  --surface-3: #26262d;
-  --line: rgb(255 255 255 / 0.08);
-  --line-strong: rgb(255 255 255 / 0.16);
+  --bg: #0b1220;
+  --bg-blur: rgb(11 18 32 / 0.8);
+  --surface: #111a2c;
+  --surface-2: #17223a;
+  --surface-3: #213050;
+  --line: rgb(148 163 184 / 0.12);
+  --line-strong: rgb(148 163 184 / 0.24);
 
-  --text: #fafafa;
-  --text-2: #a1a1aa;
-  --text-3: #8d8d96;
+  --text: #f1f5f9;
+  --text-2: #a9b6ca;
+  --text-3: #8b9bb3;
 
-  --accent: #8b5cf6;
-  --accent-solid: #7c3aed; // Button fill: white text on it is 5.7:1.
-  --accent-solid-hover: #6d28d9;
-  --accent-text: #b8a4fc; // Accent-colored text on the background.
-  --accent-soft: rgb(139 92 246 / 0.16);
+  --accent: #3b82f6;
+  --accent-solid: #2563eb; // Button fill: white text on it is 5.2:1.
+  --accent-solid-hover: #1d4ed8;
+  --accent-text: #93c5fd; // Accent-colored text on the background.
+  --accent-soft: rgb(59 130 246 / 0.16);
   --on-accent: #ffffff;
-  --focus: #a78bfa;
+  --focus: #60a5fa;
 
   --danger: #f87171;
   --danger-soft: rgb(248 113 113 / 0.12);
   --success: #4ade80; // "Online" dots and confirmations.
   --success-soft: rgb(74 222 128 / 0.14);
-  --info-text: #93c5fd; // Role badges: admins (blue) and instructors (teal).
-  --info-soft: rgb(59 130 246 / 0.16);
+  --info-text: #7dd3fc; // Role badges: admins (sky) and instructors (teal).
+  --info-soft: rgb(14 165 233 / 0.16);
   --teal-text: #5eead4;
   --teal-soft: rgb(20 184 166 / 0.14);
   --warning-text: #fcd34d; // Draft badges and "needs attention" notes.
   --warning-soft: rgb(245 158 11 / 0.16);
 
-  --overlay: rgb(0 0 0 / 0.72);
-  --scrim: 9 9 11; // Spotlight gradient, as RGB channels.
+  --overlay: rgb(2 6 23 / 0.72);
+  --scrim: 11 18 32; // Spotlight gradient, as RGB channels.
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
   --shadow-lg: 0 24px 60px -24px rgb(0 0 0 / 0.7);
 
@@ -84,39 +87,39 @@
 @mixin light {
   color-scheme: light;
 
-  --bg: #fafafa;
-  --bg-blur: rgb(250 250 250 / 0.82);
+  --bg: #f6f8fb;
+  --bg-blur: rgb(246 248 251 / 0.85);
   --surface: #ffffff;
-  --surface-2: #f4f4f5;
-  --surface-3: #e4e4e7;
-  --line: rgb(9 9 11 / 0.08);
-  --line-strong: rgb(9 9 11 / 0.16);
+  --surface-2: #eef2f7;
+  --surface-3: #dfe6ef;
+  --line: rgb(15 23 42 / 0.09);
+  --line-strong: rgb(15 23 42 / 0.17);
 
-  --text: #09090b;
-  --text-2: #52525b;
-  --text-3: #6b6b74;
+  --text: #0f172a;
+  --text-2: #475569;
+  --text-3: #56657a;
 
-  --accent: #7c3aed;
-  --accent-solid: #7c3aed;
-  --accent-solid-hover: #6d28d9;
-  --accent-text: #6d28d9;
-  --accent-soft: rgb(124 58 237 / 0.1);
-  --focus: #7c3aed;
+  --accent: #2563eb;
+  --accent-solid: #1d4ed8; // White text on it is 6.7:1.
+  --accent-solid-hover: #1e40af;
+  --accent-text: #1d4ed8;
+  --accent-soft: rgb(37 99 235 / 0.1);
+  --focus: #2563eb;
 
-  --danger: #dc2626;
-  --danger-soft: rgb(220 38 38 / 0.08);
-  --success: #15803d;
-  --success-soft: rgb(21 128 61 / 0.1);
-  --info-text: #1d4ed8;
-  --info-soft: rgb(29 78 216 / 0.08);
+  --danger: #b91c1c;
+  --danger-soft: rgb(185 28 28 / 0.08);
+  --success: #166534;
+  --success-soft: rgb(22 101 52 / 0.1);
+  --info-text: #0369a1;
+  --info-soft: rgb(3 105 161 / 0.08);
   --teal-text: #0f766e;
   --teal-soft: rgb(15 118 110 / 0.09);
-  --warning-text: #a16207;
-  --warning-soft: rgb(202 138 4 / 0.12);
+  --warning-text: #92400e;
+  --warning-soft: rgb(217 119 6 / 0.12);
 
-  --scrim: 250 250 250;
-  --shadow-sm: 0 1px 2px rgb(9 9 11 / 0.08);
-  --shadow-lg: 0 24px 60px -28px rgb(9 9 11 / 0.35);
+  --scrim: 246 248 251;
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.08);
+  --shadow-lg: 0 24px 60px -28px rgb(15 23 42 / 0.32);
 
   --youtube: #e11d1d;
   --dailymotion: #1d64d8;
@@ -128,23 +131,23 @@
   --page-bg: var(--bg);
 }
 
-// Dark whatever the theme: for things drawn over video images (the home billboard, and the top
-// bar while it floats over it), the way streaming apps keep their hero cinematic in light mode.
+// Dark whatever the theme: for things drawn over video and cover images (the course hero, the
+// lesson theatre and the live stage), so they stay cinematic in the light theme too.
 .theme-dark {
   @include dark;
   color: var(--text);
 }
 
 // Monograms and school banners: each school (and person) gets one of these gradients, picked from
-// its address or id, so it looks the same everywhere. They stay deep in both themes, like the
-// billboard, so the white initials on them keep AA contrast.
+// its address or id, so it looks the same everywhere. They stay deep in both themes, so the white
+// initials on them keep AA contrast.
 $tones: (
-  1: (#5b21b6, #c026d3),
-  2: (#1e40af, #7c3aed),
-  3: (#0f766e, #1d4ed8),
-  4: (#9f1239, #7e22ce),
-  5: (#9a3412, #be123c),
-  6: (#065f46, #0e7490),
+  1: (#1e3a8a, #1d4ed8), // navy to blue
+  2: (#115e59, #0f766e), // deep teal
+  3: (#1e40af, #0e7490), // blue to cyan
+  4: (#14532d, #15803d), // forest
+  5: (#9a3412, #b45309), // rust to amber
+  6: (#334155, #475569), // slate
 );
 
 :root {
@@ -161,7 +164,7 @@ $tones: (
   --stage-text: #ffffff;
   --stage-text-2: rgb(255 255 255 / 0.74);
   --stage-scrim: rgb(0 0 0 / 0.72);
-  --stage-glass: rgb(18 18 22 / 0.86);
+  --stage-glass: rgb(11 18 32 / 0.86);
   --stage-line: rgb(255 255 255 / 0.16);
   --stage-track: rgb(255 255 255 / 0.24);
   --stage-buffered: rgb(255 255 255 / 0.42);

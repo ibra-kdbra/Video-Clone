@@ -4,23 +4,18 @@
  * them. The Content-Security-Policy lets the page run only its own code (plus the one inline theme
  * script in index.html, by hash), call only its own API (and the real-time server, when it lives on
  * another origin, and the LiveKit server for live classes in the browser), load lesson videos and
- * posters from the video store, show images from the video platforms' image servers, and frame
- * their players. The Permissions-Policy lets the page itself (only) use the camera, microphone
- * and screen sharing, for live classes.
+ * posters from the video store, show embedded lesson videos' pictures from the video platforms'
+ * image servers, and frame their players. The Permissions-Policy lets the page itself (only) use
+ * the camera, microphone and screen sharing, for live classes.
  */
 
 /** Hash of the inline theme script in index.html. The security test prints the new one if it drifts. */
-export const THEME_SCRIPT_HASH = 'sha256-x6Urb8iOTDG5B29AZwBEiDbh4pzI+3HsEn0U3u4zAGQ=';
+export const THEME_SCRIPT_HASH = 'sha256-FRvzfQzoZkFazOfCNv/0+1YssDt1YlIt6RksTYkgGZs=';
 
-const IMAGE_HOSTS = [
-  'https://*.ytimg.com',
-  'https://yt3.ggpht.com',
-  'https://yt3.googleusercontent.com',
-  'https://*.dmcdn.net',
-  'https://static-cdn.jtvnw.net',
-  'https://clips-media-assets2.twitch.tv',
-];
+/** Where the pictures of embedded lesson videos and live class streams come from (YouTube, Dailymotion, Twitch). */
+const IMAGE_HOSTS = ['https://*.ytimg.com', 'https://*.dmcdn.net', 'https://static-cdn.jtvnw.net', 'https://clips-media-assets2.twitch.tv'];
 
+/** The players those videos play in. */
 const PLAYER_HOSTS = [
   'https://www.youtube-nocookie.com',
   'https://www.dailymotion.com',

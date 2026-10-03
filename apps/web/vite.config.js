@@ -10,37 +10,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
 
 /**
- * Serves the video proxy's `/api/*` in `vite` and `vite preview` with the same handler Netlify runs,
- * so local development needs no extra tooling. `/api/v1/*` is left to the Grand LMS API proxy below. Keys come from `.env` (server-side names, no VITE_ prefix).
- * With `--mode mock` (or MOCK_API=1) it answers from a local stand-in of the video APIs instead,
- * so the app runs with no keys at all.
+ * Serves the video proxy's `/api/*` (the details of the videos lessons embed) in `vite` and
+ * `vite preview` with the same handler Netlify runs, so local development needs no extra tooling.
+ * `/api/v1/*` is left to the Grand LMS API proxy below. Keys come from `.env` (server-side names, no
+ * VITE_ prefix); without them, linked videos still play, with less detail.
  */
-function apiServer(env, mode) {
-  const mock = mode === 'mock' || env.MOCK_API === '1';
+function videoProxy(env) {
   const attach = (server, load) =>
     server.middlewares.use(async (req, res, next) => {
-      const videoApi = req.url?.startsWith('/api/') && !req.url.startsWith('/api/v1/');
-      if (!videoApi && !(mock && req.url?.startsWith('/__mock/'))) return next();
+      if (!req.url?.startsWith('/api/') || req.url.startsWith('/api/v1/')) return next();
       try {
-        const upstream = mock ? await load('/tests/mocks/upstream.mjs') : null;
-        if (req.url.startsWith('/__mock/')) {
-          const url = new URL(req.url, 'http://localhost');
-          const id = decodeURIComponent(url.pathname.split('/').pop().replace(/\.svg$/, ''));
-          const label = url.searchParams.get('t') ?? '';
-          res.setHeader('Content-Type', 'image/svg+xml');
-          res.end(
-            url.pathname.startsWith('/__mock/avatar/')
-              ? upstream.mockAvatar(id, label)
-              : upstream.mockThumbnail(id, Number(url.searchParams.get('w')) || 480, label),
-          );
-          return;
-        }
         const { handle } = await load('/server/api/router.mjs');
         // Pass on where the request came from, so the cross-site check behaves as on Netlify.
         const headers = req.headers['sec-fetch-site'] ? { 'sec-fetch-site': req.headers['sec-fetch-site'] } : {};
-        const request = new Request(new URL(req.url, 'http://localhost'), { method: req.method, headers });
-        const keys = mock ? { YOUTUBE_API_KEY: 'mock', TWITCH_CLIENT_ID: 'mock', TWITCH_CLIENT_SECRET: 'mock' } : env;
-        const response = await handle(request, keys, mock ? upstream.mockFetch : fetch);
+        const response = await handle(new Request(new URL(req.url, 'http://localhost'), { method: req.method, headers }), env);
         res.statusCode = response.status;
         response.headers.forEach((value, name) => res.setHeader(name, value));
         res.end(Buffer.from(await response.arrayBuffer()));
@@ -50,7 +33,7 @@ function apiServer(env, mode) {
     });
 
   return {
-    name: 'fundastream-api',
+    name: 'grand-video-proxy',
     configureServer(server) {
       attach(server, (file) => server.ssrLoadModule(file));
     },
@@ -109,7 +92,7 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     envDir: repoRoot,
-    plugins: [demoOff(demo), react(), apiServer(env, mode)],
+    plugins: [demoOff(demo), react(), videoProxy(env)],
     define: {
       'import.meta.env.VITE_REALTIME_ORIGIN': JSON.stringify(realtimeOrigin),
       'import.meta.env.VITE_DEMO': JSON.stringify(demo ? 'true' : 'false'),

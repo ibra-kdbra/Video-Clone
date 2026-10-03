@@ -32,7 +32,7 @@ function writeCollapsed(collapsed) {
  * The slim note under the top bar in the demo: what this is, that changes stay in this browser,
  * and "Reset demo", which puts the demo school back as it started (and signs out). It can be
  * folded away for the rest of the visit, but always comes back on the next one. Its height is
- * shared as --demo-banner-h, so the Explore billboard can still start at the very top.
+ * shared as --demo-banner-h, so the live class room can still fit the screen below it.
  */
 export default function DemoBanner() {
   const [collapsed, setCollapsed] = useState(readCollapsed);

@@ -50,13 +50,12 @@ describe('the search field', () => {
     expect(searchQuery.safeParse({ q: 'x'.repeat(MIN_QUERY - 1) }).success).toBe(false);
   });
 
-  it('looks in the school the page belongs to, else the first, and not on the video pages', () => {
+  it('looks in the school the page belongs to, else the first', () => {
     const schools = [{ slug: 'riverside' }, { slug: 'hillside' }];
     expect(searchSchoolFor('/s/hillside/c/piano', schools).slug).toBe('hillside');
     expect(searchSchoolFor('/s/elsewhere', schools).slug).toBe('riverside');
     expect(searchSchoolFor('/', schools).slug).toBe('riverside');
-    expect(searchSchoolFor('/explore', schools)).toBeNull();
-    expect(searchSchoolFor('/watch/youtube/abc', schools)).toBeNull();
+    expect(searchSchoolFor('/account', schools).slug).toBe('riverside');
     expect(searchSchoolFor('/', [])).toBeNull();
   });
 

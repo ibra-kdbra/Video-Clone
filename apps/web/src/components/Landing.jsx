@@ -155,14 +155,9 @@ export default function Landing() {
             </p>
             <div className={styles.actions}>
               {DEMO ? (
-                <>
-                  <Button variant="primary" icon="play" to="/signin" className={styles.cta}>
-                    Explore the demo school
-                  </Button>
-                  <Button variant="secondary" icon="compass" to="/explore" className={styles.cta}>
-                    Explore videos
-                  </Button>
-                </>
+                <Button variant="primary" icon="play" to="/signin" className={styles.cta}>
+                  Explore the demo school
+                </Button>
               ) : (
                 <>
                   <Button variant="primary" icon="plus" to={authPath('signup', '/schools/new')} className={styles.cta}>
@@ -253,17 +248,14 @@ export default function Landing() {
           </p>
           <div className={styles.actions}>
             {DEMO ? (
-              <Button variant="primary" icon="play" to="/signin">
+              <Button variant="primary" icon="play" to="/signin" className={styles.cta}>
                 Explore the demo school
               </Button>
             ) : (
-              <Button variant="primary" icon="plus" to={authPath('signup', '/schools/new')}>
+              <Button variant="primary" icon="plus" to={authPath('signup', '/schools/new')} className={styles.cta}>
                 Create your school
               </Button>
             )}
-            <Button variant="ghost" icon="compass" to="/explore">
-              Explore videos
-            </Button>
           </div>
         </section>
       </div>

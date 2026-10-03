@@ -20,7 +20,7 @@ The decisions behind it are recorded in [docs/adr](adr).
 ```text
                     ┌───────────────────────────── Netlify (free) ──────────────────────────────┐
 browser ──https──►  │ apps/web: React app (static)                                              │
-                    │ /api/*      → video proxy function (YouTube, Dailymotion, Twitch)         │
+                    │ /api/*      → video proxy function (embedded lesson videos' details)      │
                     │ /api/v1/*   → proxied to the API server (same origin: first-party cookie) │
                     └──────────────────────────────────────┬────────────────────────────────────┘
                                                            │ https
@@ -39,7 +39,7 @@ browser ──https (signed URLs: uploads, video)───┐   │      │
 
 | Package | What it is |
 | --- | --- |
-| `apps/web` | The React app (Vite, React Router, TanStack Query, Motion, Sass modules). Also the Netlify function that proxies the video platforms. |
+| `apps/web` | The React app (Vite, React Router, TanStack Query, Motion, Sass modules). Also the Netlify function that looks up the title, pictures and length of the YouTube, Dailymotion and Twitch videos that lessons embed, keeping the platforms' keys on the server. |
 | `apps/api` | The HTTP and WebSocket API. |
 | `apps/worker` | Background work: moves outbox events into BullMQ, sends email and notifications, transcodes videos with ffmpeg, cleans up expired rows and abandoned uploads. |
 | `packages/contracts` | The API contract shared by all three: zod schemas for every request body, response types, real-time event types. |
@@ -202,6 +202,7 @@ See [ADR 4](adr/0004-outbox.md).
 - **Shape**: a school has courses, and each course has modules holding lessons. A lesson has notes
   in Markdown. It's one of three kinds, fixed when it's created:
   - a *lesson*, with optionally one video: an upload, or a YouTube, Dailymotion or Twitch embed
+    (the web app's video proxy looks up the embed's title, picture and length)
   - a *quiz*
   - an *assignment*
 - **Addresses**: a course's slug is made from its title and is unique within the school. A clash
@@ -508,7 +509,7 @@ mock of the API inside the page (`apps/web/src/demo`):
 | `apps/api/test/live.test.ts`, `discussions.test.ts`, `search.test.ts` | Real Postgres and Redis, and a LiveKit server | Scheduling and the class lifecycle, who sees a meeting link when, the waiting room, chat and its limit, hiding, hands, attendance, LiveKit tokens and grants against a real server. Threads, comments and replies, locking, voting, moderation, reports, deletion, live updates. Stemming, prefixes, ranking, snippets and what each person may find. |
 | `apps/worker/test` | Real Postgres, Redis and Garage, and ffmpeg | Relay deduplication, email and scrubbing, idempotent retries, clean-up. Transcoding landscape, portrait and silent video, refusing files that aren't video or are too long, deletion, abandoned uploads. Notification recipients, choices and emails; handed-in files' deletion. Discussion and live class notifications, reminders sent once, classes left behind closed. |
 | `apps/worker/scripts/check-ffmpeg.mjs` | The worker image's ffmpeg (in CI) | The pipeline's ffmpeg commands work with the ffmpeg the image ships. |
-| `apps/web/tests` | Mocks | The video proxy, client logic, security rules for the page. |
+| `apps/web/tests` | Mocks | The video proxy for lesson embeds, client logic, the demo, security rules for the page. |
 
 Set `TEST_DATABASE_ADMIN_URL` (a superuser connection string) and `TEST_REDIS_URL`. With
 `npm run infra:up`, the defaults already point at the right place. The video tests also need

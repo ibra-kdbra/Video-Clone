@@ -1,14 +1,9 @@
 import { ROLE_RANK } from './roles.js';
 
 /**
- * The LMS home page and navigation, without the React: which pages belong to the video Explore
- * section, where "My school" leads, the greeting, and which courses the dashboard shows.
+ * The LMS home page and navigation, without the React: where "My school" leads, the greeting, and
+ * which courses the dashboard shows.
  */
-
-/** The video pages (Explore and everything under it), where the search box and platform picker live. */
-const EXPLORE = ['/explore', '/browse', '/watch', '/search', '/channel', '/library', '/video', '/history', '/watch-later'];
-
-export const isExplorePath = (pathname) => EXPLORE.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 
 /**
  * Where the main navigation's school link leads: straight to the school for someone in one, to
@@ -20,13 +15,12 @@ export function schoolsLink(schools) {
   return { to: '/account', label: 'My schools', match: ['/s/'] };
 }
 
-/** The main navigation: home, the person's school (or schools), and one way into the video Explore pages. */
+/** The main navigation: home, and the person's school (or schools). */
 export function mainLinks(schools, pathname) {
   const school = schoolsLink(schools);
   return [
     { to: '/', label: 'Home', icon: 'home', active: pathname === '/' },
     school && { to: school.to, label: school.label, icon: 'school', active: school.match.some((prefix) => pathname.startsWith(prefix)) },
-    { to: '/explore', label: 'Explore videos', short: 'Explore', icon: 'compass', active: isExplorePath(pathname) },
   ].filter(Boolean);
 }
 
