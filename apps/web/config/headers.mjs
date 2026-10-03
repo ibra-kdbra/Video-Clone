@@ -10,7 +10,7 @@
  */
 
 /** Hash of the inline theme script in index.html. The security test prints the new one if it drifts. */
-export const THEME_SCRIPT_HASH = 'sha256-x6Urb8iOTDG5B29AZwBEiDbh4pzI+3HsEn0U3u4zAGQ=';
+export const THEME_SCRIPT_HASH = 'sha256-FRvzfQzoZkFazOfCNv/0+1YssDt1YlIt6RksTYkgGZs=';
 
 /** Where the pictures of embedded lesson videos and live class streams come from (YouTube, Dailymotion, Twitch). */
 const IMAGE_HOSTS = ['https://*.ytimg.com', 'https://*.dmcdn.net', 'https://static-cdn.jtvnw.net', 'https://clips-media-assets2.twitch.tv'];

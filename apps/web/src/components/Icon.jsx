@@ -465,8 +465,8 @@ export function LogoMark({ size = 30 }) {
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" focusable="false">
       <defs>
         <linearGradient id="fs-logo" x1="4" y1="2" x2="28" y2="30" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#8b5cf6" />
-          <stop offset="1" stopColor="#d946ef" />
+          <stop stopColor="#2563eb" />
+          <stop offset="1" stopColor="#0d9488" />
         </linearGradient>
       </defs>
       <path d="M16 1.8a3 3 0 0 1 1.5.4l10.3 5.9a3 3 0 0 1 1.5 2.6v11.8a3 3 0 0 1-1.5 2.6L17.5 29.9a3 3 0 0 1-3 0L4.2 24a3 3 0 0 1-1.5-2.6V10.6A3 3 0 0 1 4.2 8L14.5 2.1a3 3 0 0 1 1.5-.3z" fill="url(#fs-logo)" />

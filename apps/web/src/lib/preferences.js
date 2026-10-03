@@ -15,5 +15,5 @@ export function useTheme() {
 export function setTheme(next) {
   theme.set(next);
   document.documentElement.dataset.theme = next;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', next === 'light' ? '#fafafa' : '#09090b');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', next === 'light' ? '#f6f8fb' : '#0b1220');
 }
