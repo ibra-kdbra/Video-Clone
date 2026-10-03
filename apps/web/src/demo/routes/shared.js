@@ -8,7 +8,7 @@ import { canEditCourse, canSeeCourse, canWatchLesson, courseProgress, iso, lesso
  * views of courses and lessons the API returns.
  */
 
-export const enrollmentRequired = () => new HttpError(403, 'enrollment_required', 'Enroll in this course to watch this lesson.');
+export const enrollmentRequired = (message = 'Enroll in this course to watch this lesson.') => new HttpError(403, 'enrollment_required', message);
 
 /** The course with this address, if the viewer may see it; otherwise "not found", drafts included. */
 export function findVisible(ctx, courseSlug) {
@@ -171,9 +171,13 @@ export function markCompleted(ctx, lesson, userId) {
   return ctx.db.update('progress', row.id, { completedAt: row.completedAt ?? ctx.now, updatedAt: ctx.now });
 }
 
-/** Removes everything that hangs off these lessons: progress, attempts, submissions and their files. */
+/** Removes everything that hangs off these lessons: progress, attempts, submissions and their files, comments. */
 export function removeLessonData(db, lessonIds) {
   const set = new Set(lessonIds);
+  const comments = new Set(db.filter('posts', (row) => set.has(row.lessonId)).map((row) => row.id));
+  db.removeWhere('votes', (row) => comments.has(row.postId));
+  db.removeWhere('reports', (row) => comments.has(row.postId));
+  db.removeWhere('posts', (row) => comments.has(row.id));
   const submissions = db.filter('submissions', (row) => set.has(row.lessonId)).map((row) => row.id);
   const subs = new Set(submissions);
   db.removeWhere('files', (row) => subs.has(row.submissionId));

@@ -13,8 +13,8 @@ import { type CourseRecord, CoursesService, toLessonSummary } from './courses.se
 
 export type LessonRecord = typeof lessons.$inferSelect;
 
-export const enrollmentRequired = () =>
-  new ApiException(HttpStatus.FORBIDDEN, 'enrollment_required', 'Enroll in this course to watch this lesson.');
+export const enrollmentRequired = (message = 'Enroll in this course to watch this lesson.') =>
+  new ApiException(HttpStatus.FORBIDDEN, 'enrollment_required', message);
 
 @Injectable()
 export class LessonsService {

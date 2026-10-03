@@ -9,8 +9,20 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import { type Ack, type PresenceUpdate, subscribeSchoolInput } from '@grand/contracts';
+import {
+  type Ack,
+  type LiveMessage,
+  type LiveRoomState,
+  liveHandInput,
+  liveJoinInput,
+  liveMessageInput,
+  type PresenceUpdate,
+  subscribeSchoolInput,
+  watchCourseInput,
+} from '@grand/contracts';
 import type { Socket } from 'socket.io';
+import { LiveRoomService } from '../live/live-room.service.js';
+import { LiveStore } from '../live/live-store.service.js';
 import { SchoolsService } from '../schools/schools.service.js';
 import { isStaff, type RealtimeServer, RealtimeService, rooms, type SocketData } from './realtime.service.js';
 import { TicketService } from './ticket.service.js';
@@ -41,6 +53,8 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     private readonly tickets: TicketService,
     private readonly realtime: RealtimeService,
     private readonly schools: SchoolsService,
+    private readonly liveRoom: LiveRoomService,
+    private readonly liveStore: LiveStore,
   ) {}
 
   afterInit(server: RealtimeServer) {
@@ -50,7 +64,7 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
       this.tickets.redeem(socket.handshake.auth?.ticket).then(
         (auth) => {
           if (!auth) return next(Object.assign(new Error('unauthenticated'), { data: { code: 'unauthenticated' } }));
-          socket.data = { ...auth, schools: new Set(), queue: Promise.resolve() };
+          socket.data = { ...auth, schools: new Set(), live: new Set(), queue: Promise.resolve() };
           next();
         },
         (error: unknown) => {
@@ -80,6 +94,7 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     for (const schoolId of socket.data?.schools ?? []) {
       await this.broadcastPresence(schoolId).catch((error: unknown) => this.logger.warn({ err: error }, 'Presence update failed'));
     }
+    if (socket.data?.live?.size) await this.liveRoom.disconnected(socket.data.userId, socket.data.live);
   }
 
   beforeApplicationShutdown() {
@@ -111,6 +126,66 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
         await this.broadcastPresence(school.id);
       }
       return { ok: true, data: undefined };
+    });
+  }
+
+  /** Follow a course's discussions: its editors and enrolled students. */
+  @SubscribeMessage('course:watch')
+  watchCourse(@ConnectedSocket() socket: ClientSocket, @MessageBody() body: unknown): Promise<Ack> {
+    return inOrder(socket, async () => {
+      const input = watchCourseInput.safeParse(body);
+      if (!input.success) return refuse('validation_failed', 'Unknown course.');
+      const viewing = await this.liveStore.courseById(socket.data.userId, input.data.courseId);
+      if (!viewing) return refuse('not_found', "This course doesn't exist.");
+      if (!viewing.canJoin) return refuse('enrollment_required', 'Enroll in the course to follow its discussions.');
+      await socket.join(rooms.course(input.data.courseId));
+      return { ok: true, data: undefined };
+    });
+  }
+
+  @SubscribeMessage('course:unwatch')
+  unwatchCourse(@ConnectedSocket() socket: ClientSocket, @MessageBody() body: unknown): Promise<Ack> {
+    return inOrder(socket, async () => {
+      const input = watchCourseInput.safeParse(body);
+      if (!input.success) return refuse('validation_failed', 'Unknown course.');
+      await socket.leave(rooms.course(input.data.courseId));
+      return { ok: true, data: undefined };
+    });
+  }
+
+  @SubscribeMessage('live:join')
+  joinLive(@ConnectedSocket() socket: ClientSocket, @MessageBody() body: unknown): Promise<Ack<LiveRoomState>> {
+    return inOrder(socket, async () => {
+      const input = liveJoinInput.safeParse(body);
+      if (!input.success) return refuse('validation_failed', 'Unknown class.');
+      return this.liveRoom.join(socket, input.data.sessionId);
+    });
+  }
+
+  @SubscribeMessage('live:leave')
+  leaveLive(@ConnectedSocket() socket: ClientSocket, @MessageBody() body: unknown): Promise<Ack> {
+    return inOrder(socket, async () => {
+      const input = liveJoinInput.safeParse(body);
+      if (!input.success) return refuse('validation_failed', 'Unknown class.');
+      return this.liveRoom.leave(socket, input.data.sessionId);
+    });
+  }
+
+  @SubscribeMessage('live:message')
+  liveMessage(@ConnectedSocket() socket: ClientSocket, @MessageBody() body: unknown): Promise<Ack<LiveMessage>> {
+    return inOrder(socket, async () => {
+      const input = liveMessageInput.safeParse(body);
+      if (!input.success) return refuse('validation_failed', input.error.issues[0]?.message ?? 'Write a message.');
+      return this.liveRoom.message(socket, input.data.sessionId, input.data.body);
+    });
+  }
+
+  @SubscribeMessage('live:hand')
+  liveHand(@ConnectedSocket() socket: ClientSocket, @MessageBody() body: unknown): Promise<Ack> {
+    return inOrder(socket, async () => {
+      const input = liveHandInput.safeParse(body);
+      if (!input.success) return refuse('validation_failed', 'Unknown class.');
+      return this.liveRoom.hand(socket, input.data.sessionId, input.data.raised);
     });
   }
 

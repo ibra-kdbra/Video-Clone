@@ -57,4 +57,9 @@ export const PRIVATE_QUERIES = new Set([
   'lessonInsights',
   'notifications',
   'notificationSettings',
+  'discussions',
+  'search',
+  'live',
+  'liveOptions',
+  'liveSchedule',
 ]);

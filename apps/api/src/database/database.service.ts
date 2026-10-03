@@ -17,6 +17,7 @@ export interface Scope {
 @Injectable()
 export class DatabaseService implements OnApplicationShutdown {
   private readonly logger = new Logger(DatabaseService.name);
+  private readonly onCommit = new WeakMap<object, (() => unknown)[]>();
   readonly client: postgres.Sql;
   private readonly db: Db;
 
@@ -42,13 +43,33 @@ export class DatabaseService implements OnApplicationShutdown {
    * makes goes through here, so a query that forgets a `where school_id = ...` still can't reach
    * another school's rows.
    */
-  transaction<T>(scope: Scope, work: (tx: Tx) => Promise<T>): Promise<T> {
-    return this.db.transaction(async (tx) => {
+  async transaction<T>(scope: Scope, work: (tx: Tx) => Promise<T>): Promise<T> {
+    const committed: (() => unknown)[] = [];
+    const result = await this.db.transaction(async (tx) => {
+      this.onCommit.set(tx, committed);
       await tx.execute(
         sql`select set_config('app.user_id', ${scope.userId ?? ''}, true), set_config('app.school_id', ${scope.schoolId ?? ''}, true)`,
       );
       return work(tx);
     });
+    for (const run of committed) {
+      try {
+        await run();
+      } catch (error) {
+        this.logger.warn(`After commit: ${(error as Error).message}`);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Runs once this transaction has committed, and never if it rolls back: for real-time events
+   * about the change, so whoever refetches on hearing them sees it.
+   */
+  afterCommit(tx: Tx, run: () => unknown) {
+    const queue = this.onCommit.get(tx);
+    if (!queue) throw new Error('afterCommit needs a transaction from DatabaseService.transaction');
+    queue.push(run);
   }
 
   async ping() {

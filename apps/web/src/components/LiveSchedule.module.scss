@@ -1,0 +1,486 @@
+// Live classes on a schedule: the badge and date tiles, the course page's section, "Upcoming live
+// classes" (dashboard and school page) and the scheduling form. The class page has its own,
+// LiveRoom.module.scss.
+
+// The pulsing "Live" badge -------------------------------------------------------------------------
+
+.liveBadge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.45rem;
+  height: 24px;
+  padding: 0 0.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--youtube);
+  color: #fff;
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pulse {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: #fff;
+    animation: pulse 1.6s var(--ease) infinite;
+  }
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+// A class's day, as a calendar page.
+.tile {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 60px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  line-height: 1.05;
+
+  &[data-live] {
+    border-color: transparent;
+    background: var(--youtube);
+    color: #fff;
+  }
+}
+
+.tileMonth {
+  color: var(--youtube);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tileDay {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.tileWeekday {
+  color: var(--text-3);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+// The course page's section ---------------------------------------------------------------------
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+  margin-bottom: 2.5rem;
+}
+
+.sectionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--text-xl);
+  letter-spacing: -0.025em;
+
+  svg {
+    color: var(--youtube);
+  }
+}
+
+.subTitle {
+  margin-top: 0.5rem;
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.rows {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  list-style: none;
+
+  > * + * {
+    border-top: 1px solid var(--line);
+  }
+}
+
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+
+  &[data-phase='live'] {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--youtube) 12%, transparent), transparent 70%);
+  }
+
+  &[data-phase='ended'] .tile,
+  &[data-phase='cancelled'] .tile {
+    opacity: 0.6;
+  }
+
+  @include down(sm) {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+}
+
+.rowText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+
+  @include down(sm) {
+    flex-basis: calc(100% - 72px);
+  }
+}
+
+.rowTitle {
+  font-size: var(--text-md);
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+
+  a {
+    border-radius: 4px;
+
+    @include hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+}
+
+.rowMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem 0.4rem;
+  color: var(--text-3);
+  font-size: var(--text-xs);
+  font-weight: 550;
+}
+
+.rowProvider {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.rowSide {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+
+  @include down(sm) {
+    width: 100%;
+    justify-content: flex-start;
+    padding-left: calc(56px + 0.75rem);
+  }
+}
+
+.when {
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  font-weight: 650;
+  white-space: nowrap;
+
+  &[data-soon] {
+    color: var(--warning-text);
+  }
+}
+
+.more {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: fit-content;
+  color: var(--accent-text);
+  font-size: var(--text-sm);
+  font-weight: 650;
+
+  @include hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+.empty {
+  padding: 1rem 1.2rem;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}
+
+// Upcoming, on the dashboard and the school page ------------------------------------------------
+
+.upcoming {
+  min-width: 0;
+}
+
+.upcomingTitle {
+  margin-bottom: 1rem;
+  font-size: var(--text-xl);
+  letter-spacing: -0.025em;
+}
+
+.upcomingList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 0.75rem;
+  list-style: none;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+
+  &[data-phase='live'] {
+    border-color: color-mix(in srgb, var(--youtube) 50%, transparent);
+  }
+}
+
+.cardText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.cardCourse {
+  overflow: hidden;
+  color: var(--text-3);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.cardTitle {
+  font-size: var(--text-md);
+  font-weight: 700;
+  line-height: 1.3;
+  @include line-clamp(2);
+
+  a {
+    border-radius: 4px;
+
+    @include hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+}
+
+.cardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem 0.4rem;
+  color: var(--text-2);
+  font-size: var(--text-xs);
+  font-weight: 600;
+
+  [data-soon] {
+    color: var(--warning-text);
+  }
+}
+
+.cardJoin {
+  flex: none;
+}
+
+// The form ---------------------------------------------------------------------------------------
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.when,
+.providers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+  border: 0;
+}
+
+.legend {
+  margin-bottom: 0.5rem;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.whenRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.75rem;
+
+  @media (max-width: 479.98px) {
+    grid-template-columns: 1fr 1fr;
+
+    .date {
+      grid-column: 1 / -1;
+    }
+  }
+}
+
+.hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  color: var(--text-2);
+  font-size: var(--text-sm);
+
+  svg {
+    flex: none;
+    margin-top: 0.2rem;
+  }
+}
+
+.provider {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition:
+    border-color var(--fast) var(--ease),
+    background var(--fast) var(--ease);
+
+  @include hover {
+    background: var(--surface-2);
+  }
+
+  &:has(input:checked) {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  &:has(input:focus-visible) {
+    @include focus-ring;
+  }
+
+  input {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+
+    &:focus-visible {
+      outline: none;
+    }
+  }
+}
+
+.providerIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--surface-3);
+  color: var(--text-2);
+
+  .provider:has(input:checked) & {
+    background: var(--accent-solid);
+    color: var(--on-accent);
+  }
+}
+
+.providerText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.providerLabel {
+  font-weight: 650;
+}
+
+.providerHint {
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}
+
+.providerFixed {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: var(--text-sm);
+
+  strong {
+    color: var(--text);
+  }
+}
+
+.fieldError {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--danger);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}

@@ -7,6 +7,8 @@ export interface SocketData {
   sessionId: string;
   /** Schools this connection subscribed to, by id. */
   schools: Set<string>;
+  /** Live classes this connection is in, by id. */
+  live: Set<string>;
   /** The connection's commands, run one after another in the order they arrived. */
   queue: Promise<unknown>;
 }
@@ -19,6 +21,10 @@ export const rooms = {
   school: (schoolId: string) => `school:${schoolId}`,
   /** The school's instructors, admins and owner: events about drafts and uploads go only here. */
   schoolStaff: (schoolId: string) => `school:${schoolId}:staff`,
+  /** People watching a course's discussions (its editors and enrolled students). */
+  course: (courseId: string) => `course:${courseId}`,
+  /** People in a live class's room: its chat, presence and status. */
+  live: (sessionId: string) => `live:${sessionId}`,
 };
 
 /** Whether a role belongs in the school's staff room. */
@@ -45,6 +51,22 @@ export class RealtimeService {
     this.server?.to(rooms.user(userId)).emit(event, ...args);
   }
 
+  /** To everyone watching a course's discussions. */
+  emitToCourse<E extends keyof ServerToClientEvents>(courseId: string, event: E, ...args: Parameters<ServerToClientEvents[E]>) {
+    this.server?.to(rooms.course(courseId)).emit(event, ...args);
+  }
+
+  /** To everyone in a live class's room. */
+  emitToLive<E extends keyof ServerToClientEvents>(sessionId: string, event: E, ...args: Parameters<ServerToClientEvents[E]>) {
+    this.server?.to(rooms.live(sessionId)).emit(event, ...args);
+  }
+
+  /** The sockets in a room, across every API instance; empty when the server isn't running. */
+  async socketsIn(room: string) {
+    if (!this.server) return [];
+    return this.server.in(room).fetchSockets();
+  }
+
   /** As emitToSchool, but only to the school's staff (instructors and above). */
   emitToSchoolStaff<E extends keyof ServerToClientEvents>(schoolId: string, event: E, ...args: Parameters<ServerToClientEvents[E]>) {
     this.server?.to(rooms.schoolStaff(schoolId)).emit(event, ...args);
@@ -60,6 +82,11 @@ export class RealtimeService {
   /** Stops a person's sockets receiving a school's events (they left or were removed). */
   leaveSchool(userId: string, schoolId: string) {
     this.server?.in(rooms.user(userId)).socketsLeave([rooms.school(schoolId), rooms.schoolStaff(schoolId)]);
+  }
+
+  /** Takes a person's sockets out of rooms (a course they can no longer read, a class they left). */
+  leaveRooms(userId: string, names: string[]) {
+    this.server?.in(rooms.user(userId)).socketsLeave(names);
   }
 
   /**

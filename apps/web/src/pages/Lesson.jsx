@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { courseSlug as courseSlugSchema, uuid } from '@grand/contracts';
 
 import Badge from '../components/Badge.jsx';
@@ -21,6 +21,7 @@ import { applyProgress, completeLesson } from '../lib/learning.js';
 import { lessonNumbers, locateLesson } from '../lib/outline.js';
 import { toast } from '../lib/toast.js';
 import { useDocumentTitle } from '../lib/useDocumentTitle.js';
+import { useCourseWatch } from '../lib/useCourseWatch.js';
 import { useMediaQuery } from '../lib/useMediaQuery.js';
 import { useSchoolLive } from '../lib/useSchoolLive.js';
 import { useWatchProgress } from '../lib/useWatchProgress.js';
@@ -31,6 +32,8 @@ import styles from './Lesson.module.scss';
 // Quizzes and assignments have their own chunks, loaded only when one is opened.
 const QuizPanel = lazy(() => import('../components/QuizPanel.jsx'));
 const AssignmentPanel = lazy(() => import('../components/AssignmentPanel.jsx'));
+// So are the comments under a lesson.
+const LessonComments = lazy(() => import('../components/LessonComments.jsx'));
 
 // Wide screens keep the outline beside the player; narrower ones fold it under the title.
 const SIDE_BY_SIDE = '(min-width: 1200px)';
@@ -201,6 +204,9 @@ function LessonView({ school, courseSlug, lessonId }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
+  const [params] = useSearchParams();
+  // A comment to bring into view (from a notification or a search result).
+  const focusComment = uuid.safeParse(params.get('comment')).success ? params.get('comment') : null;
   const side = useMediaQuery(SIDE_BY_SIDE);
   const slug = school.slug;
   // Read once: whether "Next lesson" asked to start playing right away.
@@ -239,6 +245,8 @@ function LessonView({ school, courseSlug, lessonId }) {
 
   const c = course.data;
   const title = lesson.data?.title ?? summary?.title;
+  // The comments below change live, for those taking part in the course.
+  useCourseWatch({ slug, courseSlug, courseId: c?.id, enabled: Boolean(c && (c.enrolled || c.canEdit)) });
   useDocumentTitle(title ? `${title} · ${c?.title ?? 'Course'}` : 'Lesson');
 
   // Where to resume: decided once, when the lesson (with this person's progress) first arrives.
@@ -393,6 +401,13 @@ function LessonView({ school, courseSlug, lessonId }) {
       </header>
     );
 
+  // Comments, for those who can read the lesson.
+  const comments = lesson.data && !locked && (
+    <Suspense fallback={<Block height="8rem" radius="var(--radius-lg)" />}>
+      <LessonComments key={lessonId} slug={slug} courseSlug={courseSlug} lessonId={lessonId} focusId={focusComment} />
+    </Suspense>
+  );
+
   // Quizzes and assignments: a page to work on, with the outline beside it on wide screens.
   if (kindName === 'quiz' || kindName === 'assignment') {
     const notes = lesson.data?.notes?.trim();
@@ -424,6 +439,7 @@ function LessonView({ school, courseSlug, lessonId }) {
           )}
           {lesson.data && <Steps lesson={lesson.data} slug={slug} courseSlug={courseSlug} />}
           {!side && c && <OutlinePanel course={c} schoolSlug={slug} lessonId={lessonId} />}
+          {comments}
         </div>
         {side && c && <OutlinePanel course={c} schoolSlug={slug} lessonId={lessonId} side sticky />}
       </div>
@@ -490,6 +506,8 @@ function LessonView({ school, courseSlug, lessonId }) {
             {lesson.data.notes.trim() ? <Markdown>{lesson.data.notes}</Markdown> : <p className={styles.summary}>{lesson.data.summary}</p>}
           </section>
         )}
+
+        {comments}
       </div>
     </div>
   );

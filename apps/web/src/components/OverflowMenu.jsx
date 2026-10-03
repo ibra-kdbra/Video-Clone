@@ -10,8 +10,9 @@ const itemsOf = (menu) => [...(menu?.querySelectorAll('[role="menuitem"]') ?? []
  * A "⋯" button with a short menu of less common actions (Leave course). It follows the
  * menu-button pattern, like the account menu: arrow keys, Home and End move between items, Escape
  * closes and returns focus to the button, Tab closes and moves on. `items`: `{ label, icon, onSelect, tone }`.
+ * `size="sm"` is a quieter, smaller button, for rows of a list (a post's actions).
  */
-export default function OverflowMenu({ label, items, className = '', align = 'end' }) {
+export default function OverflowMenu({ label, items, className = '', align = 'end', size = 'md' }) {
   const [open, setOpen] = useState(false);
   const root = useRef(null);
   const button = useRef(null);
@@ -60,6 +61,7 @@ export default function OverflowMenu({ label, items, className = '', align = 'en
         ref={button}
         type="button"
         className={styles.trigger}
+        data-size={size}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
@@ -72,7 +74,7 @@ export default function OverflowMenu({ label, items, className = '', align = 'en
           openAt(event.key === 'ArrowDown' ? 0 : -1);
         }}
       >
-        <Icon name="more" size={22} />
+        <Icon name="more" size={size === 'sm' ? 20 : 22} />
       </button>
       <AnimatePresence>
         {open && (

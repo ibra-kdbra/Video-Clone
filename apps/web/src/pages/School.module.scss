@@ -217,3 +217,8 @@
 .body {
   min-height: 40vh;
 }
+
+// Live classes coming up, above the catalog (nothing at all when there are none).
+.upcoming:not(:empty) {
+  margin-bottom: 2.5rem;
+}

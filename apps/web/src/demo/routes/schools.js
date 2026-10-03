@@ -44,12 +44,22 @@ function toInvitation(db, row) {
   };
 }
 
-/** Everything of a member's in a school goes with their membership (the database's cascades). */
+/**
+ * Everything of a member's in a school goes with their membership (the database's cascades), but
+ * what they wrote stays, unsigned: their posts, reports and chat messages lose their author.
+ */
 export function removeMembership(db, schoolId, userId) {
   const submissions = new Set(db.filter('submissions', (row) => row.schoolId === schoolId && row.userId === userId).map((row) => row.id));
   db.removeWhere('files', (row) => submissions.has(row.submissionId));
   db.removeWhere('submissions', (row) => submissions.has(row.id));
-  for (const table of ['enrollments', 'progress', 'attempts', 'notifications']) db.removeWhere(table, (row) => row.schoolId === schoolId && row.userId === userId);
+  for (const table of ['enrollments', 'progress', 'attempts', 'notifications', 'votes', 'liveAttendance']) db.removeWhere(table, (row) => row.schoolId === schoolId && row.userId === userId);
+  for (const row of db.filter('posts', (item) => item.schoolId === schoolId && item.authorId === userId)) db.update('posts', row.id, { authorId: null });
+  for (const row of db.filter('reports', (item) => item.schoolId === schoolId && item.reporterId === userId)) db.update('reports', row.id, { reporterId: null });
+  for (const row of db.filter('liveMessages', (item) => item.schoolId === schoolId && item.userId === userId)) db.update('liveMessages', row.id, { userId: null });
+  for (const post of db.filter('posts', (item) => item.schoolId === schoolId)) {
+    const votes = db.count('votes', (row) => row.postId === post.id);
+    if (votes !== post.voteCount) db.update('posts', post.id, { voteCount: votes });
+  }
   db.remove('memberships', `${schoolId}:${userId}`);
 }
 

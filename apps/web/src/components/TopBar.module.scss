@@ -100,6 +100,44 @@
   }
 }
 
+// The school search needs the room the section links leave on wide screens; narrower ones get a
+// button to the results page (which has its own field) instead.
+.schoolSearch {
+  max-width: 460px;
+
+  @include down(lg) {
+    display: none;
+  }
+}
+
+.searchSpace {
+  display: block;
+  height: 42px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+}
+
+.searchButton {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: var(--text-2);
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+
+  @include hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+
+  @include up(lg) {
+    display: none;
+  }
+}
+
 .actions {
   display: flex;
   align-items: center;

@@ -52,19 +52,28 @@ export function TextAreaField({ label, hint, error, ref, id, className = '', hid
   const describedBy = [error && `${fieldId}-error`, hint && `${fieldId}-hint`].filter(Boolean).join(' ') || undefined;
   const length = String(textarea.value ?? '').length;
 
+  // A label only screen readers hear, with nothing beside it, takes no room.
+  const bare = hideLabel && !labelExtra && !textarea.maxLength;
+
   return (
     <div className={`${styles.field} ${className}`}>
-      <div className={styles.labelRow}>
-        <label htmlFor={fieldId} className={hideLabel ? 'visually-hidden' : styles.label}>
+      {bare ? (
+        <label htmlFor={fieldId} className="visually-hidden">
           {label}
         </label>
-        {labelExtra}
-        {textarea.maxLength && (
-          <span className={`${styles.counter} tabular`} aria-hidden="true">
-            {length.toLocaleString()}/{textarea.maxLength.toLocaleString()}
-          </span>
-        )}
-      </div>
+      ) : (
+        <div className={styles.labelRow}>
+          <label htmlFor={fieldId} className={hideLabel ? 'visually-hidden' : styles.label}>
+            {label}
+          </label>
+          {labelExtra}
+          {textarea.maxLength && (
+            <span className={`${styles.counter} tabular`} aria-hidden="true">
+              {length.toLocaleString()}/{textarea.maxLength.toLocaleString()}
+            </span>
+          )}
+        </div>
+      )}
       <textarea
         ref={ref}
         id={fieldId}

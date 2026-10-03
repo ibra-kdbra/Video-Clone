@@ -4,6 +4,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 
 import { isExplorePath, mainLinks } from '../lib/home.js';
 import { authPath } from '../lib/paths.js';
+import { searchPath, searchSchoolFor } from '../lib/searchRoute.js';
 import { useScrolled } from '../lib/useScrolled.js';
 import { useSession } from '../lib/useSession.js';
 import AccountMenu from './AccountMenu.jsx';
@@ -11,10 +12,13 @@ import { LogoMark } from './Icon.jsx';
 import SearchBox from './SearchBox.jsx';
 import SourcePicker from './SourcePicker.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
+import Icon from './Icon.jsx';
 import styles from './TopBar.module.scss';
 
 // Only people signed in have notifications, so the bell (and its live updates) is its own chunk.
 const NotificationBell = lazy(() => import('./NotificationBell.jsx'));
+// The same goes for searching their school.
+const SchoolSearchBox = lazy(() => import('./SchoolSearchBox.jsx'));
 
 /** Signed in: the notifications bell and the profile menu. Signed out: "Sign in", which comes back to this page after. */
 function SessionControl() {
@@ -39,16 +43,21 @@ function SessionControl() {
 }
 
 /**
- * The top bar: the LMS's sections, the notifications bell and the account. The video search box
- * and the platform picker show on the Explore pages only. On the Explore home it floats,
- * see-through, over the billboard until the page scrolls, then settles into a solid, blurred bar.
+ * The top bar: the LMS's sections, the school search, the notifications bell and the account. The
+ * video search box and the platform picker show on the Explore pages instead of the school search.
+ * On the Explore home it floats, see-through, over the billboard until the page scrolls, then
+ * settles into a solid, blurred bar.
  */
 export default function TopBar() {
   const { pathname } = useLocation();
-  const { schools } = useSession();
+  const { status, schools } = useSession();
   const scrolled = useScrolled(24);
   const floating = pathname === '/explore' && !scrolled;
   const exploring = isExplorePath(pathname);
+  // Signed-in members search their school (the page's, or their first); the results page has its
+  // own field, so the bar's steps aside there.
+  const searchIn = status === 'signedIn' ? searchSchoolFor(pathname, schools) : null;
+  const onResults = /^\/s\/[^/]+\/search\/?$/.test(pathname);
 
   return (
     <header className={`${styles.bar} ${floating ? `${styles.floating} theme-dark` : ''}`}>
@@ -72,9 +81,21 @@ export default function TopBar() {
             <SearchBox />
           </div>
         )}
+        {searchIn && !onResults && (
+          <div className={`${styles.search} ${styles.schoolSearch}`}>
+            <Suspense fallback={<span className={styles.searchSpace} aria-hidden="true" />}>
+              <SchoolSearchBox key={searchIn.slug} school={searchIn} />
+            </Suspense>
+          </div>
+        )}
 
         <div className={styles.actions}>
           {exploring && <SourcePicker compact />}
+          {searchIn && !onResults && (
+            <Link to={searchPath(searchIn.slug)} className={styles.searchButton} aria-label={`Search ${searchIn.name}`} title={`Search ${searchIn.name}`}>
+              <Icon name="search" />
+            </Link>
+          )}
           <ThemeToggle />
           <SessionControl />
         </div>

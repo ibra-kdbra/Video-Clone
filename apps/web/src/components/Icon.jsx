@@ -349,6 +349,83 @@ const PATHS = {
       <path d="m7.5 14.5 3.5-4 3 2.5 4.5-6" />
     </>
   ),
+  // Live classes: the calendar, broadcasting, the camera and microphone, sharing a screen, a raised hand.
+  calendar: (
+    <>
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2" />
+      <path d="M3.5 10h17M8 3v4M16 3v4" />
+    </>
+  ),
+  broadcast: (
+    <>
+      <circle cx="12" cy="12" r="2" />
+      <path d="M16.2 7.8a6 6 0 0 1 0 8.4M7.8 16.2a6 6 0 0 1 0-8.4M19 5a10 10 0 0 1 0 14M5 19A10 10 0 0 1 5 5" />
+    </>
+  ),
+  video: (
+    <>
+      <rect x="2.5" y="6" width="13" height="12" rx="2" />
+      <path d="m15.5 10.5 5-3v9l-5-3" />
+    </>
+  ),
+  videoOff: (
+    <>
+      <path d="M15.5 13.5 20.5 16.5v-9l-5 3V8a2 2 0 0 0-2-2H9.5M5.5 6H4.5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h9a2 2 0 0 0 1.6-.8" />
+      <path d="m3 3 18 18" />
+    </>
+  ),
+  mic: (
+    <>
+      <rect x="9" y="2.5" width="6" height="11.5" rx="3" />
+      <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5v4" />
+    </>
+  ),
+  micOff: (
+    <>
+      <path d="M15 9.5V5.5a3 3 0 0 0-5.8-1M9 9v2a3 3 0 0 0 4.9 2.3M18.5 11a6.5 6.5 0 0 1-.9 3.3M5.5 11a6.5 6.5 0 0 0 10.4 5.2M12 17.5v4" />
+      <path d="m3 3 18 18" />
+    </>
+  ),
+  screen: (
+    <>
+      <rect x="3" y="4" width="18" height="12" rx="2" />
+      <path d="M8 20h8M12 16v4M12 13V7.5M9.5 10 12 7.5l2.5 2.5" />
+    </>
+  ),
+  hand: (
+    <>
+      <path d="M18 11.5V6a1.75 1.75 0 0 0-3.5 0" />
+      <path d="M14.5 10.5V4.25a1.75 1.75 0 0 0-3.5 0v1" />
+      <path d="M11 10.5V5.5a1.75 1.75 0 0 0-3.5 0v8.5" />
+      <path d="M18 8.5a1.75 1.75 0 0 1 3.5 0v5A8.5 8.5 0 0 1 13 22h-1.2c-2.6 0-4.2-.8-5.6-2.2l-3.4-3.5a1.8 1.8 0 0 1 2.6-2.5L7.5 15.5" />
+    </>
+  ),
+  stop: <rect x="6" y="6" width="12" height="12" rx="2" />,
+  // Discussions: replying, pinning, reporting, unlocking.
+  reply: (
+    <>
+      <path d="m9 15-5-5 5-5" />
+      <path d="M4 10h10a6 6 0 0 1 6 6v3" />
+    </>
+  ),
+  pin: (
+    <>
+      <path d="M12 16.5V22" />
+      <path d="M9 4h6l-.8 5.6 3.3 3.3a1 1 0 0 1-.7 1.6H7.2a1 1 0 0 1-.7-1.6l3.3-3.3z" />
+    </>
+  ),
+  flag: (
+    <>
+      <path d="M5 21.5V4" />
+      <path d="M5 4.5c2.5-1.5 5-1.5 7 0s4.5 1.5 7 0v9c-2.5 1.5-5 1.5-7 0s-4.5-1.5-7 0" />
+    </>
+  ),
+  unlock: (
+    <>
+      <rect x="5" y="10.5" width="14" height="10" rx="2" />
+      <path d="M8 10.5V7.5a4 4 0 0 1 7.7-1.5" />
+    </>
+  ),
 };
 
 export default function Icon({ name, size = 20, className, label }) {

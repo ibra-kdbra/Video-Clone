@@ -1,8 +1,8 @@
 # Deploying Grand LMS for free
 
 The web app runs on Netlify. The API, the worker, Postgres, Redis and Garage (the video store) run
-on one Oracle Cloud Always Free server, behind Caddy for HTTPS. The API and the video store get
-free DuckDNS names. Nothing here
+on one Oracle Cloud Always Free server, behind Caddy for HTTPS, with LiveKit for live classes if
+you want them. The API and the video store get free DuckDNS names. Nothing here
 charges money: Netlify's free plan pauses at its limit instead of billing, and Always Free
 resources stay free unless you upgrade the Oracle account to Pay As You Go. Oracle asks for a card
 to verify your identity when you sign up; it isn't charged for Always Free resources.
@@ -10,7 +10,9 @@ to verify your identity when you sign up; it isn't charged for Always Free resou
 ```text
 visitors ──► https://your-site.netlify.app ──(/api/v1/* proxied)──► https://grand-lms.duckdns.org
          ├──────────────── WebSocket (wss) ───────────────────────►  Caddy ► API ► Postgres, Redis
-         └── uploads, video (signed URLs) ──► https://media.grand-lms.duckdns.org ► Garage
+         ├── uploads, video (signed URLs) ──► https://media.grand-lms.duckdns.org ► Garage
+         └── live classes (optional) ───────► wss://live.grand-lms.duckdns.org ► LiveKit
+                                              + 7881/tcp, 7882/udp (audio, video)
                                                                      worker ► email (SMTP), ffmpeg
 ```
 
@@ -119,6 +121,7 @@ docker compose -f infra/docker-compose.prod.yml logs -f api worker
 | --- | --- |
 | `API_ORIGIN` | `https://grand-lms.duckdns.org` (no trailing slash) |
 | `MEDIA_ORIGIN` | `https://media.grand-lms.duckdns.org`: the page may load video and images from here |
+| `LIVEKIT_ORIGIN` | Only with LiveKit (step 6): `wss://live.grand-lms.duckdns.org` |
 | `YOUTUBE_API_KEY`, `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET` | Optional, for the Explore pages (see the README) |
 
 3. Deploy. The build writes `dist/_redirects`, which proxies `/api/v1/*` to the API, and
@@ -133,6 +136,44 @@ docker compose -f infra/docker-compose.prod.yml logs -f api worker
 Requests through Netlify carry the visitor's address in `x-nf-client-connection-ip`, which the API
 uses for rate limits (`CLIENT_IP_HEADER` in the compose file). Otherwise, all visitors would share
 Netlify's few addresses and one busy visitor could slow everyone down.
+
+## 6. Live classes with LiveKit (optional)
+
+Every school can hold live classes with a YouTube Live stream or a meeting link (Zoom, Meet)
+without any of this. [LiveKit](https://livekit.io), an open-source WebRTC server, adds classes
+right in the browser: the host's camera, microphone and screen, and students who raise a hand
+and are let in to speak. It runs on the same server, for free.
+
+1. **Open its media ports**, in the same two places as in step 1: TCP 7881 and UDP 7882 from
+   `0.0.0.0/0` in the subnet's security list, and on the server:
+   ```bash
+   sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 7881 -j ACCEPT
+   sudo iptables -I INPUT 6 -m state --state NEW -p udp --dport 7882 -j ACCEPT
+   sudo netfilter-persistent save
+   ```
+2. **Fill in** the LiveKit lines of `infra/.env.prod`:
+   ```bash
+   LIVE_DOMAIN=live.grand-lms.duckdns.org
+   LIVEKIT_URL=wss://live.grand-lms.duckdns.org
+   LIVEKIT_API_KEY=grand
+   LIVEKIT_API_SECRET=   # openssl rand -hex 32
+   ```
+   `live.` and your DuckDNS name needs no DNS setup, like `media.`.
+3. **Start it** with the `live` profile. Use the profile from now on in every `docker compose`
+   command, or set it once for your shell:
+   ```bash
+   echo 'export COMPOSE_PROFILES=live' >> ~/.bashrc && . ~/.bashrc
+   docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d
+   ```
+   Caddy fetches a certificate for `LIVE_DOMAIN`, and the API starts offering LiveKit when a
+   class is scheduled.
+4. **On Netlify**, add `LIVEKIT_ORIGIN` = `wss://live.grand-lms.duckdns.org` and deploy again.
+   The page's Content-Security-Policy only lets it connect to that server when it's named there.
+
+Check it: `docker compose -f infra/docker-compose.prod.yml logs livekit` shows the public address
+LiveKit found for itself, and it should be the server's. There's no TURN relay, so a few networks
+that block everything but web traffic can't join; those students can follow a class streamed to
+YouTube instead.
 
 ## Backups
 
@@ -167,7 +208,8 @@ docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d
 ```
 
 Migrations run before the new API starts. They're forward-only: to undo one, restore the backup
-taken before the update and deploy the previous version (`git checkout <tag>`).
+taken before the update and deploy the previous version (`git checkout <tag>`). With LiveKit, keep
+the `live` profile (step 6), or LiveKit stops with the update.
 
 ## When something's wrong
 
@@ -182,3 +224,7 @@ taken before the update and deploy the previous version (`git checkout <tag>`).
 | Uploads fail at once, with a CORS error in the console | The site's origin must be in `WEB_ORIGINS`; run `up -d` again so `storage-setup` updates the bucket. See `logs storage-setup`. |
 | Videos stay at "Processing" | `logs worker`: ffmpeg's error is there, and in the lesson's error message once it gives up. |
 | Videos don't play | `MEDIA_ORIGIN` must be set on Netlify (the CSP names it), and `https://MEDIA_DOMAIN` must have a certificate (`logs caddy`). |
+| LiveKit isn't offered when scheduling a class | `LIVEKIT_URL`, `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` must all be set; restart the API after changing them. |
+| A LiveKit class says it can't connect | The console shows a CSP error: `LIVEKIT_ORIGIN` isn't set on Netlify. Otherwise check `logs livekit caddy`, and that `LIVE_DOMAIN` has a certificate. |
+| People join a LiveKit class but see and hear nothing | The media ports aren't open: TCP 7881 and UDP 7882, in the security list and in iptables (step 6). |
+| Class reminders don't arrive | `logs worker`: the live classes job runs every minute. Reminders go 15 minutes before the start, to the course's students and the host. |

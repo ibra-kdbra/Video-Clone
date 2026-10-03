@@ -91,14 +91,10 @@ export class NotificationsService {
     const course = await this.course(schoolId, payload.courseId);
     const lesson = await this.lesson(schoolId, payload.lessonId);
     if (!course || !lesson) return;
-    const staff = await this.connections.withSchool(schoolId, (tx) => tx<{ user_id: string; role: string }[]>`
-      select user_id, role::text from memberships where school_id = ${schoolId} and role in ('owner', 'admin', 'instructor')`);
-    const author = staff.find((row) => row.user_id === course.createdBy);
-    const recipients = author ? [author.user_id] : staff.filter((row) => row.role !== 'instructor').map((row) => row.user_id);
     const student = await this.name(payload.studentId);
     await this.notify({
       schoolId,
-      recipients: recipients.filter((id) => id !== payload.studentId),
+      recipients: (await this.staffFor(schoolId, course)).filter((id) => id !== payload.studentId),
       type: 'assignment.submitted',
       data: {
         title: `${student} handed in ${lesson.title}`,
@@ -151,6 +147,125 @@ export class NotificationsService {
         schoolName: course.schoolName,
       },
       dedupeKey: `media:${assetId}:${ready ? 'ready' : 'failed'}`,
+    });
+  }
+
+  /** A new course thread or lesson comment: the course's staff hear about it (as for handed-in work). */
+  async discussionPosted(payload: { postId: string; courseId: string; lessonId: string | null; actorId: string }, schoolId: string, eventId: number) {
+    const course = await this.course(schoolId, payload.courseId);
+    const post = await this.post(schoolId, payload.postId);
+    if (!course || !post || post.status !== 'visible') return;
+    const lesson = post.lesson_id ? await this.lesson(schoolId, post.lesson_id) : null;
+    const who = await this.name(payload.actorId);
+    await this.notify({
+      schoolId,
+      recipients: (await this.staffFor(schoolId, course)).filter((id) => id !== payload.actorId),
+      type: 'discussion.posted',
+      data: {
+        title: lesson ? `${who} commented on ${lesson.title}` : `${who} started a thread: ${post.title}`,
+        body: excerpt(post.body),
+        path: threadPath(course, post.lesson_id, post.id),
+        schoolName: course.schoolName,
+      },
+      dedupeKey: `outbox:${eventId}`,
+    });
+  }
+
+  /** A reply: the author of the thread or comment it answers hears about it. */
+  async discussionReplied(payload: { postId: string; parentId: string; courseId: string; actorId: string }, schoolId: string, eventId: number) {
+    const course = await this.course(schoolId, payload.courseId);
+    const [reply, parent] = await Promise.all([this.post(schoolId, payload.postId), this.post(schoolId, payload.parentId)]);
+    if (!course || !reply || !parent || reply.status !== 'visible' || !parent.author_id || parent.status === 'deleted') return;
+    const lesson = parent.lesson_id ? await this.lesson(schoolId, parent.lesson_id) : null;
+    const who = await this.name(payload.actorId);
+    await this.notify({
+      schoolId,
+      recipients: [parent.author_id].filter((id) => id !== payload.actorId),
+      type: 'discussion.reply',
+      data: {
+        title: lesson ? `${who} replied to your comment on ${lesson.title}` : `${who} replied in “${parent.title}”`,
+        body: excerpt(reply.body),
+        path: threadPath(course, parent.lesson_id, parent.id),
+        schoolName: course.schoolName,
+      },
+      dedupeKey: `outbox:${eventId}`,
+    });
+  }
+
+  /** A post was reported: the course's staff hear about it, to look at the moderation queue. */
+  async discussionReported(payload: { reportId: string; postId: string; courseId: string; actorId: string }, schoolId: string, eventId: number) {
+    const course = await this.course(schoolId, payload.courseId);
+    const [report] = await this.connections.withSchool(schoolId, (tx) => tx<{ reason: string; resolved_at: Date | null }[]>`
+      select reason::text, resolved_at from discussion_reports where id = ${payload.reportId}`);
+    if (!course || !report || report.resolved_at) return;
+    await this.notify({
+      schoolId,
+      recipients: (await this.staffFor(schoolId, course)).filter((id) => id !== payload.actorId),
+      type: 'discussion.reported',
+      data: {
+        title: `A post was reported in ${course.courseTitle}`,
+        body: `Reason: ${REPORT_REASONS[report.reason] ?? report.reason}. Have a look in the moderation queue.`,
+        path: `/s/${course.schoolSlug}/c/${course.courseSlug}/discussions/reports`,
+        schoolName: course.schoolName,
+      },
+      dedupeKey: `outbox:${eventId}`,
+    });
+  }
+
+  /** A class was scheduled: the course's students hear about it. */
+  async liveScheduled(payload: { sessionId: string; courseId: string; actorId?: string }, schoolId: string, eventId: number) {
+    const context = await this.liveContext(schoolId, payload.sessionId);
+    if (!context || context.session.status !== 'scheduled') return;
+    await this.notify({
+      schoolId,
+      recipients: (await this.enrolled(schoolId, context.course.courseId)).filter((id) => id !== payload.actorId),
+      type: 'live.scheduled',
+      data: {
+        title: `Live class: ${context.session.title}`,
+        body: `${context.course.courseTitle} · ${formatWhen(context.session.starts_at)}`,
+        path: livePath(context.course, context.session.id),
+        schoolName: context.course.schoolName,
+      },
+      dedupeKey: `outbox:${eventId}`,
+    });
+  }
+
+  /** A class started: the course's students hear about it, to come in. */
+  async liveStarted(payload: { sessionId: string; courseId: string; actorId?: string }, schoolId: string, eventId: number) {
+    const context = await this.liveContext(schoolId, payload.sessionId);
+    if (!context || context.session.status !== 'live') return;
+    await this.notify({
+      schoolId,
+      recipients: (await this.enrolled(schoolId, context.course.courseId)).filter((id) => id !== payload.actorId),
+      type: 'live.started',
+      data: {
+        title: `Live now: ${context.session.title}`,
+        body: `${context.course.courseTitle}. Come in!`,
+        path: livePath(context.course, context.session.id),
+        schoolName: context.course.schoolName,
+      },
+      dedupeKey: `outbox:${eventId}`,
+    });
+  }
+
+  /** Shortly before a class: its students and its host hear it's starting soon. */
+  async liveReminder(schoolId: string, sessionId: string) {
+    const context = await this.liveContext(schoolId, sessionId);
+    if (!context || context.session.status !== 'scheduled') return;
+    const minutes = Math.max(1, Math.round((context.session.starts_at.getTime() - Date.now()) / 60_000));
+    const recipients = await this.enrolled(schoolId, context.course.courseId);
+    if (context.session.created_by) recipients.push(context.session.created_by);
+    await this.notify({
+      schoolId,
+      recipients,
+      type: 'live.reminder',
+      data: {
+        title: `Starting in ${minutes} minute${minutes === 1 ? '' : 's'}: ${context.session.title}`,
+        body: `${context.course.courseTitle}. The waiting room is open.`,
+        path: livePath(context.course, context.session.id),
+        schoolName: context.course.schoolName,
+      },
+      dedupeKey: `live-reminder:${sessionId}`,
     });
   }
 
@@ -230,6 +345,28 @@ export class NotificationsService {
     return rows.map((row) => row.user_id);
   }
 
+  private async post(schoolId: string, postId: string) {
+    const [row] = await this.connections.withSchool(schoolId, (tx) => tx<{ id: string; lesson_id: string | null; author_id: string | null; title: string | null; body: string; status: string }[]>`
+      select id, lesson_id, author_id, title, body, status::text from discussion_posts where id = ${postId}`);
+    return row ?? null;
+  }
+
+  /** The course's author while they're on its staff, else the school's admins and owner. */
+  private async staffFor(schoolId: string, course: CourseContext): Promise<string[]> {
+    const staff = await this.connections.withSchool(schoolId, (tx) => tx<{ user_id: string; role: string }[]>`
+      select user_id, role::text from memberships where school_id = ${schoolId} and role in ('owner', 'admin', 'instructor')`);
+    const author = staff.find((row) => row.user_id === course.createdBy);
+    return author ? [author.user_id] : staff.filter((row) => row.role !== 'instructor').map((row) => row.user_id);
+  }
+
+  private async liveContext(schoolId: string, sessionId: string) {
+    const [session] = await this.connections.withSchool(schoolId, (tx) => tx<{ id: string; course_id: string; title: string; starts_at: Date; status: string; created_by: string | null }[]>`
+      select id, course_id, title, starts_at, status::text, created_by from live_sessions where id = ${sessionId}`);
+    if (!session) return null;
+    const course = await this.course(schoolId, session.course_id);
+    return course && course.courseStatus === 'published' ? { session, course } : null;
+  }
+
   private async name(userId: string): Promise<string> {
     const [row] = await this.connections.sql<{ name: string }[]>`select name from users where id = ${userId}`;
     return row?.name ?? 'A student';
@@ -237,3 +374,32 @@ export class NotificationsService {
 }
 
 const formatPoints = (points: number) => (Number.isInteger(points) ? String(points) : points.toFixed(2).replace(/0+$/, ''));
+
+/** A post's Markdown down to its words: a notification shows plain text. */
+export const plainText = (markdown: string) =>
+  markdown
+    .replace(/^\s*(```|~~~)[^\n]*$/gm, ' ') // code fences (the code stays)
+    .replace(/^\s{0,3}(#{1,6}|>+|[-*+]|\d+[.)])\s+/gm, '') // headings, quotes, list markers
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1') // images: their alt text
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1') // links: their text
+    .replace(/(\*\*|__)(?=\S)(.+?)(?<=\S)\1/g, '$2') // bold
+    .replace(/(^|[^\w*])([*_])(?=\S)(.+?)(?<=\S)\2(?![\w*])/g, '$1$3') // italics, not snake_case or 2*3
+    .replace(/~~(.+?)~~/g, '$1')
+    .replace(/`([^`]+)`/g, '$1');
+
+/** The start of a post, as plain text on one line, for a notification's body. */
+export const excerpt = (text: string, max = 140) => {
+  const line = plainText(text).replace(/\s+/g, ' ').trim();
+  return line.length > max ? `${line.slice(0, max - 1).trimEnd()}…` : line;
+};
+
+const REPORT_REASONS: Record<string, string> = { spam: 'spam', abuse: 'abusive or harmful', off_topic: 'off topic', other: 'something else' };
+
+/** A class's time in emails and notifications. People are in different time zones, so it's in UTC; the app shows local time. */
+export const formatWhen = (date: Date) =>
+  `${new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }).format(date)} UTC`;
+
+const threadPath = (course: CourseContext, lessonId: string | null, threadId: string) =>
+  lessonId ? `/s/${course.schoolSlug}/c/${course.courseSlug}/l/${lessonId}?comment=${threadId}` : `/s/${course.schoolSlug}/c/${course.courseSlug}/discussions/${threadId}`;
+
+const livePath = (course: CourseContext, sessionId: string) => `/s/${course.schoolSlug}/c/${course.courseSlug}/live/${sessionId}`;

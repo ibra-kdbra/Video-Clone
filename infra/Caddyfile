@@ -1,5 +1,11 @@
-# HTTPS for the API and the video store, with automatic Let's Encrypt certificates. Caddy passes
-# the client's address on in X-Forwarded-For, and WebSockets through as they are.
+# HTTPS for the API, the video store and LiveKit, with automatic Let's Encrypt certificates. Caddy
+# passes the client's address on in X-Forwarded-For, and WebSockets through as they are.
+{
+	# LIVE_DOMAIN falls back to a local name, which gets a certificate from Caddy's own authority;
+	# there's no system trust store to add it to in the container.
+	skip_install_trust
+}
+
 {$API_DOMAIN} {
 	encode zstd gzip
 
@@ -34,6 +40,22 @@
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options nosniff
+		-Server
+	}
+	log {
+		output stdout
+		format json
+	}
+}
+
+# LiveKit's signal connection (a WebSocket) for live classes, when it runs (`--profile live`). The
+# audio and video go straight to LiveKit on 7881/tcp and 7882/udp. Without LIVE_DOMAIN this block
+# answers only to live.localhost, and nothing reaches it.
+{$LIVE_DOMAIN:live.localhost} {
+	reverse_proxy livekit:7880
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		-Server
 	}
 	log {

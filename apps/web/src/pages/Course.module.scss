@@ -208,7 +208,17 @@
   font-size: var(--text-sm);
 }
 
-// Below the hero: the outline, with the description beside it on wide screens.
+// The course and its discussion, as two tabs, for those taking part.
+.tabsRow {
+  padding-top: clamp(1rem, 2.5vw, 1.75rem);
+  padding-bottom: 0;
+}
+
+// Below the hero: the live classes and the outline, with the description beside it on wide screens.
+.main {
+  min-width: 0;
+}
+
 .body {
   display: grid;
   gap: 2.5rem;

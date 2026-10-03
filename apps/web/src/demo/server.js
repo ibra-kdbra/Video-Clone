@@ -1,6 +1,7 @@
 import * as CONTENT from './content.js';
 import { createServer } from './core.js';
 import { MEDIA } from './media.js';
+import * as SOCIAL from './social.js';
 import { STORAGE_KEY } from './store.js';
 
 /**
@@ -8,7 +9,7 @@ import { STORAGE_KEY } from './store.js';
  * builds, as its own chunk). session.js sends every `/api/v1` request to `demoFetch` instead of
  * the network; the rest is for the demo's own screens.
  */
-export const server = createServer({ content: CONTENT, media: MEDIA });
+export const server = createServer({ content: CONTENT, media: MEDIA, social: SOCIAL });
 
 export const demoFetch = (url, init) => server.fetch(url, init);
 export const personas = () => server.personas();

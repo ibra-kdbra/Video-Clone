@@ -4,8 +4,13 @@ A learning platform for many schools at once, built around video. Schools invite
 instructors and students, and everything they do stays inside the school. The platform runs on a
 NestJS backend with real-time updates, and deploys on free tiers only.
 
-This is **Phase 2: learning progress**, on top of the courses and video of Phase 1 and the
-foundation of Phase 0:
+This is **Phase 3: live and social**, on top of the learning progress of Phase 2, the courses and
+video of Phase 1 and the foundation of Phase 0:
+- live classes with a waiting room and chat, over LiveKit (WebRTC in the browser), YouTube Live or
+  a meeting link, with reminders and attendance
+- comments under lessons and discussion threads for each course, with helpful votes, answers,
+  reports and moderation
+- full-text search across a school's courses, lessons and discussions, as you type
 - watch progress that counts only what was actually watched, resume, and completion
 - quizzes graded on the server, and assignments with files, grades and feedback
 - notifications in the app, live, and by email, as each person chooses
@@ -17,9 +22,9 @@ foundation of Phase 0:
 **Try it:** the public site runs a demo school, Grand Academy, entirely in the browser (see
 [Demo mode](#demo-mode)): sign in as its student, instructor or owner with one click.
 
-Live classes and discussions come next; see the [roadmap](docs/roadmap.md). The video pages from
-the earlier FundaStream app are still here, under Explore videos: trending, browse, search and
-watch across YouTube, Dailymotion and Twitch.
+What comes next is on the [roadmap](docs/roadmap.md). The video pages from the earlier
+FundaStream app are still here, under Explore videos: trending, browse, search and watch across
+YouTube, Dailymotion and Twitch.
 
 ## What's in it
 
@@ -66,8 +71,24 @@ watch across YouTube, Dailymotion and Twitch.
 - **Assignments**:
   - Students write an answer, attach files (up to 5 of 25 MB), save a draft and hand it in.
   - Editors see what's waiting, download the files, and grade or return the work with feedback.
+- **Live classes**:
+  - A course's editors schedule a class, with its video from LiveKit (camera, microphone and
+    screen in the browser), a YouTube Live stream, or a meeting link shown only near the start.
+  - Students get a reminder 15 minutes before, and come into the waiting room from then on: who's
+    there, and the chat.
+  - Live, students raise a hand and a host can let them speak. Hosts hide chat messages and see
+    who came. A replay can be added afterwards.
+- **Discussions**:
+  - Comments under each lesson, and a discussion board for each course, with replies.
+  - Mark posts helpful, sort by activity, newest or most helpful, and filter to unanswered
+    questions or your own. Pages update live as people post.
+  - The course's editors pin and lock threads, mark the answer, hide posts, and work through
+    reports, which members file with a reason.
+- **Search**: one box for the school's courses, lessons and discussions, with matches highlighted,
+  results as you type, and only what you may see.
 - **Notifications**: a bell with the unread count, live, for new courses and lessons, handed-in
-  work, grades and processed videos. Each kind can be turned on or off in the app and by email.
+  work, grades, processed videos, discussions, reports and live classes. Each kind can be turned
+  on or off in the app and by email.
 - **Insights** for a course's editors: enrolled and active students, completion per lesson, a
   retention curve for each video, quiz pass rates and the hardest questions, and grades. The
   Students tab shows each student's progress.
@@ -84,6 +105,7 @@ browser ──► Netlify: apps/web (React)          /api/*    → video proxy f
         one server: Caddy ► apps/api (NestJS 12, Fastify, Socket.IO) ─┬─► PostgreSQL 17 (row-level security)
                             apps/worker (NestJS, BullMQ, ffmpeg) ─────┼─► Redis 8 (queues, limits, pub/sub)
         ──► signed URLs ──► Caddy ► Garage (S3 video store) ◄─────────┘
+        ──► WebRTC ───────► Caddy ► LiveKit (optional, live classes)
 ```
 
 | Package | What it is |
@@ -95,7 +117,7 @@ browser ──► Netlify: apps/web (React)          /api/*    → video proxy f
 
 [docs/architecture.md](docs/architecture.md) walks through a request end to end. It also covers
 the tenancy model, sign-in, real-time, background jobs, courses, the video pipeline, progress,
-quizzes, assignments, notifications and insights. The decisions are recorded in
+quizzes, assignments, notifications, insights, live classes, discussions and search. The decisions are recorded in
 [docs/adr](docs/adr).
 
 ## Security
@@ -131,11 +153,21 @@ quizzes, assignments, notifications and insights. The decisions are recorded in
     downloaded as attachments, never displayed, and only by the student and the course's editors.
 - **Notifications** are readable only by their owner, enforced by row-level security, and can only
   be written for members of the school an event belongs to.
+- **Live classes**:
+  - LiveKit tokens are signed per person and class, for two hours. Students can't publish until a
+    host lets them speak, and nobody can send data through LiveKit, so the chat stays ours.
+  - Chat is rate-limited per person, and a message's text can't be changed in the database.
+  - Meeting links reach students only shortly before the start.
+- **Discussions and search**:
+  - Hidden posts are seen only by their author and the course's editors. Reports are once per
+    person, posts and votes are rate-limited, and moderation is audited.
+  - Search builds its own query from the words typed, never from raw syntax, and only finds what
+    the person may open. Matches are marked with control characters, never HTML.
 - **Audit log**: append-only at the database level. Invitation links are removed from stored
   events once they're emailed.
 - **Web app**:
   - A strict Content-Security-Policy: own scripts only, Trusted Types, and connections only to
-    its own origin, the API's WebSocket host and the video store.
+    its own origin, the API's WebSocket host, the video store and the LiveKit server.
   - HSTS and friends, for the page and the API.
 
 ## What it costs: $0
@@ -143,10 +175,12 @@ quizzes, assignments, notifications and insights. The decisions are recorded in
 | Service | Free tier | Used for |
 | --- | --- | --- |
 | Netlify | Free plan, hard cap (the site pauses, nothing is billed) | The web app, the `/api/v1` proxy, the video proxy function |
-| Oracle Cloud Always Free | Ampere server, up to 4 cores, 24 GB and 200 GB of disk | The API, the worker, Postgres, Redis, Garage (videos), Caddy (Docker Compose) |
-| DuckDNS | Free subdomains | The API's and the video store's addresses |
-| Let's Encrypt (through Caddy) | Free certificates | HTTPS for the API and the video store |
+| Oracle Cloud Always Free | Ampere server, up to 4 cores, 24 GB and 200 GB of disk | The API, the worker, Postgres, Redis, Garage (videos), LiveKit, Caddy (Docker Compose) |
+| DuckDNS | Free subdomains | The API's, the video store's and LiveKit's addresses |
+| Let's Encrypt (through Caddy) | Free certificates | HTTPS for the API, the video store and LiveKit |
 | Garage (self-hosted) | Open source, on the server's free disk | Video storage, S3-compatible |
+| LiveKit (self-hosted, optional) | Open source, on the same server | Live classes over WebRTC |
+| YouTube Live | Free | Live classes streamed from YouTube Studio or OBS, without LiveKit |
 | Brevo or Resend | 300 or 100 emails a day | Invitation and notification emails |
 | YouTube Data API, Dailymotion, Twitch | Free quotas | The Explore pages |
 
@@ -189,6 +223,10 @@ public Netlify site is built this way (`netlify.toml`). Without the flag, none o
   They're animated waveforms over synthesized tones, made from scratch by
   [apps/web/scripts/demo-media](apps/web/scripts/demo-media) (`render.py` draws them, `package.mjs`
   packages them as HLS like the worker does) and served from `public/demo/media`.
+- **Live and social**: every course has discussions to read and answer, instructors have reports
+  to work through, and live classes are timed from your visit: one live now with
+  classmates chatting and raising hands, one about to open its waiting room, and others to come.
+  Search covers all of it.
 
 ```bash
 VITE_DEMO=true npm run dev -w @grand/web            # add `-- --mode mock` for the Explore pages without keys
@@ -219,6 +257,9 @@ VITE_DEMO=true npm run build -w @grand/web
     set `TEST_S3_ENDPOINT=http://localhost:3900`, `TEST_S3_BUCKET=grand-media` and the
     `TEST_S3_ACCESS_KEY_ID` and `TEST_S3_SECRET_ACCESS_KEY` from `.env`. Without them those tests
     are skipped.
+  - The LiveKit test needs a LiveKit server: `infra:up` starts one in development mode. Set
+    `TEST_LIVEKIT_URL=ws://localhost:7880`, `TEST_LIVEKIT_API_KEY=devkey` and
+    `TEST_LIVEKIT_API_SECRET=secret`, or it's skipped.
 
 The suites cover:
 - row-level security, straight against the database
@@ -232,12 +273,16 @@ The suites cover:
 - uploads, quotas, playback tokens and the rewritten playlists
 - watch progress and completion, quiz grading and attempt limits under parallel requests,
   assignment files and grading, insights, the notification inbox and settings
+- live classes: scheduling and their lifecycle, the waiting room, chat and its limit, hands,
+  attendance, and LiveKit tokens checked against a real LiveKit server
+- discussions: threads, comments and replies, votes, locking, moderation, reports and deletion
+- search: stemming, prefixes, ranking, snippets, and what each person may find
 - transcoding real clips (landscape, portrait, silent), refusing broken or too-long files, deleting
   videos and clearing abandoned uploads
-- the worker's relay, email and clean-up, and who is notified of what
+- the worker's relay, email and clean-up, who is notified of what, and class reminders
 - the page's security rules
 
-CI runs everything on every push and pull request, with Garage and ffmpeg. It also builds the
+CI runs everything on every push and pull request, with Garage, LiveKit and ffmpeg. It also builds the
 Docker images and transcodes test clips inside the worker image
 ([.github/workflows/ci.yml](.github/workflows/ci.yml)).
 
@@ -246,10 +291,10 @@ Docker images and transcodes test clips inside the worker image
 ```text
 apps/
   web/        React app, the Netlify video proxy (server/, netlify/), security headers (config/)
-  api/        NestJS API: src/{auth,schools,courses,learning,notifications,storage,realtime,database,rate-limit,events,health}, migrations/, test/
+  api/        NestJS API: src/{auth,schools,courses,learning,notifications,live,discussions,search,storage,realtime,database,rate-limit,events,health}, migrations/, test/
   worker/     NestJS worker: src/{jobs,mail,media,notifications,files}, scripts/, test/
 packages/
   contracts/  shared zod schemas and types
-infra/        docker-compose (local and production), Caddyfile, Postgres init, Garage config
+infra/        docker-compose (local and production, with LiveKit), Caddyfile, Postgres init, Garage config
 docs/         architecture, decision records, deployment, roadmap
 ```

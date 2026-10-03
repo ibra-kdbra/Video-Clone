@@ -73,10 +73,25 @@ export const envSchema = z.object({
   MEDIA_MAX_UPLOAD_BYTES: z.coerce.number().int().min(1_048_576).max(50 * 1024 ** 3).default(2 * 1024 ** 3),
   /** How long playback and image addresses stay valid. */
   MEDIA_URL_TTL_SECONDS: z.coerce.number().int().min(60).max(86_400).default(4 * 3600),
-}).refine((env) => !env.S3_BUCKET || (env.S3_ENDPOINT && env.S3_ACCESS_KEY_ID && env.S3_SECRET_ACCESS_KEY), {
-  message: 'S3_BUCKET needs S3_ENDPOINT, S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY',
-  path: ['S3_BUCKET'],
-});
+
+  /**
+   * A LiveKit server for live classes in the browser (WebRTC). Without it, classes use YouTube
+   * Live or a meeting link. LIVEKIT_URL is where browsers connect (wss://live.example.org);
+   * LIVEKIT_API_URL is where the API reaches its server API, when that differs (http://livekit:7880).
+   */
+  LIVEKIT_URL: z.url({ protocol: /^wss?$/ }).optional(),
+  LIVEKIT_API_URL: z.url({ protocol: /^https?$/ }).optional(),
+  LIVEKIT_API_KEY: z.string().min(3).optional(),
+  LIVEKIT_API_SECRET: z.string().min(6).optional(),
+})
+  .refine((env) => !env.S3_BUCKET || (env.S3_ENDPOINT && env.S3_ACCESS_KEY_ID && env.S3_SECRET_ACCESS_KEY), {
+    message: 'S3_BUCKET needs S3_ENDPOINT, S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY',
+    path: ['S3_BUCKET'],
+  })
+  .refine((env) => !env.LIVEKIT_URL || (env.LIVEKIT_API_KEY && env.LIVEKIT_API_SECRET), {
+    message: 'LIVEKIT_URL needs LIVEKIT_API_KEY and LIVEKIT_API_SECRET',
+    path: ['LIVEKIT_URL'],
+  });
 
 export type Env = z.infer<typeof envSchema>;
 
@@ -112,6 +127,7 @@ export class AppConfig {
     forcePathStyle: boolean;
   } | null;
   readonly media: { maxUploadBytes: number; urlTtlSeconds: number };
+  readonly livekit: { url: string; apiUrl: string; apiKey: string; apiSecret: string } | null;
 
   constructor(env: Env) {
     const production = env.NODE_ENV === 'production';
@@ -148,6 +164,15 @@ export class AppConfig {
           }
         : null;
     this.media = { maxUploadBytes: env.MEDIA_MAX_UPLOAD_BYTES, urlTtlSeconds: env.MEDIA_URL_TTL_SECONDS };
+    this.livekit =
+      env.LIVEKIT_URL && env.LIVEKIT_API_KEY && env.LIVEKIT_API_SECRET
+        ? {
+            url: env.LIVEKIT_URL.replace(/\/$/, ''),
+            apiUrl: (env.LIVEKIT_API_URL ?? env.LIVEKIT_URL.replace(/^ws/, 'http')).replace(/\/$/, ''),
+            apiKey: env.LIVEKIT_API_KEY,
+            apiSecret: env.LIVEKIT_API_SECRET,
+          }
+        : null;
   }
 
   get production() {
@@ -155,9 +180,12 @@ export class AppConfig {
   }
 }
 
-/** Reads the settings from environment variables, listing every problem at once. */
+/**
+ * Reads the settings from environment variables, listing every problem at once. An empty value
+ * counts as unset, as Docker Compose passes `${NAME:-}` for an optional setting left out.
+ */
 export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
-  const result = envSchema.safeParse(source);
+  const result = envSchema.safeParse(Object.fromEntries(Object.entries(source).filter(([, value]) => value !== '')));
   if (!result.success) {
     const problems = result.error.issues.map((issue) => `  ${issue.path.join('.')}: ${issue.message}`).join('\n');
     throw new Error(`Invalid configuration:\n${problems}`);

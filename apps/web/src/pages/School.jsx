@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { m } from 'motion/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -27,6 +27,8 @@ import { useSchoolLive } from '../lib/useSchoolLive.js';
 import { useSession } from '../lib/useSession.js';
 import NotFound from './NotFound.jsx';
 import styles from './School.module.scss';
+
+const UpcomingLive = lazy(() => import('../components/UpcomingLive.jsx'));
 
 const TABS = [
   { key: 'overview', label: 'Courses', icon: 'layers' },
@@ -181,7 +183,14 @@ function MemberSchool({ school, onGone, onLeft }) {
         ) : tab.key === 'invitations' ? (
           <InvitationsPanel school={school} onLostAccess={recheck} />
         ) : (
-          <CourseCatalog school={school} onNewCourse={() => setCreating(true)} />
+          <>
+            <Suspense fallback={null}>
+              <div className={styles.upcoming}>
+                <UpcomingLive schools={[school]} />
+              </div>
+            </Suspense>
+            <CourseCatalog school={school} onNewCourse={() => setCreating(true)} />
+          </>
         )}
       </div>
 

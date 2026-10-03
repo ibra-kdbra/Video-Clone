@@ -1,0 +1,419 @@
+// Discussions: posts, replies, the composer, thread lists, reports and lesson comments.
+
+// A post ----------------------------------------------------------------------------------------
+
+.post {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+  border-radius: var(--radius-md);
+  scroll-margin-top: calc(var(--topbar-h) + 1rem);
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    @include focus-ring(4px);
+  }
+
+  // Brought into view by a link (a notification, a search result): a soft glow that fades.
+  &[data-highlight] {
+    animation: highlight 2.4s var(--ease) both;
+  }
+}
+
+@keyframes highlight {
+  0%,
+  40% {
+    background: var(--accent-soft);
+    box-shadow: 0 0 0 8px var(--accent-soft);
+  }
+  100% {
+    background: transparent;
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+.postHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.byline {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.bylineText {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem 0.45rem;
+  min-width: 0;
+  font-size: var(--text-sm);
+}
+
+.author {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.instructor {
+  height: 20px;
+}
+
+.you {
+  color: var(--text-3);
+}
+
+.when {
+  color: var(--text-3);
+}
+
+.flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.postBody {
+  overflow-wrap: anywhere;
+}
+
+.placeholderHead {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-3);
+  font-size: var(--text-sm);
+  font-style: italic;
+  font-weight: 550;
+}
+
+.placeholderText {
+  color: var(--text-3);
+  font-size: var(--text-sm);
+}
+
+.flaggedNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius-sm);
+  background: var(--warning-soft);
+  color: var(--warning-text);
+  font-size: var(--text-sm);
+  font-weight: 550;
+
+  svg {
+    flex: none;
+    margin-top: 0.15rem;
+  }
+}
+
+.post[data-state='flagged'] .postBody {
+  opacity: 0.75;
+}
+
+.postActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: -0.5rem;
+}
+
+.helpful,
+.action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 34px;
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--radius-pill);
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+
+  @include hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.7;
+
+    @include hover {
+      background: none;
+      color: var(--text-2);
+    }
+  }
+}
+
+.helpful[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.action[data-on] {
+  color: var(--success);
+}
+
+.reported {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.5rem;
+  color: var(--text-3);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.menu {
+  margin-left: auto;
+}
+
+.post[data-accepted] {
+  padding: 0.9rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--success) 40%, transparent);
+  background: var(--success-soft);
+}
+
+// Writing ---------------------------------------------------------------------------------------
+
+.composer,
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+
+  textarea {
+    min-height: 0;
+    resize: vertical;
+  }
+}
+
+.composerFolded textarea {
+  min-height: 46px;
+}
+
+.composerActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+// Reporting -------------------------------------------------------------------------------------
+
+.reportForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  border: 0;
+}
+
+.legend {
+  margin-bottom: 0.5rem;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.reason {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition:
+    border-color var(--fast) var(--ease),
+    background var(--fast) var(--ease);
+
+  @include hover {
+    background: var(--surface-2);
+  }
+
+  &:has(input:checked) {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  &:has(input:focus-visible) {
+    @include focus-ring;
+  }
+
+  input {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    margin-top: 0.1rem;
+    accent-color: var(--accent);
+
+    &:focus-visible {
+      outline: none;
+    }
+  }
+}
+
+.reasonText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.reasonLabel {
+  font-weight: 600;
+}
+
+.reasonHint {
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}
+
+.fieldError {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--danger);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+// Replies under a post ----------------------------------------------------------------------------
+
+.replies {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  margin: 0.4rem 0 0 1.05rem;
+  padding-left: 1.4rem;
+  border-left: 2px solid var(--line);
+  list-style: none;
+
+  @include down(sm) {
+    margin-left: 0.5rem;
+    padding-left: 0.9rem;
+  }
+}
+
+.showMore {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: fit-content;
+  padding: 0.3rem 0.1rem;
+  color: var(--accent-text);
+  font-size: var(--text-sm);
+  font-weight: 650;
+
+  @include hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: var(--text-sm);
+
+  svg {
+    flex: none;
+    margin-top: 0.1rem;
+  }
+}
+
+// Lesson comments ---------------------------------------------------------------------------------
+
+.comments {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 75ch;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.commentsHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.commentsTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--text-xl);
+  letter-spacing: -0.025em;
+}
+
+.commentList {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  list-style: none;
+}
+
+.comment {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.linked {
+  padding: 1rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+}
+
+.linkedLabel {
+  margin-bottom: 0.4rem;
+  color: var(--text-3);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.end {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-3);
+  font-size: var(--text-sm);
+}
+
+.sort {
+  min-width: 11rem;
+}

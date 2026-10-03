@@ -4,6 +4,7 @@ import * as CONTENT from '../src/demo/content.js';
 import { AUTOGRADE_AFTER_MS, HANDIN_AFTER_MS, autoGrade, createServer } from '../src/demo/core.js';
 import { MEDIA } from '../src/demo/media.js';
 import { FILE_GONE } from '../src/demo/routes/learning.js';
+import * as SOCIAL from '../src/demo/social.js';
 import { DAY, ids } from '../src/demo/seed.js';
 import { STORAGE_KEY } from '../src/demo/store.js';
 import { validateContent } from '../src/demo/validate.js';
@@ -33,7 +34,7 @@ function setup({ storage = memoryStorage(), clock = { now: START } } = {}) {
     },
     clearTimeout: () => {},
   };
-  const server = createServer({ content: CONTENT, media: MEDIA, now: () => clock.now, storage, latency: 0, userAgent: 'Vitest', timers, strict: true });
+  const server = createServer({ content: CONTENT, media: MEDIA, social: SOCIAL, now: () => clock.now, storage, latency: 0, userAgent: 'Vitest', timers, strict: true });
   const messages = [];
   server.subscribe((message) => messages.push(message));
   const flushTimers = () => {
